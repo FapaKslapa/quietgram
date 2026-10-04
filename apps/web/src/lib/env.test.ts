@@ -3,6 +3,7 @@ import { parseEnv } from "./env";
 
 const valid = {
   BETTER_AUTH_SECRET: "a".repeat(32),
+  BETTER_AUTH_URL: "http://localhost:8787",
   ALLOWED_EMAILS: "me@example.com",
   COOKIE_KEY: "b".repeat(32),
   BOOTSTRAP_SECRET: "c".repeat(16),
@@ -24,5 +25,9 @@ describe("parseEnv", () => {
 
   it("rejects a too short secret", () => {
     expect(() => parseEnv({ ...valid, BETTER_AUTH_SECRET: "short" })).toThrow();
+  });
+
+  it("rejects an invalid base url", () => {
+    expect(() => parseEnv({ ...valid, BETTER_AUTH_URL: "not a url" })).toThrow();
   });
 });

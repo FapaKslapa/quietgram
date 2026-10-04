@@ -1,22 +1,6 @@
-import { readdirSync, readFileSync } from "node:fs";
-import { join } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { beforeEach, describe, expect, it } from "vitest";
-
-const migrationsDir = join(import.meta.dirname, "../migrations");
-
-const migrate = (database: DatabaseSync) => {
-  const files = readdirSync(migrationsDir)
-    .filter((file) => file.endsWith(".sql"))
-    .sort();
-  for (const file of files) {
-    for (const statement of readFileSync(join(migrationsDir, file), "utf8").split(
-      "--> statement-breakpoint",
-    )) {
-      database.exec(statement);
-    }
-  }
-};
+import { migrate } from "./testing";
 
 describe("schema migration", () => {
   let database: DatabaseSync;

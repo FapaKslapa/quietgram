@@ -3,6 +3,7 @@ import { z } from "zod";
 const envSchema = z.compile(
   z.object({
     BETTER_AUTH_SECRET: z.string().min(32),
+    BETTER_AUTH_URL: z.url(),
     ALLOWED_EMAILS: z.string().min(3),
     COOKIE_KEY: z.string().min(32),
     BOOTSTRAP_SECRET: z.string().min(16),
