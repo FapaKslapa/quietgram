@@ -1,6 +1,6 @@
 import type { Db } from "@nodistraction/db";
 import { z } from "zod";
-import { redeemPairingToken, savePairedSession } from "./pairing";
+import { redeemPairingToken, savePairedSession } from "@/lib/auth/pairing";
 
 const pairBodySchema = z.compile(
   z.object({

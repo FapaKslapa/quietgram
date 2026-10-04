@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { canBootstrap, isAllowed } from "./allowlist";
+import { canBootstrap, isAllowed } from "@/lib/auth/allowlist";
 
 describe("isAllowed", () => {
   it("accepts listed emails case-insensitively and trimmed", () => {

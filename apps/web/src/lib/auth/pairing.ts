@@ -1,7 +1,7 @@
 import { type Db, igSessions, pairingTokens } from "@nodistraction/db";
 import type { IgCookies } from "@nodistraction/ig";
 import { and, eq, gt, isNull } from "drizzle-orm";
-import { encrypt } from "./crypto";
+import { encrypt } from "@/lib/auth/crypto";
 
 const TOKEN_TTL_MS = 10 * 60_000;
 

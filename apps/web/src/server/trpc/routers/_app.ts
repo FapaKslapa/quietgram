@@ -1,6 +1,6 @@
 import { z } from "zod";
-import { createTRPCRouter, publicProcedure } from "../init";
-import { pairingRouter } from "./pairing";
+import { createTRPCRouter, publicProcedure } from "@/server/trpc/init";
+import { pairingRouter } from "@/server/trpc/routers/pairing";
 
 const healthOutput = z.compile(z.object({ ok: z.literal(true) }));
 

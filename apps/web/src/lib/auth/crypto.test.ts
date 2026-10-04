@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { decrypt, encrypt } from "./crypto";
+import { decrypt, encrypt } from "@/lib/auth/crypto";
 
 const key = Buffer.alloc(32, 7).toString("base64");
 const otherKey = Buffer.alloc(32, 9).toString("base64");

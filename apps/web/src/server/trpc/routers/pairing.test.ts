@@ -1,8 +1,8 @@
 import { pairingTokens, user } from "@nodistraction/db";
 import { createTestDb } from "@nodistraction/db/testing";
 import { describe, expect, it } from "vitest";
-import { createCallerFactory } from "../init";
-import { appRouter } from "./_app";
+import { createCallerFactory } from "@/server/trpc/init";
+import { appRouter } from "@/server/trpc/routers/_app";
 
 const createCaller = createCallerFactory(appRouter);
 

@@ -2,8 +2,8 @@ import { igSessions, user } from "@nodistraction/db";
 import { createTestDb } from "@nodistraction/db/testing";
 import { eq } from "drizzle-orm";
 import { beforeEach, describe, expect, it } from "vitest";
-import { decrypt } from "./crypto";
-import { issuePairingToken, redeemPairingToken, savePairedSession } from "./pairing";
+import { decrypt } from "@/lib/auth/crypto";
+import { issuePairingToken, redeemPairingToken, savePairedSession } from "@/lib/auth/pairing";
 
 const key = Buffer.alloc(32, 3).toString("base64");
 const now = new Date("2026-10-04T10:00:00Z");

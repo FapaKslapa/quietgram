@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { IgHttpError, SessionExpiredError } from "./errors";
-import { createRequester } from "./request";
+import { IgHttpError, SessionExpiredError } from "#ig/errors";
+import { createRequester } from "#ig/request";
 
 const cookies = { sessionId: "s", csrfToken: "c", userId: "1" };
 const fakeFetch =

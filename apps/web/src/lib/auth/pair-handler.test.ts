@@ -1,8 +1,8 @@
 import { igSessions, user } from "@nodistraction/db";
 import { createTestDb } from "@nodistraction/db/testing";
 import { beforeEach, describe, expect, it } from "vitest";
-import { handlePair } from "./pair-handler";
-import { issuePairingToken } from "./pairing";
+import { handlePair } from "@/lib/auth/pair-handler";
+import { issuePairingToken } from "@/lib/auth/pairing";
 
 const cookieKey = Buffer.alloc(32, 5).toString("base64");
 const now = new Date("2026-10-04T10:00:00Z");

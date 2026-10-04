@@ -1,5 +1,5 @@
-import type { Requester } from "./request";
-import { type MediaItem, type MediaNode, savedPageSchema, timelinePageSchema } from "./schemas";
+import type { Requester } from "#ig/request";
+import { type MediaItem, type MediaNode, savedPageSchema, timelinePageSchema } from "#ig/schemas";
 
 export type IgMedia = { kind: "image" | "video"; url: string; width: number; height: number };
 

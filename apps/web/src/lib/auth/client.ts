@@ -1,6 +1,6 @@
 import { passkeyClient } from "@better-auth/passkey/client";
 import { createAuthClient } from "better-auth/react";
-import { BOOTSTRAP_HEADER } from "./bootstrap";
+import { BOOTSTRAP_HEADER } from "@/lib/auth/bootstrap";
 
 const plugins = [passkeyClient()];
 

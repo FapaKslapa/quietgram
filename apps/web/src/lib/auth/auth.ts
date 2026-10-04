@@ -3,9 +3,9 @@ import { type Db, schema } from "@nodistraction/db";
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { APIError } from "better-auth/api";
-import type { AppEnv } from "../env";
-import { canBootstrap, isAllowed } from "./allowlist";
-import { BOOTSTRAP_HEADER } from "./bootstrap";
+import { canBootstrap, isAllowed } from "@/lib/auth/allowlist";
+import { BOOTSTRAP_HEADER } from "@/lib/auth/bootstrap";
+import type { AppEnv } from "@/lib/env";
 
 export const createAuth = (env: AppEnv, db: Db) => {
   const url = new URL(env.BETTER_AUTH_URL);

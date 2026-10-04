@@ -2,8 +2,8 @@ import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { drizzle } from "drizzle-orm/sqlite-proxy";
-import type { Db } from "./client";
-import * as schema from "./schema";
+import type { Db } from "#db/client";
+import * as schema from "#db/schema";
 
 const migrationsDir = join(import.meta.dirname, "../migrations");
 

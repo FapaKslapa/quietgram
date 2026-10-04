@@ -1,6 +1,6 @@
 import { DatabaseSync } from "node:sqlite";
 import { beforeEach, describe, expect, it } from "vitest";
-import { migrate } from "./testing";
+import { migrate } from "#db/testing";
 
 describe("schema migration", () => {
   let database: DatabaseSync;

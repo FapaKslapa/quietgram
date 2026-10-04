@@ -11,7 +11,7 @@ import { headers } from "next/headers";
 import { cache, type ReactNode } from "react";
 import { createTRPCContext } from "@/server/trpc/context";
 import { appRouter } from "@/server/trpc/routers/_app";
-import { makeQueryClient } from "./query-client";
+import { makeQueryClient } from "@/trpc/query-client";
 
 export const getQueryClient = cache(makeQueryClient);
 

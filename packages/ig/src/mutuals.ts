@@ -1,5 +1,5 @@
-import type { Requester } from "./request";
-import { type IgUser, usersPageSchema } from "./schemas";
+import type { Requester } from "#ig/request";
+import { type IgUser, usersPageSchema } from "#ig/schemas";
 
 export type { IgUser };
 

@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
-import inboxFixture from "../fixtures/inbox.json" with { type: "json" };
-import threadFixture from "../fixtures/thread.json" with { type: "json" };
-import { fetchInbox, fetchThread, sendText, validateDmText } from "./direct";
-import type { Requester } from "./request";
+import inboxFixture from "#fixtures/inbox.json" with { type: "json" };
+import threadFixture from "#fixtures/thread.json" with { type: "json" };
+import { fetchInbox, fetchThread, sendText, validateDmText } from "#ig/direct";
+import type { Requester } from "#ig/request";
 
 type Call = { path: string; body: Record<string, string> };
 

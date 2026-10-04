@@ -1,5 +1,5 @@
-import type { Requester } from "./request";
-import { inboxPageSchema, sendResponseSchema, threadPageSchema } from "./schemas";
+import type { Requester } from "#ig/request";
+import { inboxPageSchema, sendResponseSchema, threadPageSchema } from "#ig/schemas";
 
 export type IgThread = { id: string; title: string; lastActivityAt: number; unread: boolean };
 

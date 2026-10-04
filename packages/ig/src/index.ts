@@ -5,9 +5,9 @@ export {
   type IgThread,
   sendText,
   validateDmText,
-} from "./direct";
-export { IgHttpError, SessionExpiredError } from "./errors";
-export { computeMutuals, fetchAllUsers, type IgUser } from "./mutuals";
+} from "#ig/direct";
+export { IgHttpError, SessionExpiredError } from "#ig/errors";
+export { computeMutuals, fetchAllUsers, type IgUser } from "#ig/mutuals";
 export {
   fetchSaved,
   fetchTimelinePage,
@@ -16,5 +16,5 @@ export {
   type IgPost,
   isReel,
   type TimelinePage,
-} from "./posts";
-export { createRequester, type IgCookies, type Requester } from "./request";
+} from "#ig/posts";
+export { createRequester, type IgCookies, type Requester } from "#ig/request";

@@ -1,6 +1,6 @@
 import { createDb } from "@nodistraction/db";
-import { parseEnv } from "../env";
-import { createAuth } from "./auth";
+import { createAuth } from "@/lib/auth/auth";
+import { parseEnv } from "@/lib/env";
 
 export const createServices = (cloudflareEnv: CloudflareEnv) => {
   const env = parseEnv({ ...cloudflareEnv });

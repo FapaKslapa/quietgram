@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
-import savedFixture from "../fixtures/saved.json" with { type: "json" };
-import timelineFixture from "../fixtures/timeline.json" with { type: "json" };
-import { fetchSaved, fetchTimelinePage, filterByAuthors, type IgPost, isReel } from "./posts";
-import type { Requester } from "./request";
+import savedFixture from "#fixtures/saved.json" with { type: "json" };
+import timelineFixture from "#fixtures/timeline.json" with { type: "json" };
+import { fetchSaved, fetchTimelinePage, filterByAuthors, type IgPost, isReel } from "#ig/posts";
+import type { Requester } from "#ig/request";
 
 const requesterReturning = (response: unknown) => {
   const paths: string[] = [];

@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { IgHttpError, SessionExpiredError } from "./errors";
+import { IgHttpError, SessionExpiredError } from "#ig/errors";
 
 export type IgCookies = { sessionId: string; csrfToken: string; userId: string };
 

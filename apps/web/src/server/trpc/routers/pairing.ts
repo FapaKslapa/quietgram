@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { issuePairingToken } from "@/lib/auth/pairing";
-import { createTRPCRouter, protectedProcedure } from "../init";
+import { createTRPCRouter, protectedProcedure } from "@/server/trpc/init";
 
 const tokenOutput = z.compile(z.object({ token: z.string() }));
 

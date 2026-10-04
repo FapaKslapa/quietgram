@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
-import followingFixture from "../fixtures/following.json" with { type: "json" };
-import { computeMutuals, fetchAllUsers } from "./mutuals";
-import type { Requester } from "./request";
+import followingFixture from "#fixtures/following.json" with { type: "json" };
+import { computeMutuals, fetchAllUsers } from "#ig/mutuals";
+import type { Requester } from "#ig/request";
 
 const u = (id: string) => ({ id, username: `u${id}`, avatarUrl: null });
 
