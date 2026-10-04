@@ -1,0 +1,8 @@
+{
+  "user": {
+    "pk": "1000",
+    "username": "user_a",
+    "full_name": "Fake"
+  },
+  "status": "ok"
+}

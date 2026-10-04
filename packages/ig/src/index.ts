@@ -1,3 +1,4 @@
+export { checkSession, fetchUserCounts, type UserCounts } from "#ig/account";
 export {
   fetchInbox,
   fetchThread,
@@ -7,7 +8,13 @@ export {
   validateDmText,
 } from "#ig/direct";
 export { IgHttpError, SessionExpiredError } from "#ig/errors";
-export { computeMutuals, fetchAllUsers, type IgUser } from "#ig/mutuals";
+export {
+  computeMutuals,
+  fetchAllUsers,
+  fetchUsersPage,
+  type IgUser,
+  type UsersPage,
+} from "#ig/mutuals";
 export {
   fetchSaved,
   fetchTimelinePage,

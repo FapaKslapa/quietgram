@@ -7,11 +7,13 @@ export const userSchema = z
     pk: idSchema,
     username: z.string(),
     profile_pic_url: z.string().nullish(),
+    is_verified: z.boolean().nullish(),
   })
   .transform((user) => ({
     id: user.pk,
     username: user.username,
     avatarUrl: user.profile_pic_url ?? null,
+    isVerified: user.is_verified ?? false,
   }));
 
 export const usersPageSchema = z.compile(
@@ -85,3 +87,15 @@ export const threadPageSchema = z.compile(
 );
 
 export const sendResponseSchema = z.compile(z.object({ status: z.literal("ok") }));
+
+export const userInfoSchema = z.compile(
+  z.object({
+    user: z.object({
+      follower_count: z.number(),
+      is_verified: z.boolean().nullish(),
+      is_business: z.boolean().nullish(),
+    }),
+  }),
+);
+
+export const currentUserSchema = z.compile(z.object({ status: z.literal("ok") }));

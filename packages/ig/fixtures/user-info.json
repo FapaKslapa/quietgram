@@ -1,0 +1,13 @@
+{
+  "user": {
+    "pk": "5099",
+    "username": "user_e",
+    "full_name": "Fake",
+    "follower_count": 12345,
+    "following_count": 321,
+    "is_verified": false,
+    "is_business": true,
+    "is_private": false
+  },
+  "status": "ok"
+}

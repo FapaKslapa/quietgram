@@ -8,21 +8,33 @@ export const computeMutuals = (following: IgUser[], followers: IgUser[]): IgUser
   return following.filter((user) => followerIds.has(user.id));
 };
 
+export type UsersPage = { users: IgUser[]; nextCursor: string | null };
+
+export const fetchUsersPage = async (
+  requester: Requester,
+  kind: "following" | "followers",
+  userId: string,
+  cursor?: string | null,
+): Promise<UsersPage> => {
+  const params: Record<string, string> = { count: "200" };
+  if (cursor) params.max_id = cursor;
+  const page = usersPageSchema.parse(
+    await requester.get(`/api/v1/friendships/${userId}/${kind}/`, params),
+  );
+  return { users: page.users, nextCursor: page.next_max_id ?? null };
+};
+
 export const fetchAllUsers = async (
   requester: Requester,
   kind: "following" | "followers",
   userId: string,
 ): Promise<IgUser[]> => {
   const users: IgUser[] = [];
-  let cursor: string | null | undefined;
+  let cursor: string | null = null;
   do {
-    const params: Record<string, string> = { count: "200" };
-    if (cursor) params.max_id = cursor;
-    const page = usersPageSchema.parse(
-      await requester.get(`/api/v1/friendships/${userId}/${kind}/`, params),
-    );
+    const page = await fetchUsersPage(requester, kind, userId, cursor);
     users.push(...page.users);
-    cursor = page.next_max_id;
+    cursor = page.nextCursor;
   } while (cursor);
   return users;
 };
