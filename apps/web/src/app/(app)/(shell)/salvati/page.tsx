@@ -1,8 +1,18 @@
 import type { Metadata } from "next";
-import { ScreenHeader } from "@/components/shell/screen-header";
+import { Suspense } from "react";
+import { SalvatiScreen, SalvatiSkeleton } from "@/components/salvati/salvati-screen";
+import { HydrateClient, prefetch, trpc } from "@/trpc/server";
 
 export const metadata: Metadata = { title: "Salvati" };
 
 export default function SalvatiPage() {
-  return <ScreenHeader title="Salvati" />;
+  prefetch(trpc.saved.list.queryOptions());
+
+  return (
+    <HydrateClient>
+      <Suspense fallback={<SalvatiSkeleton />}>
+        <SalvatiScreen />
+      </Suspense>
+    </HydrateClient>
+  );
 }
