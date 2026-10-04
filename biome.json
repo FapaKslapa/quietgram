@@ -33,7 +33,18 @@
       },
       "style": {
         "noNonNullAssertion": "error",
-        "useImportType": "error"
+        "useImportType": "error",
+        "noRestrictedImports": {
+          "level": "error",
+          "options": {
+            "patterns": [
+              {
+                "group": ["./*", "../*", ".", " .."],
+                "message": "Use an alias import"
+              }
+            ]
+          }
+        }
       }
     }
   },
