@@ -33,9 +33,20 @@ const toPost = (item: MediaItem): IgPost => ({
 
 const toPosts = (items: MediaItem[]): IgPost[] => items.filter((item) => !isReel(item)).map(toPost);
 
+const SAVED_MAX_PAGES = 5;
+
 export const fetchSaved = async (requester: Requester): Promise<IgPost[]> => {
-  const page = savedPageSchema.parse(await requester.get("/api/v1/feed/saved/posts/"));
-  return toPosts(page.items.map((entry) => entry.media));
+  const saved: IgPost[] = [];
+  let cursor: string | null | undefined;
+  for (let pageNumber = 0; pageNumber < SAVED_MAX_PAGES; pageNumber += 1) {
+    const page = savedPageSchema.parse(
+      await requester.get("/api/v1/feed/saved/posts/", cursor ? { max_id: cursor } : undefined),
+    );
+    saved.push(...page.items.map((entry) => toPost(entry.media)));
+    cursor = page.next_max_id;
+    if (!cursor || page.more_available === false) break;
+  }
+  return saved;
 };
 
 export type TimelinePage = { posts: IgPost[]; nextCursor: string | null };

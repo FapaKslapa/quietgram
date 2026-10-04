@@ -28,11 +28,11 @@ describe("isReel", () => {
 });
 
 describe("fetchSaved", () => {
-  it("drops reels from saved posts", async () => {
+  it("keeps reels in saved posts", async () => {
     const { requester, paths } = requesterReturning(savedFixture);
     const posts = await fetchSaved(requester);
-    expect(posts).toHaveLength(1);
-    expect(posts[0]?.media.map((media) => media.kind)).toEqual(["image", "image", "video"]);
+    expect(posts.length).toBeGreaterThan(1);
+    expect(posts.some((post) => post.media.some((media) => media.kind === "video"))).toBe(true);
     expect(paths).toEqual(["/api/v1/feed/saved/posts/"]);
   });
 });

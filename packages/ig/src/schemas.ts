@@ -42,7 +42,11 @@ export const mediaItemSchema = mediaNodeSchema.extend({
 });
 
 export const savedPageSchema = z.compile(
-  z.object({ items: z.array(z.object({ media: mediaItemSchema })) }),
+  z.object({
+    items: z.array(z.object({ media: mediaItemSchema })),
+    next_max_id: z.string().nullish(),
+    more_available: z.boolean().nullish(),
+  }),
 );
 
 export const timelinePageSchema = z.compile(
