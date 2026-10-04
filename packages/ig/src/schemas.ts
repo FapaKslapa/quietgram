@@ -51,3 +51,36 @@ export const timelinePageSchema = z.compile(
 
 export type MediaItem = z.output<typeof mediaItemSchema>;
 export type MediaNode = z.output<typeof mediaNodeSchema>;
+
+export const inboxPageSchema = z.compile(
+  z.object({
+    inbox: z.object({
+      threads: z.array(
+        z.object({
+          thread_id: idSchema,
+          thread_title: z.string().nullish(),
+          last_activity_at: z.number(),
+          read_state: z.number().nullish(),
+        }),
+      ),
+    }),
+  }),
+);
+
+export const threadPageSchema = z.compile(
+  z.object({
+    thread: z.object({
+      items: z.array(
+        z.object({
+          item_id: idSchema,
+          user_id: idSchema,
+          timestamp: z.number(),
+          item_type: z.string(),
+          text: z.string().nullish(),
+        }),
+      ),
+    }),
+  }),
+);
+
+export const sendResponseSchema = z.compile(z.object({ status: z.literal("ok") }));
