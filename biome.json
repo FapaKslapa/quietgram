@@ -31,6 +31,12 @@
         "noExplicitAny": "error",
         "noConsole": "error"
       },
+      "performance": {
+        "noImgElement": "off"
+      },
+      "complexity": {
+        "noImportantStyles": "off"
+      },
       "style": {
         "noNonNullAssertion": "error",
         "useImportType": "error",
