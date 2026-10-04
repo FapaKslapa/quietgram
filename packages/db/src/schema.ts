@@ -230,6 +230,44 @@ export const dmMessages = sqliteTable(
   ],
 );
 
+export const feedModes = ["friends", "following", "creators"] as const;
+
+export const following = sqliteTable(
+  "following",
+  {
+    ownerId: text("owner_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    igUserId: text("ig_user_id").notNull(),
+    username: text("username").notNull(),
+    avatarUrl: text("avatar_url"),
+    followerCount: integer("follower_count"),
+    isVerified: integer("is_verified", { mode: "boolean" }).notNull().default(false),
+    isBusiness: integer("is_business", { mode: "boolean" }).notNull().default(false),
+    countsRefreshedAt: integer("counts_refreshed_at", { mode: "timestamp_ms" }),
+  },
+  (t) => [primaryKey({ columns: [t.ownerId, t.igUserId] })],
+);
+
+export const userSettings = sqliteTable("user_settings", {
+  ownerId: text("owner_id")
+    .primaryKey()
+    .references(() => user.id, { onDelete: "cascade" }),
+  feedMode: text("feed_mode", { enum: feedModes }).notNull().default("friends"),
+  creatorThreshold: integer("creator_threshold").notNull().default(10000),
+});
+
+export const feedExceptions = sqliteTable(
+  "feed_exceptions",
+  {
+    ownerId: text("owner_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    igUserId: text("ig_user_id").notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.ownerId, t.igUserId] })],
+);
+
 export const syncRuns = sqliteTable("sync_runs", {
   id: text("id").primaryKey(),
   ownerId: text("owner_id")
@@ -237,9 +275,13 @@ export const syncRuns = sqliteTable("sync_runs", {
     .references(() => user.id, { onDelete: "cascade" }),
   startedAt: integer("started_at", { mode: "timestamp_ms" }).notNull(),
   finishedAt: integer("finished_at", { mode: "timestamp_ms" }),
+  kind: text("kind", { enum: ["refresh", "keepalive"] })
+    .notNull()
+    .default("refresh"),
   status: text("status", { enum: ["running", "done", "failed"] }).notNull(),
   total: integer("total").notNull(),
   completed: integer("completed").notNull(),
+  state: text("state"),
 });
 
 export const pairingTokens = sqliteTable("pairing_tokens", {

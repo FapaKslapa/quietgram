@@ -23,6 +23,8 @@ describe("schema migration", () => {
       "account",
       "dm_messages",
       "dm_threads",
+      "feed_exceptions",
+      "following",
       "ig_sessions",
       "mutuals",
       "pairing_tokens",
@@ -33,6 +35,7 @@ describe("schema migration", () => {
       "sync_runs",
       "sync_state",
       "user",
+      "user_settings",
       "verification",
     ]);
   });
