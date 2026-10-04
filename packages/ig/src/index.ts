@@ -10,10 +10,11 @@ export { IgHttpError, SessionExpiredError } from "./errors";
 export { computeMutuals, fetchAllUsers, type IgUser } from "./mutuals";
 export {
   fetchSaved,
-  fetchTimeline,
-  fetchUserPosts,
+  fetchTimelinePage,
+  filterByAuthors,
   type IgMedia,
   type IgPost,
   isReel,
+  type TimelinePage,
 } from "./posts";
 export { createRequester, type IgCookies, type Requester } from "./request";

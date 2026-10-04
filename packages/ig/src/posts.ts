@@ -1,12 +1,5 @@
 import type { Requester } from "./request";
-import {
-  type IgUser,
-  type MediaItem,
-  type MediaNode,
-  savedPageSchema,
-  timelinePageSchema,
-  userFeedPageSchema,
-} from "./schemas";
+import { type MediaItem, type MediaNode, savedPageSchema, timelinePageSchema } from "./schemas";
 
 export type IgMedia = { kind: "image" | "video"; url: string; width: number; height: number };
 
@@ -40,21 +33,23 @@ const toPost = (item: MediaItem): IgPost => ({
 
 const toPosts = (items: MediaItem[]): IgPost[] => items.filter((item) => !isReel(item)).map(toPost);
 
-export const fetchUserPosts = async (requester: Requester, user: IgUser): Promise<IgPost[]> => {
-  const page = userFeedPageSchema.parse(await requester.get(`/api/v1/feed/user/${user.id}/`));
-  return toPosts(page.items);
-};
-
 export const fetchSaved = async (requester: Requester): Promise<IgPost[]> => {
   const page = savedPageSchema.parse(await requester.get("/api/v1/feed/saved/posts/"));
   return toPosts(page.items.map((entry) => entry.media));
 };
 
-export const fetchTimeline = async (
+export type TimelinePage = { posts: IgPost[]; nextCursor: string | null };
+
+export const filterByAuthors = (posts: IgPost[], allowedIds: ReadonlySet<string>): IgPost[] =>
+  posts.filter((post) => allowedIds.has(post.authorId));
+
+export const fetchTimelinePage = async (
   requester: Requester,
-  isAllowedAuthor: (authorId: string) => boolean,
-): Promise<IgPost[]> => {
-  const page = timelinePageSchema.parse(await requester.get("/api/v1/feed/timeline/"));
+  cursor?: string,
+): Promise<TimelinePage> => {
+  const page = timelinePageSchema.parse(
+    await requester.get("/api/v1/feed/timeline/", cursor ? { max_id: cursor } : undefined),
+  );
   const items = page.feed_items.flatMap((entry) => (entry.media_or_ad ? [entry.media_or_ad] : []));
-  return toPosts(items.filter((item) => isAllowedAuthor(item.user.pk)));
+  return { posts: toPosts(items), nextCursor: page.next_max_id ?? null };
 };

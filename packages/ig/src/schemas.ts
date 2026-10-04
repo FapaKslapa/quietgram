@@ -39,14 +39,15 @@ export const mediaItemSchema = mediaNodeSchema.extend({
   carousel_media: z.array(mediaNodeSchema).nullish(),
 });
 
-export const userFeedPageSchema = z.compile(z.object({ items: z.array(mediaItemSchema) }));
-
 export const savedPageSchema = z.compile(
   z.object({ items: z.array(z.object({ media: mediaItemSchema })) }),
 );
 
 export const timelinePageSchema = z.compile(
-  z.object({ feed_items: z.array(z.object({ media_or_ad: mediaItemSchema.nullish() })) }),
+  z.object({
+    feed_items: z.array(z.object({ media_or_ad: mediaItemSchema.nullish() })),
+    next_max_id: z.string().nullish(),
+  }),
 );
 
 export type MediaItem = z.output<typeof mediaItemSchema>;
