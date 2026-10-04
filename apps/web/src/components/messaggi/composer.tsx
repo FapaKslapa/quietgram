@@ -5,7 +5,8 @@ import { type FormEvent, type KeyboardEvent, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import {
-  canSend,
+  canSubmit,
+  composerHint,
   counterLabel,
   isOverLimit,
   MAX_MESSAGE_LENGTH,
@@ -13,14 +14,15 @@ import {
 } from "@/lib/messages";
 import { cn } from "@/lib/utils";
 
-type ComposerProps = { onSend: (text: string) => Promise<boolean> };
+type ComposerProps = { onSend: (text: string) => Promise<boolean>; enabled: boolean };
 
-export function Composer({ onSend }: ComposerProps) {
+export function Composer({ onSend, enabled }: ComposerProps) {
   const [text, setText] = useState("");
-  const sendable = canSend(text);
+  const sendable = canSubmit(text, enabled);
+  const hint = composerHint(enabled);
 
   const submit = async () => {
-    if (!canSend(text)) return;
+    if (!canSubmit(text, enabled)) return;
     const value = text;
     setText("");
     const delivered = await onSend(value);
@@ -49,6 +51,7 @@ export function Composer({ onSend }: ComposerProps) {
           onChange={(event) => setText(event.target.value)}
           onKeyDown={onKeyDown}
           rows={1}
+          disabled={!enabled}
           enterKeyHint="send"
           aria-label="Scrivi un messaggio"
           placeholder="Scrivi un messaggio"
@@ -67,6 +70,7 @@ export function Composer({ onSend }: ComposerProps) {
             {counterLabel(text)}
           </span>
         ) : null}
+        {hint ? <p className="px-4 pt-1.5 text-xs text-soft">{hint}</p> : null}
       </div>
       <Button
         type="submit"

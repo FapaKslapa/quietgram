@@ -60,6 +60,7 @@ describe("refresh.overview", () => {
       viewerId: IG_USER_ID,
       lastRefreshAt: null,
       nextRefreshAt: null,
+      dmSendEnabled: false,
     });
   });
 
@@ -74,6 +75,7 @@ describe("refresh.overview", () => {
       viewerId: IG_USER_ID,
       lastRefreshAt: new Date("2026-10-04T11:58:00Z").getTime(),
       nextRefreshAt: new Date("2026-10-04T12:13:00Z").getTime(),
+      dmSendEnabled: false,
     });
   });
 

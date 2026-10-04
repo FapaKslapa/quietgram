@@ -3,6 +3,8 @@ import {
   appendUnique,
   buildConversation,
   canSend,
+  canSubmit,
+  composerHint,
   counterLabel,
   createPending,
   dropMessage,
@@ -30,6 +32,19 @@ describe("canSend", () => {
     expect(canSend("ciao")).toBe(true);
     expect(canSend(`  ${"a".repeat(1000)}  `)).toBe(true);
     expect(canSend("a".repeat(1001))).toBe(false);
+  });
+});
+
+describe("composer availability", () => {
+  it("submits only when sending is enabled and the text is valid", () => {
+    expect(canSubmit("ciao", true)).toBe(true);
+    expect(canSubmit("ciao", false)).toBe(false);
+    expect(canSubmit("  ", true)).toBe(false);
+  });
+
+  it("shows a calm hint only while sending is disabled", () => {
+    expect(composerHint(false)).toBe("Invio non ancora disponibile");
+    expect(composerHint(true)).toBeNull();
   });
 });
 

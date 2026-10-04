@@ -31,6 +31,9 @@ export function Conversation({ threadId }: { threadId: string }) {
   const { data: viewerId } = useSuspenseQuery(
     trpc.refresh.overview.queryOptions(undefined, { select: (overview) => overview.viewerId }),
   );
+  const { data: sendEnabled } = useSuspenseQuery(
+    trpc.refresh.overview.queryOptions(undefined, { select: (overview) => overview.dmSendEnabled }),
+  );
   const { messages, send, reload, loading, failed } = useConversation(threadId, viewerId);
   const scroller = useRef<HTMLDivElement>(null);
   const shown = useRef(0);
@@ -101,7 +104,7 @@ export function Conversation({ threadId }: { threadId: string }) {
           <Bubbles items={items} pendingKeys={pendingKeys} />
         )}
       </div>
-      <Composer onSend={send} />
+      <Composer onSend={send} enabled={sendEnabled} />
     </div>
   );
 }

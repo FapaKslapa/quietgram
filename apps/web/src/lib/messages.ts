@@ -19,6 +19,11 @@ export const canSend = (text: string): boolean => {
   return length > 0 && length <= MAX_MESSAGE_LENGTH;
 };
 
+export const canSubmit = (text: string, enabled: boolean): boolean => enabled && canSend(text);
+
+export const composerHint = (enabled: boolean): string | null =>
+  enabled ? null : "Invio non ancora disponibile";
+
 export const showCounter = (text: string): boolean => text.length >= COUNTER_THRESHOLD;
 
 export const remainingCharacters = (text: string): number => MAX_MESSAGE_LENGTH - text.length;

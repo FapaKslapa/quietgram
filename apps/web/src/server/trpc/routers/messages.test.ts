@@ -7,10 +7,12 @@ import {
 } from "@nodistraction/ig";
 import inboxFixture from "@nodistraction/ig/fixtures/inbox.json" with { type: "json" };
 import threadFixture from "@nodistraction/ig/fixtures/thread.json" with { type: "json" };
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { createCallerFactory } from "@/server/trpc/init";
 import { appRouter } from "@/server/trpc/routers/_app";
 import { createTestEnv, type RecordedCall } from "@/test/helpers";
+
+vi.mock("@/server/config", () => ({ DM_SEND_ENABLED: true }));
 
 const createCaller = createCallerFactory(appRouter);
 
