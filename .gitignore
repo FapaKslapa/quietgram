@@ -1,0 +1,16 @@
+node_modules
+.wrangler
+.dev.vars
+.env*
+.idea
+*.md
+!README.md
+.superpowers
+.impeccable
+design
+docs
+spike
+.next
+.open-next
+dist
+.turbo
