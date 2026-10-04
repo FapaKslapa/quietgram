@@ -1,6 +1,6 @@
 import type { Db } from "@nodistraction/db";
-import { posts } from "@nodistraction/db";
-import { and, desc, eq, lt } from "drizzle-orm";
+import { following, posts } from "@nodistraction/db";
+import { and, desc, eq, inArray, lt } from "drizzle-orm";
 import { z } from "zod";
 import { loadAllowedAuthors } from "@/lib/sync/settings";
 
@@ -27,6 +27,7 @@ export type FeedPost = {
   id: string;
   authorId: string;
   authorUsername: string;
+  authorAvatarUrl: string | null;
   caption: string | null;
   takenAt: number;
   seen: boolean;
@@ -34,6 +35,19 @@ export type FeedPost = {
 };
 
 export type FeedPage = { items: FeedPost[]; nextCursor: number | null };
+
+const loadAvatars = async (
+  db: Db,
+  ownerId: string,
+  authorIds: string[],
+): Promise<Map<string, string | null>> => {
+  if (authorIds.length === 0) return new Map();
+  const rows = await db
+    .select({ igUserId: following.igUserId, avatarUrl: following.avatarUrl })
+    .from(following)
+    .where(and(eq(following.ownerId, ownerId), inArray(following.igUserId, authorIds)));
+  return new Map(rows.map((row) => [row.igUserId, row.avatarUrl]));
+};
 
 export const listFeed = async (
   db: Db,
@@ -68,6 +82,7 @@ export const listFeed = async (
           id: row.id,
           authorId: row.authorId,
           authorUsername: row.authorUsername,
+          authorAvatarUrl: null,
           caption: row.caption,
           takenAt: row.takenAt.getTime(),
           seen: row.seen,
@@ -78,6 +93,8 @@ export const listFeed = async (
   }
 
   const page = items.slice(0, limit);
+  const avatars = await loadAvatars(db, ownerId, [...new Set(page.map((item) => item.authorId))]);
+  for (const item of page) item.authorAvatarUrl = avatars.get(item.authorId) ?? null;
   const hasMore = items.length > limit;
   const lastItem = page.at(-1);
   return { items: page, nextCursor: hasMore && lastItem ? lastItem.takenAt : null };

@@ -25,6 +25,7 @@ const listOutput = z.compile(
         id: z.string(),
         authorId: z.string(),
         authorUsername: z.string(),
+        authorAvatarUrl: z.string().nullable(),
         caption: z.string().nullable(),
         takenAt: z.number(),
         seen: z.boolean(),

@@ -68,4 +68,25 @@ describe("settings router", () => {
     await caller.settings.removeException({ igUserId: "77" });
     expect((await caller.settings.get()).exceptions).toEqual([]);
   });
+
+  it("lists followed accounts filtered by search, scoped to the owner", async () => {
+    const { env, caller } = await setup();
+    await env.db.insert(following).values([
+      { ownerId: "owner", igUserId: "78", username: "Anna_Rossi" },
+      { ownerId: "owner", igUserId: "79", username: "bruno" },
+    ]);
+    expect((await caller.settings.following({})).map((row) => row.username)).toEqual([
+      "Anna_Rossi",
+      "bruno",
+      "friend_77",
+    ]);
+    expect(
+      (await caller.settings.following({ search: "ANNA" })).map((row) => row.igUserId),
+    ).toEqual(["78"]);
+    expect(await caller.settings.following({ search: "%" })).toEqual([]);
+    expect(await caller.settings.following({ search: "_" })).toEqual([
+      { igUserId: "78", username: "Anna_Rossi", avatarUrl: null },
+      { igUserId: "77", username: "friend_77", avatarUrl: null },
+    ]);
+  });
 });

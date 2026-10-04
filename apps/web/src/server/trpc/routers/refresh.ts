@@ -1,4 +1,7 @@
+import { igSessions, syncState } from "@nodistraction/db";
+import { eq } from "drizzle-orm";
 import { z } from "zod";
+import { REFRESH_COOLDOWN_MS } from "@/lib/sync/cooldown";
 import { getRefreshStatus, runRefreshStep, startRefresh } from "@/lib/sync/refresh";
 import { guarded } from "@/server/trpc/errors";
 import { createTRPCRouter, protectedProcedure, syncDepsOf } from "@/server/trpc/init";
@@ -16,7 +19,32 @@ const progressOutput = z.compile(
   }),
 );
 
+const overviewOutput = z.compile(
+  z.object({
+    sessionStatus: z.enum(["active", "expired", "none"]),
+    lastRefreshAt: z.number().nullable(),
+    nextRefreshAt: z.number().nullable(),
+  }),
+);
+
 export const refreshRouter = createTRPCRouter({
+  overview: protectedProcedure.output(overviewOutput).query(async ({ ctx }) => {
+    const ownerId = ctx.session.user.id;
+    const [[session], [state]] = await Promise.all([
+      ctx.db
+        .select({ status: igSessions.status })
+        .from(igSessions)
+        .where(eq(igSessions.ownerId, ownerId)),
+      ctx.db.select().from(syncState).where(eq(syncState.ownerId, ownerId)),
+    ]);
+    const lastRefreshAt = state?.lastRefreshAt?.getTime() ?? null;
+    return {
+      sessionStatus: session?.status ?? "none",
+      lastRefreshAt,
+      nextRefreshAt: lastRefreshAt === null ? null : lastRefreshAt + REFRESH_COOLDOWN_MS,
+    };
+  }),
+
   start: protectedProcedure
     .output(startOutput)
     .mutation(({ ctx }) => guarded(() => startRefresh(syncDepsOf(ctx), ctx.session.user.id))),

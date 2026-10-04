@@ -51,6 +51,35 @@ const runToEnd = async (caller: ReturnType<typeof createCaller>) => {
 const count = (calls: RecordedCall[], fragment: string) =>
   calls.filter((call) => call.path.includes(fragment)).length;
 
+describe("refresh.overview", () => {
+  it("reports no refresh yet for a fresh account", async () => {
+    const env = await createTestEnv();
+    expect(await createCaller(env.context).refresh.overview()).toEqual({
+      sessionStatus: "active",
+      lastRefreshAt: null,
+      nextRefreshAt: null,
+    });
+  });
+
+  it("reports the cooldown end after a refresh and the expired session", async () => {
+    const env = await createTestEnv();
+    await env.db
+      .insert(syncState)
+      .values({ ownerId: "owner", lastRefreshAt: new Date("2026-10-04T11:58:00Z") });
+    await env.db.update(igSessions).set({ status: "expired" });
+    expect(await createCaller(env.context).refresh.overview()).toEqual({
+      sessionStatus: "expired",
+      lastRefreshAt: new Date("2026-10-04T11:58:00Z").getTime(),
+      nextRefreshAt: new Date("2026-10-04T12:03:00Z").getTime(),
+    });
+  });
+
+  it("reports none without a paired session", async () => {
+    const env = await createTestEnv(undefined, { withSession: false });
+    expect((await createCaller(env.context).refresh.overview()).sessionStatus).toBe("none");
+  });
+});
+
 describe("refresh.start", () => {
   it("starts when there is no previous refresh and reports total steps", async () => {
     const env = await createTestEnv(world());

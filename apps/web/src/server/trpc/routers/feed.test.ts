@@ -1,4 +1,5 @@
 import { feedExceptions, following, mutuals, posts, userSettings } from "@nodistraction/db";
+import { eq } from "drizzle-orm";
 import { describe, expect, it } from "vitest";
 import { createCallerFactory } from "@/server/trpc/init";
 import { appRouter } from "@/server/trpc/routers/_app";
@@ -37,6 +38,19 @@ const seedFeed = async () => {
 const ids = (items: { id: string }[]) => items.map((item) => item.id);
 
 describe("feed.list", () => {
+  it("includes the author avatar when known", async () => {
+    const { env, caller } = await seedFeed();
+    await env.db
+      .update(following)
+      .set({ avatarUrl: "https://example.invalid/a.jpg" })
+      .where(eq(following.igUserId, "mutual"));
+    const items = (await caller.feed.list({})).items;
+    expect(items.find((item) => item.id === "p-mutual")?.authorAvatarUrl).toBe(
+      "https://example.invalid/a.jpg",
+    );
+    expect(items.find((item) => item.id === "p-friend")?.authorAvatarUrl).toBeNull();
+  });
+
   it("shows mutuals and exceptions in friends mode, newest first", async () => {
     const { caller } = await seedFeed();
     const page = await caller.feed.list({});

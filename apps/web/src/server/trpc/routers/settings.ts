@@ -1,6 +1,6 @@
 import { feedExceptions, feedModes, following, userSettings } from "@nodistraction/db";
 import { TRPCError } from "@trpc/server";
-import { and, eq, inArray } from "drizzle-orm";
+import { and, asc, eq, inArray, sql } from "drizzle-orm";
 import { z } from "zod";
 import { loadSettings } from "@/lib/sync/settings";
 import { createTRPCRouter, protectedProcedure } from "@/server/trpc/init";
@@ -16,6 +16,22 @@ const settingsOutput = z.compile(
     exceptions: z.array(z.object({ igUserId: z.string(), username: z.string().nullable() })),
   }),
 );
+
+const MAX_FOLLOWING_RESULTS = 50;
+
+const followingInput = z.compile(z.object({ search: z.string().trim().max(64).default("") }));
+
+const followingOutput = z.compile(
+  z.array(
+    z.object({
+      igUserId: z.string(),
+      username: z.string(),
+      avatarUrl: z.string().nullable(),
+    }),
+  ),
+);
+
+const escapeLike = (value: string) => value.replace(/[\\%_]/g, (char) => `\\${char}`);
 
 const setFeedModeInput = z.compile(z.object({ feedMode: feedModeSchema }));
 const setThresholdInput = z.compile(
@@ -54,6 +70,29 @@ export const settingsRouter = createTRPCRouter({
       })),
     };
   }),
+
+  following: protectedProcedure
+    .input(followingInput)
+    .output(followingOutput)
+    .query(({ ctx, input }) =>
+      ctx.db
+        .select({
+          igUserId: following.igUserId,
+          username: following.username,
+          avatarUrl: following.avatarUrl,
+        })
+        .from(following)
+        .where(
+          and(
+            eq(following.ownerId, ctx.session.user.id),
+            input.search === ""
+              ? undefined
+              : sql`lower(${following.username}) like ${`%${escapeLike(input.search.toLowerCase())}%`} escape '\\'`,
+          ),
+        )
+        .orderBy(asc(following.username))
+        .limit(MAX_FOLLOWING_RESULTS),
+    ),
 
   setFeedMode: protectedProcedure.input(setFeedModeInput).mutation(async ({ ctx, input }) => {
     await ctx.db
