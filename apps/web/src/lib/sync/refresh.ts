@@ -5,7 +5,12 @@ import { REFRESH_COOLDOWN_MS, remainingCooldownMs } from "@/lib/sync/cooldown";
 import { refreshCounts } from "@/lib/sync/counts";
 import type { SyncDeps } from "@/lib/sync/deps";
 import { CooldownError, NoSessionError, RunNotFoundError } from "@/lib/sync/errors";
-import { mutualsAreStale, stepFollowers, stepFollowing } from "@/lib/sync/graph";
+import {
+  hasStoredFollowing,
+  mutualsAreStale,
+  stepFollowers,
+  stepFollowing,
+} from "@/lib/sync/graph";
 import {
   parseRunState,
   type RunState,
@@ -67,7 +72,13 @@ export const startRefresh = async (
   if (session.status === "expired") throw new SessionExpiredError();
 
   const { feedMode } = await loadSettings(deps.db, ownerId);
-  const first = initialState(mutualsAreStale(state?.mutualsRefreshedAt ?? null, now));
+  const first = initialState(
+    mutualsAreStale(
+      state?.mutualsRefreshedAt ?? null,
+      now,
+      await hasStoredFollowing(deps, ownerId),
+    ),
+  );
   const total = remainingSteps(first, feedMode);
   const runId = crypto.randomUUID();
   await deps.db.insert(syncRuns).values({

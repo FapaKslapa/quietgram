@@ -12,8 +12,23 @@ type FollowersState = Extract<RunState, { phase: "followers" }>;
 
 export const MUTUALS_MAX_AGE_MS = 24 * 60 * 60_000;
 
-export const mutualsAreStale = (refreshedAt: Date | null, now: Date): boolean =>
-  refreshedAt === null || now.getTime() - refreshedAt.getTime() > MUTUALS_MAX_AGE_MS;
+export const mutualsAreStale = (
+  refreshedAt: Date | null,
+  now: Date,
+  hasFollowing: boolean,
+): boolean =>
+  !hasFollowing ||
+  refreshedAt === null ||
+  now.getTime() - refreshedAt.getTime() > MUTUALS_MAX_AGE_MS;
+
+export const hasStoredFollowing = async (deps: SyncDeps, ownerId: string): Promise<boolean> => {
+  const [row] = await deps.db
+    .select({ id: following.igUserId })
+    .from(following)
+    .where(eq(following.ownerId, ownerId))
+    .limit(1);
+  return row !== undefined;
+};
 
 const upsertFollowing = async (deps: SyncDeps, ownerId: string, users: IgUser[]): Promise<void> => {
   for (const rows of chunkRows(users, 8)) {

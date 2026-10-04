@@ -114,6 +114,30 @@ describe("refresh.start", () => {
     await expect(caller.refresh.start()).resolves.toMatchObject({ total: 4 });
   });
 
+  it("skips the following list when mutuals and following are fresh", async () => {
+    const env = await createTestEnv(world());
+    await env.db.insert(following).values({ ownerId: "owner", igUserId: "5071", username: "a" });
+    await env.db.insert(syncState).values({
+      ownerId: "owner",
+      mutualsRefreshedAt: new Date(env.clock.current.getTime() - 3_600_000),
+    });
+    const caller = createCaller(env.context);
+    const { runId, total } = await caller.refresh.start();
+    expect(total).toBe(2);
+    await caller.refresh.step({ runId });
+    expect(count(env.calls, "/friendships/")).toBe(0);
+  });
+
+  it("refreshes the following list when no following data is stored yet", async () => {
+    const env = await createTestEnv(world());
+    await env.db.insert(syncState).values({
+      ownerId: "owner",
+      mutualsRefreshedAt: new Date(env.clock.current.getTime() - 3_600_000),
+    });
+    const { total } = await createCaller(env.context).refresh.start();
+    expect(total).toBe(4);
+  });
+
   it("fails without a paired session", async () => {
     const env = await createTestEnv(world(), { withSession: false });
     await expect(createCaller(env.context).refresh.start()).rejects.toMatchObject({
@@ -278,6 +302,25 @@ describe("follower counts", () => {
     expect(count(env.calls, "/info/")).toBe(3);
   });
 
+  it("fetches at most three counts and in a step without other requests", async () => {
+    const many = ["5001", "5002", "5003", "5004", "5005", "5006"];
+    const env = await createTestEnv(world({ following: many, followers: many }));
+    await env.db.insert(userSettings).values({ ownerId: "owner", feedMode: "creators" });
+    const caller = createCaller(env.context);
+    const { runId } = await caller.refresh.start();
+    const stepPaths: string[][] = [];
+    let done = false;
+    while (!done) {
+      const before = env.calls.length;
+      done = (await caller.refresh.step({ runId })).done;
+      stepPaths.push(env.calls.slice(before).map((call) => call.path));
+    }
+    expect(count(env.calls, "/info/")).toBe(3);
+    const countSteps = stepPaths.filter((paths) => paths.some((path) => path.includes("/info/")));
+    expect(countSteps).toHaveLength(1);
+    expect(countSteps[0]?.every((path) => path.includes("/info/"))).toBe(true);
+  });
+
   it("does not request counts in other modes", async () => {
     const env = await createTestEnv(world());
     await runToEnd(createCaller(env.context));
@@ -302,6 +345,43 @@ describe("follower counts", () => {
 });
 
 describe("refresh throttling", () => {
+  it.each([
+    ["timeline", "/api/v1/feed/timeline/", "mutuals"],
+    ["counts", "/info/", "creators"],
+  ])(
+    "stops the whole run without retry when the %s step is throttled",
+    async (_name, fragment, mode) => {
+      const base = world();
+      const env = await createTestEnv((call) => {
+        if (call.path.includes(fragment)) throw new IgThrottledError();
+        return base(call);
+      });
+      if (mode === "creators") {
+        await env.db.insert(userSettings).values({ ownerId: "owner", feedMode: "creators" });
+      }
+      await env.db.insert(following).values({ ownerId: "owner", igUserId: "5071", username: "a" });
+      await env.db.insert(mutuals).values({ ownerId: "owner", igUserId: "5071", username: "a" });
+      await env.db.insert(syncState).values({
+        ownerId: "owner",
+        mutualsRefreshedAt: new Date(env.clock.current.getTime() - 3_600_000),
+      });
+      const caller = createCaller(env.context);
+      const { runId } = await caller.refresh.start();
+      let failure: unknown = null;
+      for (let index = 0; index < 6 && failure === null; index += 1) {
+        failure = await caller.refresh.step({ runId }).then(
+          () => null,
+          (error: unknown) => error,
+        );
+      }
+      expect(failure).toMatchObject({ code: "TOO_MANY_REQUESTS" });
+      const callsBefore = env.calls.length;
+      expect(await caller.refresh.step({ runId })).toMatchObject({ status: "failed", done: true });
+      expect(env.calls.length).toBe(callsBefore);
+      expect(count(env.calls, fragment)).toBe(1);
+    },
+  );
+
   it("stops the run cleanly, keeps the session active and delays the next refresh", async () => {
     const env = await createTestEnv((call) => {
       if (call.path.endsWith("/following/")) throw new IgThrottledError();

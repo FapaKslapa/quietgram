@@ -9,7 +9,7 @@ import { and, asc, eq, isNull, lt, or } from "drizzle-orm";
 import { ZodError } from "zod";
 import type { SyncDeps } from "@/lib/sync/deps";
 
-export const COUNTS_PER_STEP = 5;
+export const COUNTS_PER_STEP = 3;
 export const COUNTS_MAX_AGE_MS = 7 * 24 * 60 * 60_000;
 
 export const refreshCounts = async (
