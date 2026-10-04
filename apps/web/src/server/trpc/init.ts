@@ -1,14 +1,22 @@
 import type { Db } from "@nodistraction/db";
 import { initTRPC, TRPCError } from "@trpc/server";
+import type { SyncRuntime } from "@/lib/sync/deps";
+import { describeFailure } from "@/server/trpc/errors";
 
 export type TRPCSession = { user: { id: string } };
 
 export type TRPCContext = {
   db: Db;
   getSession: () => Promise<TRPCSession | null>;
+  sync: SyncRuntime;
 };
 
-const t = initTRPC.context<TRPCContext>().create();
+const t = initTRPC.context<TRPCContext>().create({
+  errorFormatter: ({ shape, error }) => ({
+    ...shape,
+    data: { ...shape.data, failure: describeFailure(error.cause) },
+  }),
+});
 
 export const createTRPCRouter = t.router;
 export const createCallerFactory = t.createCallerFactory;
