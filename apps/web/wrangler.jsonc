@@ -1,0 +1,15 @@
+{
+  "name": "nodistraction",
+  "main": ".open-next/worker.js",
+  "compatibility_date": "2026-09-01",
+  "compatibility_flags": ["nodejs_compat"],
+  "assets": { "directory": ".open-next/assets", "binding": "ASSETS" },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "nodistraction",
+      "database_id": "REPLACE_AFTER_CREATE",
+      "migrations_dir": "../../packages/db/migrations"
+    }
+  ]
+}
