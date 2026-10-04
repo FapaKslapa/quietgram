@@ -23,6 +23,7 @@ const threadsOutput = z.compile(
       title: z.string(),
       lastActivityAt: z.number(),
       unread: z.boolean(),
+      preview: z.string().nullable(),
     }),
   ),
 );

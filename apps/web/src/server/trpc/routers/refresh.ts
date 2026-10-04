@@ -22,6 +22,7 @@ const progressOutput = z.compile(
 const overviewOutput = z.compile(
   z.object({
     sessionStatus: z.enum(["active", "expired", "none"]),
+    viewerId: z.string().nullable(),
     lastRefreshAt: z.number().nullable(),
     nextRefreshAt: z.number().nullable(),
   }),
@@ -32,7 +33,7 @@ export const refreshRouter = createTRPCRouter({
     const ownerId = ctx.session.user.id;
     const [[session], [state]] = await Promise.all([
       ctx.db
-        .select({ status: igSessions.status })
+        .select({ status: igSessions.status, igUserId: igSessions.igUserId })
         .from(igSessions)
         .where(eq(igSessions.ownerId, ownerId)),
       ctx.db.select().from(syncState).where(eq(syncState.ownerId, ownerId)),
@@ -40,6 +41,7 @@ export const refreshRouter = createTRPCRouter({
     const lastRefreshAt = state?.lastRefreshAt?.getTime() ?? null;
     return {
       sessionStatus: session?.status ?? "none",
+      viewerId: session?.igUserId ?? null,
       lastRefreshAt,
       nextRefreshAt: lastRefreshAt === null ? null : lastRefreshAt + REFRESH_COOLDOWN_MS,
     };

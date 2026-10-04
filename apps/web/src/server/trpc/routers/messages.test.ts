@@ -39,6 +39,17 @@ describe("messages router", () => {
     expect(env.calls.map((call) => call.path)).toEqual(["/api/v1/direct_v2/threads/7127/"]);
   });
 
+  it("previews the latest stored message of a thread once it is synced", async () => {
+    const env = await createTestEnv(respond);
+    const caller = createCaller(env.context);
+    await caller.messages.syncInbox();
+    const [first] = await caller.messages.threads();
+    expect(first?.preview).toBeNull();
+    const messages = await caller.messages.thread({ threadId: first?.id ?? "" });
+    const after = (await caller.messages.threads()).find((item) => item.id === first?.id);
+    expect(after?.preview).toBe(messages.at(-1)?.text);
+  });
+
   it("rejects empty text before any network call", async () => {
     const env = await createTestEnv(respond);
     const caller = createCaller(env.context);

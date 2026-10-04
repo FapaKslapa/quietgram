@@ -14,7 +14,7 @@ import { eq } from "drizzle-orm";
 import { describe, expect, it } from "vitest";
 import { createCallerFactory } from "@/server/trpc/init";
 import { appRouter } from "@/server/trpc/routers/_app";
-import { createTestEnv, type RecordedCall } from "@/test/helpers";
+import { createTestEnv, IG_USER_ID, type RecordedCall } from "@/test/helpers";
 
 const createCaller = createCallerFactory(appRouter);
 
@@ -56,6 +56,7 @@ describe("refresh.overview", () => {
     const env = await createTestEnv();
     expect(await createCaller(env.context).refresh.overview()).toEqual({
       sessionStatus: "active",
+      viewerId: IG_USER_ID,
       lastRefreshAt: null,
       nextRefreshAt: null,
     });
@@ -69,6 +70,7 @@ describe("refresh.overview", () => {
     await env.db.update(igSessions).set({ status: "expired" });
     expect(await createCaller(env.context).refresh.overview()).toEqual({
       sessionStatus: "expired",
+      viewerId: IG_USER_ID,
       lastRefreshAt: new Date("2026-10-04T11:58:00Z").getTime(),
       nextRefreshAt: new Date("2026-10-04T12:03:00Z").getTime(),
     });

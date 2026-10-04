@@ -16,7 +16,7 @@ import { withIgSession } from "@/lib/sync/session";
 
 const LOCAL_ID_PREFIX = "local-";
 
-export type StoredThread = IgThread;
+export type StoredThread = IgThread & { preview: string | null };
 export type StoredMessage = Omit<IgMessage, "type">;
 
 export const syncInbox = async (deps: SyncDeps, ownerId: string): Promise<void> => {
@@ -77,8 +77,15 @@ export const syncThread = async (
 };
 
 export const listThreads = async (db: Db, ownerId: string): Promise<StoredThread[]> => {
+  const preview = sql<string | null>`(select m.text from dm_messages m where m.owner_id = ${dmThreads.ownerId} and m.thread_id = ${dmThreads.id} order by m.sent_at desc limit 1)`;
   const rows = await db
-    .select()
+    .select({
+      id: dmThreads.id,
+      title: dmThreads.title,
+      lastActivityAt: dmThreads.lastActivityAt,
+      unread: dmThreads.unread,
+      preview,
+    })
     .from(dmThreads)
     .where(eq(dmThreads.ownerId, ownerId))
     .orderBy(desc(dmThreads.lastActivityAt));
@@ -87,6 +94,7 @@ export const listThreads = async (db: Db, ownerId: string): Promise<StoredThread
     title: row.title,
     lastActivityAt: row.lastActivityAt.getTime(),
     unread: row.unread,
+    preview: row.preview,
   }));
 };
 
