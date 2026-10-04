@@ -9,7 +9,7 @@ import {
 import { createTRPCOptionsProxy } from "@trpc/tanstack-react-query";
 import { headers } from "next/headers";
 import { cache, type ReactNode } from "react";
-import { createTRPCContext } from "@/server/trpc/init";
+import { createTRPCContext } from "@/server/trpc/context";
 import { appRouter } from "@/server/trpc/routers/_app";
 import { makeQueryClient } from "./query-client";
 
