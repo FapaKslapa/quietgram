@@ -1,0 +1,10 @@
+{
+  "extends": "@nodistraction/config/tsconfig.base.json",
+  "compilerOptions": {
+    "lib": ["esnext", "dom"],
+    "types": ["node"],
+    "resolveJsonModule": true,
+    "noEmit": true
+  },
+  "include": ["src", "vitest.config.ts"]
+}

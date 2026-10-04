@@ -1,0 +1,21 @@
+{
+  "name": "@nodistraction/ig",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "zod": "~4.5.4"
+  },
+  "devDependencies": {
+    "@nodistraction/config": "workspace:*",
+    "@types/node": "^24.19.1",
+    "vitest": "^5.0.3"
+  }
+}
