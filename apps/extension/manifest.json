@@ -1,0 +1,10 @@
+{
+  "manifest_version": 3,
+  "name": "nodistraction",
+  "version": "0.0.0",
+  "description": "Collega il tuo account Instagram a nodistraction",
+  "permissions": ["cookies", "storage"],
+  "host_permissions": ["https://www.instagram.com/*", "__APP_ORIGIN__/*"],
+  "background": { "service_worker": "background.js" },
+  "action": { "default_popup": "popup.html" }
+}

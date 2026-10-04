@@ -1,0 +1,9 @@
+{
+  "extends": "@nodistraction/config/tsconfig.base.json",
+  "compilerOptions": {
+    "lib": ["esnext", "dom"],
+    "types": ["node", "chrome"],
+    "noEmit": true
+  },
+  "include": ["src", "vitest.config.ts"]
+}
