@@ -62,6 +62,14 @@ describe("sendText", () => {
     expect(posts).toEqual([]);
   });
 
+  it("sends one shared id as client context, mutation token and offline threading id", async () => {
+    const { requester, posts } = fakeRequester({ status: "ok" });
+    await sendText(requester, "7134", "hi");
+    const body = posts[0]?.body;
+    expect(body?.mutation_token).toBe(body?.client_context);
+    expect(body?.offline_threading_id).toBe(body?.client_context);
+  });
+
   it("fails when instagram does not answer ok", async () => {
     const { requester } = fakeRequester({ status: "fail" });
     await expect(sendText(requester, "7134", "hi")).rejects.toThrow();

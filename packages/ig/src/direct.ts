@@ -51,11 +51,14 @@ export const sendText = async (
   text: string,
 ): Promise<void> => {
   const validated = validateDmText(text);
+  const clientContext = crypto.randomUUID();
   const response = await requester.postForm("/api/v1/direct_v2/threads/broadcast/text/", {
     action: "send_item",
     thread_ids: JSON.stringify([threadId]),
     text: validated,
-    client_context: crypto.randomUUID(),
+    client_context: clientContext,
+    mutation_token: clientContext,
+    offline_threading_id: clientContext,
   });
   sendResponseSchema.parse(response);
 };
