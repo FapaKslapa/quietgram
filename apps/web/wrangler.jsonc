@@ -1,6 +1,8 @@
 {
   "name": "nodistraction",
-  "main": ".open-next/worker.js",
+  "main": "worker.ts",
+  "alias": { "@open-next/worker": "./.open-next/worker.js" },
+  "triggers": { "crons": ["0 */6 * * *"] },
   "compatibility_date": "2026-09-01",
   "compatibility_flags": ["nodejs_compat"],
   "assets": { "directory": ".open-next/assets", "binding": "ASSETS" },
