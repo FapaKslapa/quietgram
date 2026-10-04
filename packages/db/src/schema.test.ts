@@ -24,6 +24,9 @@ describe("schema migration", () => {
   beforeEach(() => {
     database = new DatabaseSync(":memory:");
     migrate(database);
+    database
+      .prepare("insert into user (id, name, email) values (?, ?, ?)")
+      .run("owner", "Owner", "owner@example.com");
   });
 
   it("creates every table", () => {
@@ -33,14 +36,20 @@ describe("schema migration", () => {
       )
       .all();
     expect(rows.map((row) => row.name).sort()).toEqual([
+      "account",
       "dm_messages",
       "dm_threads",
       "ig_sessions",
       "mutuals",
+      "pairing_tokens",
+      "passkey",
       "posts",
       "saved",
+      "session",
       "sync_runs",
       "sync_state",
+      "user",
+      "verification",
     ]);
   });
 
@@ -62,5 +71,15 @@ describe("schema migration", () => {
     );
     insert.run("p1", "owner", "a1", "user_a", 1, "[]");
     expect(() => insert.run("p1", "owner", "a1", "user_a", 1, "[]")).toThrow();
+  });
+
+  it("rejects rows owned by an unknown user", () => {
+    expect(() =>
+      database
+        .prepare(
+          "insert into posts (id, owner_id, author_id, author_username, taken_at, media_json) values (?, ?, ?, ?, ?, ?)",
+        )
+        .run("p1", "ghost", "a1", "user_a", 1, "[]"),
+    ).toThrow();
   });
 });
