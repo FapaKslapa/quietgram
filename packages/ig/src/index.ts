@@ -7,7 +7,7 @@ export {
   sendText,
   validateDmText,
 } from "#ig/direct";
-export { IgHttpError, SessionExpiredError } from "#ig/errors";
+export { IgHttpError, IgRejectedError, IgThrottledError, SessionExpiredError } from "#ig/errors";
 export {
   computeMutuals,
   fetchAllUsers,
