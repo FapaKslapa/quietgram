@@ -4,9 +4,16 @@ import {
   buildConversation,
   canSend,
   counterLabel,
+  createPending,
+  dropMessage,
+  isConversationPath,
   isOverLimit,
+  isPending,
+  mergeThread,
   sendFailureMessage,
+  settlePending,
   showCounter,
+  type ThreadMessage,
   threadLabel,
 } from "@/lib/messages";
 
@@ -104,5 +111,38 @@ describe("threadLabel", () => {
   it("flags unread threads for screen readers", () => {
     expect(threadLabel("giulia.r", true)).toBe("giulia.r, messaggi non letti");
     expect(threadLabel("giulia.r", false)).toBe("giulia.r");
+  });
+});
+
+describe("pending messages", () => {
+  const server = [{ id: "1", senderId: "peer", text: "a", sentAt: 1 }];
+
+  it("creates a pending message that is recognised as such", () => {
+    const pending = createPending("me", "ciao", 5);
+    expect(isPending(pending)).toBe(true);
+    expect(isPending(server[0] as ThreadMessage)).toBe(false);
+    expect(pending).toMatchObject({ senderId: "me", text: "ciao", sentAt: 5 });
+  });
+
+  it("keeps pending messages when the server list replaces the thread", () => {
+    const pending = createPending("me", "ciao", 5);
+    expect(mergeThread(server, [pending])).toEqual([...server, pending]);
+    expect(mergeThread(server, [server[0] as ThreadMessage])).toEqual(server);
+  });
+
+  it("settles a pending message with the sent one and can drop it", () => {
+    const pending = createPending("me", "ciao", 5);
+    const sent = { id: "local-9", senderId: "me", text: "ciao", sentAt: 6 };
+    expect(settlePending([...server, pending], pending.id, sent)).toEqual([...server, sent]);
+    expect(dropMessage([...server, pending], pending.id)).toEqual(server);
+  });
+});
+
+describe("isConversationPath", () => {
+  it("matches a single thread only", () => {
+    expect(isConversationPath("/messaggi/123")).toBe(true);
+    expect(isConversationPath("/messaggi/123/")).toBe(true);
+    expect(isConversationPath("/messaggi")).toBe(false);
+    expect(isConversationPath("/posta")).toBe(false);
   });
 });

@@ -72,3 +72,32 @@ export const sendFailureMessage = (error: unknown): string => {
 
 export const threadLabel = (title: string, unread: boolean): string =>
   unread ? `${title}, messaggi non letti` : title;
+
+const PENDING_PREFIX = "pending-";
+
+export const createPending = (viewerId: string, text: string, now: number): ThreadMessage => ({
+  id: `${PENDING_PREFIX}${crypto.randomUUID()}`,
+  senderId: viewerId,
+  text,
+  sentAt: now,
+});
+
+export const isPending = (message: ThreadMessage): boolean => message.id.startsWith(PENDING_PREFIX);
+
+export const mergeThread = (server: ThreadMessage[], current: ThreadMessage[]): ThreadMessage[] => [
+  ...server,
+  ...current.filter(isPending),
+];
+
+export const settlePending = (
+  messages: ThreadMessage[],
+  pendingId: string,
+  sent: ThreadMessage,
+): ThreadMessage[] => messages.map((message) => (message.id === pendingId ? sent : message));
+
+export const dropMessage = (messages: ThreadMessage[], id: string): ThreadMessage[] =>
+  messages.filter((message) => message.id !== id);
+
+const CONVERSATION_PATH = /^\/messaggi\/[^/]+\/?$/;
+
+export const isConversationPath = (pathname: string): boolean => CONVERSATION_PATH.test(pathname);
