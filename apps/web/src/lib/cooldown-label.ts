@@ -8,3 +8,6 @@ export const formatRemaining = (seconds: number): string => {
 
 export const cooldownMessage = (seconds: number): string =>
   `Hai già ritirato la posta. Riprova tra ${formatRemaining(seconds)}.`;
+
+export const THROTTLE_TOAST =
+  "Instagram ti chiede di aspettare qualche minuto. Riprova tra un po'.";

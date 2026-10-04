@@ -3,7 +3,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRef, useState } from "react";
 import { toast } from "sonner";
-import { cooldownMessage } from "@/lib/cooldown-label";
+import { cooldownMessage, THROTTLE_TOAST } from "@/lib/cooldown-label";
 import { classifyRefreshError } from "@/lib/refresh-failure";
 import { useTRPC } from "@/trpc/client";
 
@@ -25,6 +25,11 @@ export function useRefresh() {
         current ? { ...current, nextRefreshAt: Date.now() + failure.seconds * 1000 } : current,
       );
       toast.info(cooldownMessage(failure.seconds));
+    } else if (failure.kind === "throttled") {
+      queryClient.setQueryData(overviewKey, (current) =>
+        current ? { ...current, nextRefreshAt: Date.now() + failure.seconds * 1000 } : current,
+      );
+      toast.info(THROTTLE_TOAST);
     } else if (failure.kind === "expired") {
       queryClient.setQueryData(overviewKey, (current) =>
         current ? { ...current, sessionStatus: "expired" as const } : current,

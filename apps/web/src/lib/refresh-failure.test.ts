@@ -20,6 +20,17 @@ describe("classifyRefreshError", () => {
     });
   });
 
+  it("detects an instagram throttle", () => {
+    expect(
+      classifyRefreshError({
+        data: {
+          code: "TOO_MANY_REQUESTS",
+          failure: { reason: "throttled", retryAfterSeconds: 900 },
+        },
+      }),
+    ).toEqual({ kind: "throttled", seconds: 900 });
+  });
+
   it("detects an expired or missing session", () => {
     expect(classifyRefreshError({ data: { failure: { reason: "session_expired" } } })).toEqual({
       kind: "expired",

@@ -61,6 +61,10 @@ export const sendFailureMessage = (error: unknown): string => {
       ? (error as { data?: { failure?: { reason?: string } | null; code?: string } | null }).data
       : null;
   const reason = data?.failure?.reason;
+  if ((reason === "rejected" || reason === "throttled") && error instanceof Object) {
+    const message = (error as { message?: unknown }).message;
+    if (typeof message === "string" && message.length > 0) return message;
+  }
   if (reason === "session_expired" || reason === "no_session") {
     return "La sessione con Instagram è scaduta. Rinnovala dall'estensione e riprova.";
   }

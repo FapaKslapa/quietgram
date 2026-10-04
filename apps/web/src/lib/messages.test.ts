@@ -102,6 +102,19 @@ describe("sendFailureMessage", () => {
     expect(sendFailureMessage({ data: { code: "BAD_REQUEST" } })).toContain("1000");
   });
 
+  it("shows instagram's reason for a rejected or throttled send", () => {
+    const rejected = {
+      message: "Instagram ha rifiutato il messaggio: spam",
+      data: { failure: { reason: "rejected" } },
+    };
+    expect(sendFailureMessage(rejected)).toBe("Instagram ha rifiutato il messaggio: spam");
+    const throttled = {
+      message: "Instagram ti chiede di aspettare qualche minuto. Riprova tra un po'.",
+      data: { failure: { reason: "throttled" } },
+    };
+    expect(sendFailureMessage(throttled)).toContain("aspettare");
+  });
+
   it("falls back to a retry hint", () => {
     expect(sendFailureMessage(new Error("boom"))).toContain("riprova");
   });
