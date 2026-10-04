@@ -1,8 +1,14 @@
-import { igSessions } from "@nodistraction/db";
-import { type IgCookies, type Requester, SessionExpiredError } from "@nodistraction/ig";
+import { igSessions, syncState } from "@nodistraction/db";
+import {
+  type IgCookies,
+  IgThrottledError,
+  type Requester,
+  SessionExpiredError,
+} from "@nodistraction/ig";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { decrypt } from "@/lib/auth/crypto";
+import { throttleMarker } from "@/lib/sync/cooldown";
 import type { SyncDeps } from "@/lib/sync/deps";
 import { NoSessionError } from "@/lib/sync/errors";
 
@@ -17,6 +23,14 @@ export const markSessionExpired = async (deps: SyncDeps, ownerId: string): Promi
     .update(igSessions)
     .set({ status: "expired", updatedAt: deps.now() })
     .where(eq(igSessions.ownerId, ownerId));
+};
+
+export const recordThrottle = async (deps: SyncDeps, ownerId: string): Promise<void> => {
+  const lastRefreshAt = throttleMarker(deps.now());
+  await deps.db
+    .insert(syncState)
+    .values({ ownerId, lastRefreshAt })
+    .onConflictDoUpdate({ target: syncState.ownerId, set: { lastRefreshAt } });
 };
 
 export const buildRequester = async (
@@ -42,6 +56,7 @@ export const withIgSession = async <T>(
     return await task({ requester, igUserId: session.igUserId });
   } catch (error) {
     if (error instanceof SessionExpiredError) await markSessionExpired(deps, ownerId);
+    if (error instanceof IgThrottledError) await recordThrottle(deps, ownerId);
     throw error;
   }
 };

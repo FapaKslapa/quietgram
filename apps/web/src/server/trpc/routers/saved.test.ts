@@ -30,11 +30,11 @@ describe("saved router", () => {
     expect((await caller.saved.list()).map((post) => post.id)).toEqual(["c", "d"]);
   });
 
-  it("drops reels from the recorded page", async () => {
+  it("keeps reels from the recorded page", async () => {
     const env = await createTestEnv(() => savedFixture);
     const caller = createCaller(env.context);
     await caller.saved.sync();
-    expect(await caller.saved.list()).toHaveLength(1);
+    expect(await caller.saved.list()).toHaveLength(3);
   });
 
   it("reports an expired session and keeps stored rows", async () => {

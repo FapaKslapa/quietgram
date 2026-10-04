@@ -2,6 +2,7 @@ import { igSessions, syncState } from "@nodistraction/db";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { REFRESH_COOLDOWN_MS } from "@/lib/sync/cooldown";
+import { recheckSession } from "@/lib/sync/recheck";
 import { getRefreshStatus, runRefreshStep, startRefresh } from "@/lib/sync/refresh";
 import { guarded } from "@/server/trpc/errors";
 import { createTRPCRouter, protectedProcedure, syncDepsOf } from "@/server/trpc/init";
@@ -28,6 +29,8 @@ const overviewOutput = z.compile(
   }),
 );
 
+const recheckOutput = z.compile(z.object({ sessionStatus: z.literal("active") }));
+
 export const refreshRouter = createTRPCRouter({
   overview: protectedProcedure.output(overviewOutput).query(async ({ ctx }) => {
     const ownerId = ctx.session.user.id;
@@ -38,14 +41,18 @@ export const refreshRouter = createTRPCRouter({
         .where(eq(igSessions.ownerId, ownerId)),
       ctx.db.select().from(syncState).where(eq(syncState.ownerId, ownerId)),
     ]);
-    const lastRefreshAt = state?.lastRefreshAt?.getTime() ?? null;
+    const marker = state?.lastRefreshAt?.getTime() ?? null;
     return {
       sessionStatus: session?.status ?? "none",
       viewerId: session?.igUserId ?? null,
-      lastRefreshAt,
-      nextRefreshAt: lastRefreshAt === null ? null : lastRefreshAt + REFRESH_COOLDOWN_MS,
+      lastRefreshAt: marker === null ? null : Math.min(marker, ctx.sync.now().getTime()),
+      nextRefreshAt: marker === null ? null : marker + REFRESH_COOLDOWN_MS,
     };
   }),
+
+  recheck: protectedProcedure
+    .output(recheckOutput)
+    .mutation(({ ctx }) => guarded(() => recheckSession(syncDepsOf(ctx), ctx.session.user.id))),
 
   start: protectedProcedure
     .output(startOutput)

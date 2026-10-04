@@ -3,7 +3,9 @@ import {
   fetchInbox,
   fetchThread,
   type IgMessage,
+  IgRejectedError,
   type IgThread,
+  IgThrottledError,
   SessionExpiredError,
   sendText,
   validateDmText,
@@ -129,7 +131,13 @@ export const sendMessage = async (
     try {
       await sendText(requester, input.threadId, text);
     } catch (error) {
-      if (error instanceof SessionExpiredError) throw error;
+      if (
+        error instanceof SessionExpiredError ||
+        error instanceof IgRejectedError ||
+        error instanceof IgThrottledError
+      ) {
+        throw error;
+      }
       throw new MessageSendError(error);
     }
     return igUserId;

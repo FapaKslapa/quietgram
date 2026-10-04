@@ -1,4 +1,10 @@
-import { IgHttpError } from "@nodistraction/ig";
+import { igSessions, syncState } from "@nodistraction/db";
+import {
+  IgHttpError,
+  IgRejectedError,
+  IgThrottledError,
+  SessionExpiredError,
+} from "@nodistraction/ig";
 import inboxFixture from "@nodistraction/ig/fixtures/inbox.json" with { type: "json" };
 import threadFixture from "@nodistraction/ig/fixtures/thread.json" with { type: "json" };
 import { describe, expect, it } from "vitest";
@@ -102,5 +108,66 @@ describe("messages router", () => {
     expect(await caller.messages.thread({ threadId: "7127" })).toHaveLength(
       threadFixture.thread.items.length,
     );
+  });
+
+  it("reports a rejected write with the reason and keeps the session active", async () => {
+    const env = await createTestEnv((call) => {
+      if (call.method === "postForm") throw new IgRejectedError(403, "feedback_required", true);
+      return respond(call);
+    });
+    const caller = createCaller(env.context);
+    await expect(caller.messages.send({ threadId: "7127", text: "hello" })).rejects.toMatchObject({
+      code: "BAD_GATEWAY",
+      message: "Instagram ha rifiutato il messaggio: feedback_required",
+    });
+    const [session] = await env.db.select().from(igSessions);
+    expect(session?.status).toBe("active");
+    expect(await caller.messages.thread({ threadId: "7127" })).toHaveLength(
+      threadFixture.thread.items.length,
+    );
+  });
+
+  it("reports a rejected write without a reason", async () => {
+    const env = await createTestEnv((call) => {
+      if (call.method === "postForm") throw new IgRejectedError(403, null, false);
+      return respond(call);
+    });
+    await expect(
+      createCaller(env.context).messages.send({ threadId: "7127", text: "hello" }),
+    ).rejects.toMatchObject({
+      code: "BAD_GATEWAY",
+      message: "Instagram ha rifiutato il messaggio.",
+    });
+  });
+
+  it("marks the session expired on a true login_required", async () => {
+    const env = await createTestEnv((call) => {
+      if (call.method === "postForm") throw new SessionExpiredError();
+      return respond(call);
+    });
+    await expect(
+      createCaller(env.context).messages.send({ threadId: "7127", text: "hello" }),
+    ).rejects.toMatchObject({ code: "PRECONDITION_FAILED" });
+    const [session] = await env.db.select().from(igSessions);
+    expect(session?.status).toBe("expired");
+  });
+
+  it("keeps the session active and sets a retry time when instagram throttles", async () => {
+    const env = await createTestEnv((call) => {
+      if (call.method === "postForm") throw new IgThrottledError();
+      return respond(call);
+    });
+    const caller = createCaller(env.context);
+    await expect(caller.messages.send({ threadId: "7127", text: "hello" })).rejects.toMatchObject({
+      code: "TOO_MANY_REQUESTS",
+      message: "Instagram ti chiede di aspettare qualche minuto. Riprova tra un po'.",
+    });
+    const [session] = await env.db.select().from(igSessions);
+    expect(session?.status).toBe("active");
+    const [state] = await env.db.select().from(syncState);
+    expect(state).toBeDefined();
+    const overview = await caller.refresh.overview();
+    expect(overview.nextRefreshAt).toBe(env.clock.current.getTime() + 15 * 60_000);
+    expect(overview.lastRefreshAt).toBe(env.clock.current.getTime());
   });
 });

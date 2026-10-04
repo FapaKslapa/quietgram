@@ -1,5 +1,5 @@
-import { igSessions, syncRuns } from "@nodistraction/db";
-import { IgHttpError, SessionExpiredError } from "@nodistraction/ig";
+import { igSessions, syncRuns, syncState } from "@nodistraction/db";
+import { IgHttpError, IgThrottledError, SessionExpiredError } from "@nodistraction/ig";
 import currentUserFixture from "@nodistraction/ig/fixtures/current-user.json" with { type: "json" };
 import { eq } from "drizzle-orm";
 import { describe, expect, it } from "vitest";
@@ -70,5 +70,18 @@ describe("runKeepAlive", () => {
     expect(sessions.map((session) => session.status).sort()).toEqual(["active", "expired"]);
     const runs = await env.db.select().from(syncRuns).where(eq(syncRuns.kind, "keepalive"));
     expect(runs.map((run) => run.status).sort()).toEqual(["done", "failed"]);
+  });
+
+  it("keeps the session active and records the wait when instagram throttles", async () => {
+    const env = await createTestEnv(() => {
+      throw new IgThrottledError();
+    });
+    await runKeepAlive(env.deps);
+    const [session] = await env.db.select().from(igSessions);
+    expect(session?.status).toBe("active");
+    const [run] = await env.db.select().from(syncRuns);
+    expect(run?.status).toBe("failed");
+    const [state] = await env.db.select().from(syncState);
+    expect(state?.lastRefreshAt?.getTime()).toBe(env.clock.current.getTime() + 10 * 60_000);
   });
 });

@@ -1,6 +1,12 @@
-import { IgHttpError, SessionExpiredError } from "@nodistraction/ig";
+import {
+  IgHttpError,
+  IgRejectedError,
+  IgThrottledError,
+  SessionExpiredError,
+} from "@nodistraction/ig";
 import { TRPCError } from "@trpc/server";
 import { ZodError } from "zod";
+import { THROTTLE_COOLDOWN_MS } from "@/lib/sync/cooldown";
 import {
   CooldownError,
   MessageSendError,
@@ -14,6 +20,8 @@ export type FailureReason =
   | "no_session"
   | "run_not_found"
   | "instagram_error"
+  | "rejected"
+  | "throttled"
   | "invalid_message";
 
 export type FailureData = { reason: FailureReason; retryAfterSeconds?: number };
@@ -23,6 +31,10 @@ export const describeFailure = (cause: unknown): FailureData | null => {
     return { reason: "cooldown", retryAfterSeconds: cause.retryAfterSeconds };
   }
   if (cause instanceof SessionExpiredError) return { reason: "session_expired" };
+  if (cause instanceof IgThrottledError) {
+    return { reason: "throttled", retryAfterSeconds: THROTTLE_COOLDOWN_MS / 1000 };
+  }
+  if (cause instanceof IgRejectedError) return { reason: "rejected" };
   if (cause instanceof NoSessionError) return { reason: "no_session" };
   if (cause instanceof RunNotFoundError) return { reason: "run_not_found" };
   if (
@@ -39,6 +51,7 @@ export const describeFailure = (cause: unknown): FailureData | null => {
 const codeFor = (reason: FailureReason | undefined): TRPCError["code"] => {
   switch (reason) {
     case "cooldown":
+    case "throttled":
       return "TOO_MANY_REQUESTS";
     case "session_expired":
     case "no_session":
@@ -46,6 +59,7 @@ const codeFor = (reason: FailureReason | undefined): TRPCError["code"] => {
     case "run_not_found":
       return "NOT_FOUND";
     case "instagram_error":
+    case "rejected":
       return "BAD_GATEWAY";
     case "invalid_message":
       return "BAD_REQUEST";
@@ -54,9 +68,21 @@ const codeFor = (reason: FailureReason | undefined): TRPCError["code"] => {
   }
 };
 
+const THROTTLE_MESSAGE = "Instagram ti chiede di aspettare qualche minuto. Riprova tra un po'.";
+
+const messageFor = (error: unknown): string => {
+  if (error instanceof IgThrottledError) return THROTTLE_MESSAGE;
+  if (error instanceof IgRejectedError) {
+    return error.reason === null
+      ? "Instagram ha rifiutato il messaggio."
+      : `Instagram ha rifiutato il messaggio: ${error.reason}`;
+  }
+  return error instanceof Error ? error.message : "Unexpected failure";
+};
+
 export const toTRPCError = (error: unknown): TRPCError => {
   if (error instanceof TRPCError) return error;
-  const message = error instanceof Error ? error.message : "Unexpected failure";
+  const message = messageFor(error);
   return new TRPCError({
     code: codeFor(describeFailure(error)?.reason),
     message,
