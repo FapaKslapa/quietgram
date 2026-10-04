@@ -77,7 +77,9 @@ export const syncThread = async (
 };
 
 export const listThreads = async (db: Db, ownerId: string): Promise<StoredThread[]> => {
-  const preview = sql<string | null>`(select m.text from dm_messages m where m.owner_id = ${dmThreads.ownerId} and m.thread_id = ${dmThreads.id} order by m.sent_at desc limit 1)`;
+  const preview = sql<
+    string | null
+  >`(select m.text from dm_messages m where m.owner_id = ${dmThreads.ownerId} and m.thread_id = ${dmThreads.id} order by m.sent_at desc limit 1)`;
   const rows = await db
     .select({
       id: dmThreads.id,

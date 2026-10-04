@@ -61,3 +61,47 @@ export const formatRelativeTime = (timestamp: number, now: number): string => {
   const base = `${then.day} ${month}`;
   return then.year === current.year ? base : `${base} ${then.year}`;
 };
+
+const FULL_WEEKDAYS = [
+  "domenica",
+  "lunedì",
+  "martedì",
+  "mercoledì",
+  "giovedì",
+  "venerdì",
+  "sabato",
+];
+
+export const dayKey = (timestamp: number): string => {
+  const { year, month, day } = zoned(timestamp);
+  return `${year}-${pad(month)}-${pad(day)}`;
+};
+
+export const formatDayLabel = (timestamp: number, now: number): string => {
+  const then = zoned(timestamp);
+  const current = zoned(now);
+  const daysAgo = dayNumber(current) - dayNumber(then);
+  if (daysAgo <= 0) return "Oggi";
+  if (daysAgo === 1) return "Ieri";
+  if (daysAgo < 7) {
+    return (
+      FULL_WEEKDAYS[new Date(Date.UTC(then.year, then.month - 1, then.day)).getUTCDay()] ?? ""
+    ).replace(/^./, (letter) => letter.toUpperCase());
+  }
+  const month = (MONTHS[then.month - 1] ?? "").toLowerCase();
+  const base = `${then.day} ${month}`;
+  return then.year === current.year ? base : `${base} ${then.year}`;
+};
+
+export const formatThreadTime = (timestamp: number, now: number): string => {
+  const then = zoned(timestamp);
+  const current = zoned(now);
+  const daysAgo = dayNumber(current) - dayNumber(then);
+  if (daysAgo <= 0) return clock(then);
+  if (daysAgo === 1) return "ieri";
+  if (daysAgo < 7) {
+    return WEEKDAYS[new Date(Date.UTC(then.year, then.month - 1, then.day)).getUTCDay()] ?? "";
+  }
+  const month = (MONTHS[then.month - 1] ?? "").toLowerCase();
+  return then.year === current.year ? `${then.day} ${month}` : `${then.day} ${month} ${then.year}`;
+};
