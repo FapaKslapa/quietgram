@@ -2,6 +2,7 @@ import "server-only";
 
 import {
   dehydrate,
+  type FetchInfiniteQueryOptions,
   type FetchQueryOptions,
   HydrationBoundary,
   type QueryKey,
@@ -30,4 +31,14 @@ export function prefetch<TData, TError, TQueryKey extends QueryKey>(
   queryOptions: FetchQueryOptions<TData, TError, TData, TQueryKey>,
 ) {
   void getQueryClient().prefetchQuery(queryOptions);
+}
+
+export function prefetchInfinite<
+  TQueryFnData,
+  TError,
+  TData,
+  TQueryKey extends QueryKey,
+  TPageParam,
+>(queryOptions: FetchInfiniteQueryOptions<TQueryFnData, TError, TData, TQueryKey, TPageParam>) {
+  void getQueryClient().prefetchInfiniteQuery(queryOptions);
 }
