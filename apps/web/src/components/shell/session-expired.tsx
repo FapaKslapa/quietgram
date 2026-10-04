@@ -1,9 +1,10 @@
 "use client";
 
-import { useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import Link from "next/link";
 import { Postmark } from "@/components/brand/postmark";
 import { Button } from "@/components/ui/button";
+import { classifyRefreshError } from "@/lib/refresh-failure";
 import { formatStampDay, formatStampYear } from "@/lib/time";
 import { useTRPC } from "@/trpc/client";
 
@@ -16,14 +17,17 @@ const STEPS = [
 export function SessionExpired() {
   const trpc = useTRPC();
   const queryClient = useQueryClient();
-  const [checking, setChecking] = useState(false);
   const now = Date.now();
 
-  const recheck = async () => {
-    setChecking(true);
-    await queryClient.invalidateQueries({ queryKey: trpc.refresh.overview.queryKey() });
-    setChecking(false);
-  };
+  const recheck = useMutation(
+    trpc.refresh.recheck.mutationOptions({
+      onSuccess: async () => {
+        await queryClient.invalidateQueries();
+      },
+    }),
+  );
+  const checking = recheck.isPending;
+  const failure = recheck.isError ? classifyRefreshError(recheck.error) : null;
 
   return (
     <main className="mx-auto grid min-h-dvh w-full max-w-120 content-center justify-items-center gap-4 px-8 py-10 text-center">
@@ -52,13 +56,31 @@ export function SessionExpired() {
       <Button
         type="button"
         variant="outline"
-        onClick={() => void recheck()}
+        onClick={() => recheck.mutate()}
         disabled={checking}
         aria-busy={checking}
         className="mt-2 h-11 rounded-full bg-sheet px-5 text-[0.9375rem] font-semibold"
       >
         {checking ? "Controllo in corso" : "Ho rinnovato la sessione"}
       </Button>
+      {failure ? (
+        <p role="alert" className="max-w-[36ch] text-balance text-[0.9375rem] text-soft">
+          {failure.kind === "throttled"
+            ? "Instagram ti chiede di aspettare qualche minuto. Riprova tra un po'."
+            : failure.kind === "expired"
+              ? "La sessione risulta ancora scaduta. "
+              : "Non sono riuscito a controllare la sessione. Riprova tra poco."}
+          {failure.kind === "expired" ? (
+            <>
+              Genera un nuovo codice di abbinamento su{" "}
+              <Link href="/pair" className="font-semibold text-accent underline">
+                /pair
+              </Link>{" "}
+              e premi Rinnova nell&apos;estensione.
+            </>
+          ) : null}
+        </p>
+      ) : null}
     </main>
   );
 }
