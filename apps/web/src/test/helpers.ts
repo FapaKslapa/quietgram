@@ -52,6 +52,7 @@ export type TestEnv = {
   context: TRPCContext;
   calls: RecordedCall[];
   clock: { current: Date };
+  delays: { count: number };
 };
 
 export const createTestEnv = async (
@@ -64,12 +65,15 @@ export const createTestEnv = async (
   await seedOwner(db);
   if (options.withSession ?? true) await seedSession(db);
   const { requester, calls } = fakeRequester(respond);
+  const delays = { count: 0 };
   const clock = { current: new Date("2026-10-04T12:00:00Z") };
   const runtime = {
     getCookieKey: () => COOKIE_KEY,
     now: () => clock.current,
     createRequester: () => requester,
-    delay: async () => undefined,
+    delay: async () => {
+      delays.count += 1;
+    },
   };
   return {
     db,
@@ -77,5 +81,6 @@ export const createTestEnv = async (
     context: { db, getSession: async () => ({ user: { id: OWNER } }), sync: runtime },
     calls,
     clock,
+    delays,
   };
 };

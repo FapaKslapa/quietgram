@@ -1,6 +1,6 @@
 import type { Db } from "@nodistraction/db";
 import { initTRPC, TRPCError } from "@trpc/server";
-import type { SyncRuntime } from "@/lib/sync/deps";
+import type { SyncDeps, SyncRuntime } from "@/lib/sync/deps";
 import { describeFailure } from "@/server/trpc/errors";
 
 export type TRPCSession = { user: { id: string } };
@@ -27,3 +27,5 @@ export const protectedProcedure = t.procedure.use(async ({ ctx, next }) => {
   if (!session) throw new TRPCError({ code: "UNAUTHORIZED" });
   return next({ ctx: { ...ctx, session } });
 });
+
+export const syncDepsOf = (ctx: TRPCContext): SyncDeps => ({ db: ctx.db, ...ctx.sync });
