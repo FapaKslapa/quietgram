@@ -1,0 +1,106 @@
+{
+  "thread": {
+    "thread_id": "7127",
+    "viewer_id": "5120",
+    "thread_title": "Fake thread 1",
+    "last_activity_at": 1791070114745000,
+    "read_state": 1,
+    "users": [
+      {
+        "pk": "5134",
+        "username": "user_h",
+        "full_name": "Fake",
+        "profile_pic_url": "https://example.invalid/avatar/48"
+      },
+      {
+        "pk": "5141",
+        "username": "user_i",
+        "full_name": "Fake",
+        "profile_pic_url": "https://example.invalid/avatar/49"
+      },
+      {
+        "pk": "5148",
+        "username": "user_j",
+        "full_name": "Fake",
+        "profile_pic_url": "https://example.invalid/avatar/50"
+      },
+      {
+        "pk": "5155",
+        "username": "user_k",
+        "full_name": "Fake",
+        "profile_pic_url": "https://example.invalid/avatar/51"
+      },
+      {
+        "pk": "5162",
+        "username": "user_l",
+        "full_name": "Fake",
+        "profile_pic_url": "https://example.invalid/avatar/52"
+      },
+      {
+        "pk": "5169",
+        "username": "user_m",
+        "full_name": "Fake",
+        "profile_pic_url": "https://example.invalid/avatar/53"
+      },
+      {
+        "pk": "5176",
+        "username": "user_n",
+        "full_name": "Fake",
+        "profile_pic_url": "https://example.invalid/avatar/54"
+      },
+      {
+        "pk": "5183",
+        "username": "user_o",
+        "full_name": "Fake",
+        "profile_pic_url": "https://example.invalid/avatar/55"
+      }
+    ],
+    "items": [
+      {
+        "item_id": "8211",
+        "user_id": "5169",
+        "timestamp": 1791070114745420,
+        "item_type": "clip",
+        "is_sent_by_viewer": false
+      },
+      {
+        "item_id": "8218",
+        "user_id": "5162",
+        "timestamp": 1791031200163071,
+        "item_type": "media_share",
+        "is_sent_by_viewer": false
+      },
+      {
+        "item_id": "8225",
+        "user_id": "5169",
+        "timestamp": 1790948796655259,
+        "item_type": "clip",
+        "is_sent_by_viewer": false
+      },
+      {
+        "item_id": "8232",
+        "user_id": "5169",
+        "timestamp": 1790948597458384,
+        "item_type": "clip",
+        "is_sent_by_viewer": false
+      },
+      {
+        "item_id": "8239",
+        "user_id": "5162",
+        "timestamp": 1790799417416251,
+        "item_type": "text",
+        "is_sent_by_viewer": false,
+        "text": "Fake message"
+      },
+      {
+        "item_id": "8246",
+        "user_id": "5162",
+        "timestamp": 1790799417015764,
+        "item_type": "clip",
+        "is_sent_by_viewer": false
+      }
+    ],
+    "has_older": false
+  },
+  "status": "ok"
+}

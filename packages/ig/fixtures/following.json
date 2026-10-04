@@ -1,0 +1,28 @@
+{
+  "users": [
+    {
+      "pk": "5099",
+      "username": "user_e",
+      "full_name": "Fake",
+      "profile_pic_url": "https://example.invalid/avatar/35",
+      "is_private": false
+    },
+    {
+      "pk": "5106",
+      "username": "user_f",
+      "full_name": "Fake",
+      "profile_pic_url": "https://example.invalid/avatar/36",
+      "is_private": true
+    },
+    {
+      "pk": "5113",
+      "username": "user_g",
+      "full_name": "Fake",
+      "profile_pic_url": "https://example.invalid/avatar/37",
+      "is_private": false
+    }
+  ],
+  "next_max_id": "FAKE_CURSOR",
+  "has_more": true,
+  "status": "ok"
+}

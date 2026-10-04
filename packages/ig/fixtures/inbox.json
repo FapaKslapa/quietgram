@@ -1,0 +1,100 @@
+{
+  "viewer": {
+    "pk": "5120",
+    "username": "viewer"
+  },
+  "inbox": {
+    "threads": [
+      {
+        "thread_id": "7127",
+        "thread_title": "Fake thread 1",
+        "last_activity_at": 1791070114745000,
+        "read_state": 1,
+        "is_group": true,
+        "users": [
+          {
+            "pk": "5134",
+            "username": "user_h",
+            "full_name": "Fake",
+            "profile_pic_url": "https://example.invalid/avatar/38"
+          },
+          {
+            "pk": "5141",
+            "username": "user_i",
+            "full_name": "Fake",
+            "profile_pic_url": "https://example.invalid/avatar/39"
+          },
+          {
+            "pk": "5148",
+            "username": "user_j",
+            "full_name": "Fake",
+            "profile_pic_url": "https://example.invalid/avatar/40"
+          },
+          {
+            "pk": "5155",
+            "username": "user_k",
+            "full_name": "Fake",
+            "profile_pic_url": "https://example.invalid/avatar/41"
+          },
+          {
+            "pk": "5162",
+            "username": "user_l",
+            "full_name": "Fake",
+            "profile_pic_url": "https://example.invalid/avatar/42"
+          },
+          {
+            "pk": "5169",
+            "username": "user_m",
+            "full_name": "Fake",
+            "profile_pic_url": "https://example.invalid/avatar/43"
+          },
+          {
+            "pk": "5176",
+            "username": "user_n",
+            "full_name": "Fake",
+            "profile_pic_url": "https://example.invalid/avatar/44"
+          },
+          {
+            "pk": "5183",
+            "username": "user_o",
+            "full_name": "Fake",
+            "profile_pic_url": "https://example.invalid/avatar/45"
+          }
+        ]
+      },
+      {
+        "thread_id": "7190",
+        "thread_title": "Fake thread 2",
+        "last_activity_at": 1791050724673000,
+        "read_state": 1,
+        "is_group": false,
+        "users": [
+          {
+            "pk": "5176",
+            "username": "user_n",
+            "full_name": "Fake",
+            "profile_pic_url": "https://example.invalid/avatar/46"
+          }
+        ]
+      },
+      {
+        "thread_id": "7197",
+        "thread_title": "Fake thread 3",
+        "last_activity_at": 1791010864912000,
+        "read_state": 1,
+        "is_group": false,
+        "users": [
+          {
+            "pk": "5204",
+            "username": "user_p",
+            "full_name": "Fake",
+            "profile_pic_url": "https://example.invalid/avatar/47"
+          }
+        ]
+      }
+    ],
+    "has_older": false,
+    "next_cursor": null
+  },
+  "status": "ok"
+}

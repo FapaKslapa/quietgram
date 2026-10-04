@@ -1,0 +1,212 @@
+{
+  "feed_items": [
+    {
+      "media_or_ad": {
+        "id": "9064",
+        "pk": "9064",
+        "product_type": "carousel_container",
+        "media_type": 8,
+        "code": "FAKE36",
+        "taken_at": 1791105027,
+        "user": {
+          "pk": "5071",
+          "id": "5071",
+          "username": "user_d",
+          "full_name": "Fake user_d",
+          "profile_pic_url": "https://example.invalid/avatar/56"
+        },
+        "caption": {
+          "text": "Fake caption"
+        },
+        "image_versions2": {
+          "candidates": [
+            {
+              "url": "https://example.invalid/img/57",
+              "width": 2160,
+              "height": 2880
+            },
+            {
+              "url": "https://example.invalid/img/58",
+              "width": 1080,
+              "height": 1440
+            }
+          ]
+        },
+        "carousel_media": [
+          {
+            "id": "9078",
+            "pk": "9078",
+            "product_type": "carousel_item",
+            "media_type": 1,
+            "code": "FAKE36",
+            "image_versions2": {
+              "candidates": [
+                {
+                  "url": "https://example.invalid/img/59",
+                  "width": 2160,
+                  "height": 2880
+                },
+                {
+                  "url": "https://example.invalid/img/60",
+                  "width": 1080,
+                  "height": 1440
+                }
+              ]
+            },
+            "original_width": 2160,
+            "original_height": 2880
+          },
+          {
+            "id": "9085",
+            "pk": "9085",
+            "product_type": "carousel_item",
+            "media_type": 1,
+            "code": "FAKE36",
+            "image_versions2": {
+              "candidates": [
+                {
+                  "url": "https://example.invalid/img/61",
+                  "width": 2160,
+                  "height": 2880
+                },
+                {
+                  "url": "https://example.invalid/img/62",
+                  "width": 1080,
+                  "height": 1440
+                }
+              ]
+            },
+            "original_width": 2160,
+            "original_height": 2880
+          },
+          {
+            "id": "9092",
+            "pk": "9092",
+            "product_type": "carousel_item",
+            "media_type": 2,
+            "code": "FAKE36",
+            "image_versions2": {
+              "candidates": [
+                {
+                  "url": "https://example.invalid/img/63",
+                  "width": 720,
+                  "height": 960
+                },
+                {
+                  "url": "https://example.invalid/img/64",
+                  "width": 640,
+                  "height": 853
+                }
+              ]
+            },
+            "video_versions": [
+              {
+                "url": "https://example.invalid/video/65",
+                "width": 720,
+                "height": 960,
+                "type": 101
+              }
+            ],
+            "original_width": 1080,
+            "original_height": 1440
+          }
+        ],
+        "original_width": 2160,
+        "original_height": 2880
+      }
+    },
+    {
+      "ad": {
+        "ad_id": "1"
+      }
+    },
+    {
+      "media_or_ad": {
+        "id": "9001",
+        "pk": "9001",
+        "product_type": "carousel_container",
+        "media_type": 8,
+        "code": "FAKE36",
+        "taken_at": 1791105679,
+        "user": {
+          "pk": "5008",
+          "id": "5008",
+          "username": "user_a",
+          "full_name": "Fake user_a",
+          "profile_pic_url": "https://example.invalid/avatar/66"
+        },
+        "caption": {
+          "text": "Fake caption"
+        },
+        "image_versions2": {
+          "candidates": [
+            {
+              "url": "https://example.invalid/img/67",
+              "width": 1440,
+              "height": 1920
+            },
+            {
+              "url": "https://example.invalid/img/68",
+              "width": 1080,
+              "height": 1440
+            }
+          ]
+        },
+        "carousel_media": [
+          {
+            "id": "9015",
+            "pk": "9015",
+            "product_type": "carousel_item",
+            "media_type": 1,
+            "code": "FAKE36",
+            "image_versions2": {
+              "candidates": [
+                {
+                  "url": "https://example.invalid/img/69",
+                  "width": 1440,
+                  "height": 1920
+                },
+                {
+                  "url": "https://example.invalid/img/70",
+                  "width": 1080,
+                  "height": 1440
+                }
+              ]
+            },
+            "original_width": 1440,
+            "original_height": 1920
+          },
+          {
+            "id": "9022",
+            "pk": "9022",
+            "product_type": "carousel_item",
+            "media_type": 1,
+            "code": "FAKE36",
+            "image_versions2": {
+              "candidates": [
+                {
+                  "url": "https://example.invalid/img/71",
+                  "width": 1440,
+                  "height": 1920
+                },
+                {
+                  "url": "https://example.invalid/img/72",
+                  "width": 1080,
+                  "height": 1440
+                }
+              ]
+            },
+            "original_width": 1440,
+            "original_height": 1920
+          }
+        ],
+        "original_width": 1440,
+        "original_height": 1920
+      }
+    }
+  ],
+  "num_results": 3,
+  "more_available": true,
+  "next_max_id": "FAKE_CURSOR",
+  "status": "ok"
+}

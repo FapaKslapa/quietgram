@@ -1,0 +1,213 @@
+{
+  "items": [
+    {
+      "media": {
+        "id": "9036",
+        "pk": "9036",
+        "product_type": "clips",
+        "media_type": 2,
+        "code": "FAKE6",
+        "taken_at": 1790950258,
+        "user": {
+          "pk": "5043",
+          "id": "5043",
+          "username": "user_b",
+          "full_name": "Fake user_b",
+          "profile_pic_url": "https://example.invalid/avatar/10"
+        },
+        "caption": {
+          "text": "Fake caption"
+        },
+        "image_versions2": {
+          "candidates": [
+            {
+              "url": "https://example.invalid/img/11",
+              "width": 640,
+              "height": 1136
+            },
+            {
+              "url": "https://example.invalid/img/12",
+              "width": 480,
+              "height": 852
+            }
+          ]
+        },
+        "video_versions": [
+          {
+            "url": "https://example.invalid/video/13",
+            "width": 720,
+            "height": 1280,
+            "type": 101
+          }
+        ],
+        "original_width": 1080,
+        "original_height": 1920,
+        "carousel_media": null
+      }
+    },
+    {
+      "media": {
+        "id": "9064",
+        "pk": "9064",
+        "product_type": "carousel_container",
+        "media_type": 8,
+        "code": "FAKE10",
+        "taken_at": 1791105027,
+        "user": {
+          "pk": "5071",
+          "id": "5071",
+          "username": "user_d",
+          "full_name": "Fake user_d",
+          "profile_pic_url": "https://example.invalid/avatar/18"
+        },
+        "caption": {
+          "text": "Fake caption"
+        },
+        "image_versions2": {
+          "candidates": [
+            {
+              "url": "https://example.invalid/img/19",
+              "width": 2160,
+              "height": 2880
+            },
+            {
+              "url": "https://example.invalid/img/20",
+              "width": 1080,
+              "height": 1440
+            }
+          ]
+        },
+        "carousel_media": [
+          {
+            "id": "9078",
+            "pk": "9078",
+            "product_type": "carousel_item",
+            "media_type": 1,
+            "code": "FAKE12",
+            "image_versions2": {
+              "candidates": [
+                {
+                  "url": "https://example.invalid/img/21",
+                  "width": 2160,
+                  "height": 2880
+                },
+                {
+                  "url": "https://example.invalid/img/22",
+                  "width": 1080,
+                  "height": 1440
+                }
+              ]
+            },
+            "original_width": 2160,
+            "original_height": 2880
+          },
+          {
+            "id": "9085",
+            "pk": "9085",
+            "product_type": "carousel_item",
+            "media_type": 1,
+            "code": "FAKE13",
+            "image_versions2": {
+              "candidates": [
+                {
+                  "url": "https://example.invalid/img/23",
+                  "width": 2160,
+                  "height": 2880
+                },
+                {
+                  "url": "https://example.invalid/img/24",
+                  "width": 1080,
+                  "height": 1440
+                }
+              ]
+            },
+            "original_width": 2160,
+            "original_height": 2880
+          },
+          {
+            "id": "9092",
+            "pk": "9092",
+            "product_type": "carousel_item",
+            "media_type": 2,
+            "code": "FAKE14",
+            "image_versions2": {
+              "candidates": [
+                {
+                  "url": "https://example.invalid/img/25",
+                  "width": 720,
+                  "height": 960
+                },
+                {
+                  "url": "https://example.invalid/img/26",
+                  "width": 640,
+                  "height": 853
+                }
+              ]
+            },
+            "video_versions": [
+              {
+                "url": "https://example.invalid/video/27",
+                "width": 720,
+                "height": 960,
+                "type": 101
+              }
+            ],
+            "original_width": 1080,
+            "original_height": 1440
+          }
+        ],
+        "original_width": 2160,
+        "original_height": 2880
+      }
+    },
+    {
+      "media": {
+        "id": "9050",
+        "pk": "9050",
+        "product_type": "clips",
+        "media_type": 2,
+        "code": "FAKE8",
+        "taken_at": 1790935567,
+        "user": {
+          "pk": "5057",
+          "id": "5057",
+          "username": "user_c",
+          "full_name": "Fake user_c",
+          "profile_pic_url": "https://example.invalid/avatar/14"
+        },
+        "caption": {
+          "text": "Fake caption"
+        },
+        "image_versions2": {
+          "candidates": [
+            {
+              "url": "https://example.invalid/img/15",
+              "width": 504,
+              "height": 896
+            },
+            {
+              "url": "https://example.invalid/img/16",
+              "width": 320,
+              "height": 569
+            }
+          ]
+        },
+        "video_versions": [
+          {
+            "url": "https://example.invalid/video/17",
+            "width": 720,
+            "height": 1280,
+            "type": 101
+          }
+        ],
+        "original_width": 1080,
+        "original_height": 1920,
+        "carousel_media": null
+      }
+    }
+  ],
+  "num_results": 3,
+  "more_available": false,
+  "next_max_id": null,
+  "status": "ok"
+}
