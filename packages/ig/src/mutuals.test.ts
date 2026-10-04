@@ -37,7 +37,9 @@ describe("fetchAllUsers", () => {
   it("follows next_max_id across pages", async () => {
     const { requester, calls } = pagedRequester([
       {
-        users: [{ pk: 1, username: "a", profile_pic_url: "https://example.invalid/a" }],
+        users: [
+          { pk: 1, username: "a", profile_pic_url: "https://example.invalid/a", is_verified: true },
+        ],
         next_max_id: "c1",
       },
       { users: [{ pk: "2", username: "b" }], next_max_id: null },
