@@ -1,7 +1,12 @@
 import { IgHttpError, SessionExpiredError } from "@nodistraction/ig";
 import { TRPCError } from "@trpc/server";
 import { ZodError } from "zod";
-import { CooldownError, NoSessionError, RunNotFoundError } from "@/lib/sync/errors";
+import {
+  CooldownError,
+  MessageSendError,
+  NoSessionError,
+  RunNotFoundError,
+} from "@/lib/sync/errors";
 
 export type FailureReason =
   | "cooldown"
@@ -20,7 +25,11 @@ export const describeFailure = (cause: unknown): FailureData | null => {
   if (cause instanceof SessionExpiredError) return { reason: "session_expired" };
   if (cause instanceof NoSessionError) return { reason: "no_session" };
   if (cause instanceof RunNotFoundError) return { reason: "run_not_found" };
-  if (cause instanceof IgHttpError || cause instanceof ZodError) {
+  if (
+    cause instanceof IgHttpError ||
+    cause instanceof ZodError ||
+    cause instanceof MessageSendError
+  ) {
     return { reason: "instagram_error" };
   }
   if (cause instanceof RangeError) return { reason: "invalid_message" };

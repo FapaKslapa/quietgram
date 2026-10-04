@@ -18,3 +18,10 @@ export class RunNotFoundError extends Error {
     this.name = "RunNotFoundError";
   }
 }
+
+export class MessageSendError extends Error {
+  constructor(cause: unknown) {
+    super("Message could not be sent", { cause });
+    this.name = "MessageSendError";
+  }
+}
