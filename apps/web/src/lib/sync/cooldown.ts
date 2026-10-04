@@ -1,5 +1,5 @@
-export const REFRESH_COOLDOWN_MS = 5 * 60_000;
-export const THROTTLE_COOLDOWN_MS = 15 * 60_000;
+export const REFRESH_COOLDOWN_MS = 15 * 60_000;
+export const THROTTLE_COOLDOWN_MS = 30 * 60_000;
 
 export const throttleMarker = (now: Date): Date =>
   new Date(now.getTime() + THROTTLE_COOLDOWN_MS - REFRESH_COOLDOWN_MS);

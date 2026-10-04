@@ -82,6 +82,6 @@ describe("runKeepAlive", () => {
     const [run] = await env.db.select().from(syncRuns);
     expect(run?.status).toBe("failed");
     const [state] = await env.db.select().from(syncState);
-    expect(state?.lastRefreshAt?.getTime()).toBe(env.clock.current.getTime() + 10 * 60_000);
+    expect(state?.lastRefreshAt?.getTime()).toBe(env.clock.current.getTime() + 15 * 60_000);
   });
 });

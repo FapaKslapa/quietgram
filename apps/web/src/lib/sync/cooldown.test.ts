@@ -1,7 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { remainingCooldownMs } from "@/lib/sync/cooldown";
+import {
+  REFRESH_COOLDOWN_MS,
+  remainingCooldownMs,
+  THROTTLE_COOLDOWN_MS,
+  throttleMarker,
+} from "@/lib/sync/cooldown";
 
 const FIVE_MINUTES = 300_000;
+const FIFTEEN_MINUTES = 900_000;
 const now = new Date("2026-10-04T12:00:00Z");
 
 describe("remainingCooldownMs", () => {
@@ -17,5 +23,13 @@ describe("remainingCooldownMs", () => {
   it("is zero exactly at and after the cooldown", () => {
     expect(remainingCooldownMs(new Date(now.getTime() - FIVE_MINUTES), now, FIVE_MINUTES)).toBe(0);
     expect(remainingCooldownMs(new Date(now.getTime() - 900_000), now, FIVE_MINUTES)).toBe(0);
+  });
+});
+
+describe("cooldown constants", () => {
+  it("waits fifteen minutes between refreshes and thirty after a throttle", () => {
+    expect(REFRESH_COOLDOWN_MS).toBe(FIFTEEN_MINUTES);
+    expect(THROTTLE_COOLDOWN_MS).toBe(2 * FIFTEEN_MINUTES);
+    expect(throttleMarker(now).getTime()).toBe(now.getTime() + FIFTEEN_MINUTES);
   });
 });

@@ -1,7 +1,7 @@
 import { z } from "zod";
 import type { FeedMode } from "@/lib/sync/feed-mode";
 
-export const MAX_TIMELINE_PAGES = 5;
+export const MAX_TIMELINE_PAGES = 2;
 
 const runStateSchema = z.compile(
   z.discriminatedUnion("phase", [

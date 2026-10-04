@@ -10,8 +10,8 @@ export type SyncRuntime = {
 
 export type SyncDeps = SyncRuntime & { db: Db };
 
-const MIN_DELAY_MS = 300;
-const MAX_DELAY_MS = 900;
+export const MIN_DELAY_MS = 1000;
+export const MAX_DELAY_MS = 3000;
 
 export const randomDelay = (): Promise<void> =>
   new Promise((resolve) => {

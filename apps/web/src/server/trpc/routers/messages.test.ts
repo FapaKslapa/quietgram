@@ -167,7 +167,7 @@ describe("messages router", () => {
     const [state] = await env.db.select().from(syncState);
     expect(state).toBeDefined();
     const overview = await caller.refresh.overview();
-    expect(overview.nextRefreshAt).toBe(env.clock.current.getTime() + 15 * 60_000);
+    expect(overview.nextRefreshAt).toBe(env.clock.current.getTime() + 30 * 60_000);
     expect(overview.lastRefreshAt).toBe(env.clock.current.getTime());
   });
 });

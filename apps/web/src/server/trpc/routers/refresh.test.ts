@@ -73,7 +73,7 @@ describe("refresh.overview", () => {
       sessionStatus: "expired",
       viewerId: IG_USER_ID,
       lastRefreshAt: new Date("2026-10-04T11:58:00Z").getTime(),
-      nextRefreshAt: new Date("2026-10-04T12:03:00Z").getTime(),
+      nextRefreshAt: new Date("2026-10-04T12:13:00Z").getTime(),
     });
   });
 
@@ -88,7 +88,7 @@ describe("refresh.start", () => {
     const env = await createTestEnv(world());
     const result = await createCaller(env.context).refresh.start();
     expect(result.runId).toMatch(/^[0-9a-f-]{36}$/);
-    expect(result.total).toBe(7);
+    expect(result.total).toBe(4);
     const [run] = await env.db.select().from(syncRuns);
     expect(run).toMatchObject({ status: "running", completed: 0, kind: "refresh" });
   });
@@ -101,7 +101,7 @@ describe("refresh.start", () => {
     const failure = await caller.refresh.start().catch((error: unknown) => error);
     expect(failure).toMatchObject({
       code: "TOO_MANY_REQUESTS",
-      cause: { retryAfterSeconds: 180 },
+      cause: { retryAfterSeconds: 780 },
     });
     expect(env.calls).toEqual([]);
   });
@@ -110,8 +110,8 @@ describe("refresh.start", () => {
     const env = await createTestEnv(world());
     const caller = createCaller(env.context);
     await caller.refresh.start();
-    env.clock.current = new Date(env.clock.current.getTime() + 300_000);
-    await expect(caller.refresh.start()).resolves.toMatchObject({ total: 7 });
+    env.clock.current = new Date(env.clock.current.getTime() + 900_000);
+    await expect(caller.refresh.start()).resolves.toMatchObject({ total: 4 });
   });
 
   it("fails without a paired session", async () => {
@@ -164,7 +164,7 @@ describe("refresh.step", () => {
     const caller = createCaller(env.context);
     await runToEnd(caller);
     const friendshipCalls = count(env.calls, "/friendships/");
-    env.clock.current = new Date(env.clock.current.getTime() + 600_000);
+    env.clock.current = new Date(env.clock.current.getTime() + 960_000);
     await runToEnd(caller);
     expect(count(env.calls, "/friendships/")).toBe(friendshipCalls);
     env.clock.current = new Date(env.clock.current.getTime() + 25 * 3_600_000);
@@ -177,12 +177,12 @@ describe("refresh.step", () => {
     const caller = createCaller(env.context);
     await runToEnd(caller);
     const before = count(env.calls, "/feed/timeline/");
-    env.clock.current = new Date(env.clock.current.getTime() + 600_000);
+    env.clock.current = new Date(env.clock.current.getTime() + 960_000);
     await runToEnd(caller);
     expect(count(env.calls, "/feed/timeline/") - before).toBe(1);
   });
 
-  it("walks at most five timeline pages", async () => {
+  it("walks at most two timeline pages", async () => {
     let page = 0;
     const base = world();
     const env = await createTestEnv((call) => {
@@ -207,8 +207,8 @@ describe("refresh.step", () => {
       };
     });
     await runToEnd(createCaller(env.context));
-    expect(page).toBe(5);
-    expect(await env.db.select().from(posts)).toHaveLength(5);
+    expect(page).toBe(2);
+    expect(await env.db.select().from(posts)).toHaveLength(2);
   });
 
   it("gives an empty feed instead of an error when there are no mutuals", async () => {
@@ -236,7 +236,7 @@ describe("refresh.step", () => {
     expect(session?.status).toBe("expired");
     expect(await caller.refresh.status({ runId })).toMatchObject({ status: "failed", done: true });
     const callsBefore = env.calls.length;
-    env.clock.current = new Date(env.clock.current.getTime() + 600_000);
+    env.clock.current = new Date(env.clock.current.getTime() + 960_000);
     await expect(caller.refresh.start()).rejects.toMatchObject({ code: "PRECONDITION_FAILED" });
     expect(env.calls.length).toBe(callsBefore);
   });
@@ -273,7 +273,7 @@ describe("follower counts", () => {
     expect(rows.every((row) => row.isBusiness)).toBe(true);
     expect(count(env.calls, "/info/")).toBe(3);
     expect(env.delays.count).toBe(2);
-    env.clock.current = new Date(env.clock.current.getTime() + 600_000);
+    env.clock.current = new Date(env.clock.current.getTime() + 960_000);
     await runToEnd(caller);
     expect(count(env.calls, "/info/")).toBe(3);
   });
@@ -318,11 +318,11 @@ describe("refresh throttling", () => {
     const [session] = await env.db.select().from(igSessions);
     expect(session?.status).toBe("active");
     const overview = await caller.refresh.overview();
-    expect(overview.nextRefreshAt).toBe(env.clock.current.getTime() + 15 * 60_000);
+    expect(overview.nextRefreshAt).toBe(env.clock.current.getTime() + 30 * 60_000);
     const callsBefore = env.calls.length;
     await expect(caller.refresh.start()).rejects.toMatchObject({
       code: "TOO_MANY_REQUESTS",
-      cause: { retryAfterSeconds: 900 },
+      cause: { retryAfterSeconds: 1800 },
     });
     expect(env.calls.length).toBe(callsBefore);
   });
