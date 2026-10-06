@@ -1,9 +1,11 @@
 "use client";
 
 import { useSuspenseQuery } from "@tanstack/react-query";
+import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef } from "react";
 import { type ConversationState, ConversationView } from "@/components/messaggi/conversation-view";
 import { useConversation } from "@/hooks/use-conversation";
+import { useEdgeSwipeBack } from "@/hooks/use-edge-swipe-back";
 import { buildConversation, isPending } from "@/lib/messages";
 import { useTRPC } from "@/trpc/client";
 
@@ -18,7 +20,12 @@ export function Conversation({ threadId }: { threadId: string }) {
   const { data: sendEnabled } = useSuspenseQuery(
     trpc.refresh.overview.queryOptions(undefined, { select: (overview) => overview.dmSendEnabled }),
   );
-  const { messages, send, reload, loading, failed } = useConversation(threadId, viewerId);
+  const { messages, send, reload, loading, failed, stale, sentKeys } = useConversation(
+    threadId,
+    viewerId,
+  );
+  const router = useRouter();
+  const { x, goBack } = useEdgeSwipeBack(() => router.push("/messaggi"));
   const scroller = useRef<HTMLDivElement>(null);
   const shown = useRef(0);
 
@@ -58,10 +65,14 @@ export function Conversation({ threadId }: { threadId: string }) {
       state={state}
       items={items}
       pendingKeys={pendingKeys}
+      enterKeys={sentKeys}
+      stale={stale}
       sendEnabled={sendEnabled}
       onSend={send}
       onReload={reload}
       scrollerRef={scroller}
+      onBack={goBack}
+      dragX={x}
     />
   );
 }

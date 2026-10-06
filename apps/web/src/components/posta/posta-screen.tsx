@@ -36,9 +36,7 @@ export function PostaScreen() {
       >
         <PostaHeader mode={mode} modesOpen={modesOpen} onOpenModes={() => setModesOpen(true)}>
           <RefreshPanel
-            label={controller.label}
-            last={controller.last}
-            next={controller.next}
+            hint={controller.hint}
             disabled={controller.cooling || busy}
             progress={controller.progress}
             onRefresh={controller.refresh}

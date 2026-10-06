@@ -5,26 +5,38 @@ import {
   Contrast,
   Link2,
   LogOut,
+  MessageSquare,
   Palette,
   SlidersHorizontal,
 } from "lucide-react";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { AuthorAvatar } from "@/components/posta/author-avatar";
+import { DM_SEND_WARNING } from "@/components/profilo/dm-send-drawer";
 import { ScreenHeader } from "@/components/shell/screen-header";
-import { Item, ItemActions, ItemContent, ItemMedia, ItemTitle } from "@/components/ui/item";
+import {
+  Item,
+  ItemActions,
+  ItemContent,
+  ItemDescription,
+  ItemMedia,
+  ItemTitle,
+} from "@/components/ui/item";
 import { Switch } from "@/components/ui/switch";
 import { type SessionStatus, sessionAction, sessionLabel } from "@/lib/profile";
+import { cn } from "@/lib/utils";
 
 type ProfiloViewProps = {
   name: string;
   sessionStatus: SessionStatus;
   modeLabel: string;
   grayscale: boolean;
+  dmSend: boolean;
   budgetLabel: string;
   themeLabel: string;
   loggingOut: boolean;
   onGrayscale: (value: boolean) => void;
+  onDmSend: (value: boolean) => void;
   onOpenFeed: () => void;
   onOpenBudget: () => void;
   onOpenTheme: () => void;
@@ -59,10 +71,12 @@ export function ProfiloView({
   sessionStatus,
   modeLabel,
   grayscale,
+  dmSend,
   budgetLabel,
   themeLabel,
   loggingOut,
   onGrayscale,
+  onDmSend,
   onOpenFeed,
   onOpenBudget,
   onOpenTheme,
@@ -124,6 +138,23 @@ export function ProfiloView({
                 checked={grayscale}
                 onCheckedChange={onGrayscale}
                 aria-label="Bianco e nero"
+              />
+            </ItemActions>
+          </Item>
+          <Item className={cn(ROW, "items-start py-3")} render={<div />}>
+            <ItemMedia variant="icon">
+              <MessageSquare strokeWidth={1.8} aria-hidden="true" />
+            </ItemMedia>
+            <ItemContent>
+              <ItemTitle>Invio messaggi</ItemTitle>
+              <ItemDescription id="dm-send-warning">{DM_SEND_WARNING}</ItemDescription>
+            </ItemContent>
+            <ItemActions>
+              <Switch
+                checked={dmSend}
+                onCheckedChange={onDmSend}
+                aria-label="Invio messaggi"
+                aria-describedby="dm-send-warning"
               />
             </ItemActions>
           </Item>

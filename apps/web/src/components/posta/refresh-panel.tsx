@@ -2,13 +2,16 @@ import { Button } from "@/components/ui/button";
 import type { RefreshProgress } from "@/hooks/use-refresh";
 
 type RefreshPanelProps = {
-  label: string;
-  last: string;
-  next: string;
+  hint: string | null;
   disabled: boolean;
   progress: RefreshProgress | null;
   onRefresh: () => void;
 };
+
+const progressLabel = (progress: RefreshProgress): string =>
+  progress.authors
+    ? `Controllo ${progress.authors.checked} di ${progress.authors.total} account`
+    : "Aggiornamento in corso";
 
 function ProgressStrip({ progress }: { progress: RefreshProgress }) {
   const known = progress.total > 0;
@@ -27,7 +30,7 @@ function ProgressStrip({ progress }: { progress: RefreshProgress }) {
         className="flex items-baseline justify-between text-xs text-muted-foreground"
         aria-live="polite"
       >
-        <span>Aggiornamento in corso</span>
+        <span>{progressLabel(progress)}</span>
         {known ? (
           <span className="num-display">
             {progress.completed} / {progress.total}
@@ -48,31 +51,22 @@ function ProgressStrip({ progress }: { progress: RefreshProgress }) {
   );
 }
 
-export function RefreshPanel({
-  label,
-  last,
-  next,
-  disabled,
-  progress,
-  onRefresh,
-}: RefreshPanelProps) {
+export function RefreshPanel({ hint, disabled, progress, onRefresh }: RefreshPanelProps) {
   return (
     <div>
-      <p className="text-xs font-semibold text-muted-foreground">{label}</p>
-      <p className="poster mt-1.5" suppressHydrationWarning>
-        {last}
-      </p>
-      <div className="mt-5 flex items-center justify-between gap-4">
-        <p id="refresh-info" className="text-sm text-muted-foreground" suppressHydrationWarning>
-          {next}
-        </p>
+      <div className="flex items-center gap-4">
+        {hint ? (
+          <p id="refresh-info" className="min-w-0 text-sm text-muted-foreground">
+            {hint}
+          </p>
+        ) : null}
         <Button
           type="button"
           onClick={onRefresh}
           disabled={disabled}
           aria-busy={progress !== null}
-          aria-describedby="refresh-info"
-          className="flex-none"
+          aria-describedby={hint ? "refresh-info" : undefined}
+          className="ml-auto flex-none"
         >
           Aggiorna
         </Button>

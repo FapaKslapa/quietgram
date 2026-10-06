@@ -7,9 +7,7 @@ import { formatClock } from "@/lib/time";
 import { useTRPC } from "@/trpc/client";
 
 export type RefreshController = {
-  label: string;
-  last: string;
-  next: string;
+  hint: string | null;
   nextLabel: string;
   cooling: boolean;
   progress: RefreshProgress | null;
@@ -28,9 +26,7 @@ export function useRefreshController(): RefreshController {
       : `Prossimo aggiornamento dalle ${formatClock(overview.nextRefreshAt)}`;
 
   return {
-    label: overview.lastRefreshAt === null ? "Aggiornato" : "Aggiornato alle",
-    last: overview.lastRefreshAt === null ? "Mai" : formatClock(overview.lastRefreshAt),
-    next: overview.nextRefreshAt !== null && cooling ? nextLabel : "Pronto per aggiornare",
+    hint: overview.nextRefreshAt !== null && cooling ? nextLabel : null,
     nextLabel,
     cooling,
     progress,

@@ -3,9 +3,9 @@ import { Button } from "@/components/ui/button";
 
 export function ThreadRows({ threads, now }: { threads: ThreadSummary[]; now: number }) {
   return (
-    <ul className="column grid divide-y px-4 pb-5">
+    <ul className="column grid grid-cols-[minmax(0,1fr)] divide-y px-4 pb-5">
       {threads.map((thread) => (
-        <li key={thread.id}>
+        <li key={thread.id} className="min-w-0">
           <ThreadRow thread={thread} now={now} />
         </li>
       ))}

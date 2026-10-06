@@ -5,11 +5,15 @@ import { ScreenHeader } from "@/components/shell/screen-header";
 
 export function MessaggiScreen() {
   return (
-    <>
-      <ScreenHeader title="Messaggi" variant="double" />
-      <Suspense fallback={<ThreadSkeleton />}>
-        <ThreadList />
-      </Suspense>
-    </>
+    <Suspense
+      fallback={
+        <>
+          <ScreenHeader title="Messaggi" variant="double" />
+          <ThreadSkeleton />
+        </>
+      }
+    >
+      <ThreadList />
+    </Suspense>
   );
 }

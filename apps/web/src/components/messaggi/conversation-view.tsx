@@ -1,5 +1,5 @@
 import { ChevronLeft } from "lucide-react";
-import Link from "next/link";
+import { type MotionValue, motion, useReducedMotion } from "motion/react";
 import type { ReactNode, Ref } from "react";
 import { Bubbles } from "@/components/messaggi/bubbles";
 import { Composer } from "@/components/messaggi/composer";
@@ -15,11 +15,17 @@ type ConversationViewProps = {
   state: ConversationState;
   items: ConversationItem[];
   pendingKeys: ReadonlySet<string>;
+  enterKeys?: ReadonlySet<string> | undefined;
+  stale?: boolean;
   sendEnabled: boolean;
   onSend: (text: string) => Promise<boolean>;
   onReload: () => void;
   scrollerRef?: Ref<HTMLDivElement>;
+  onBack: () => void;
+  dragX?: MotionValue<number> | undefined;
 };
+
+const ENTER_SLIDE = { duration: 0.28, ease: [0.16, 1, 0.3, 1] } as const;
 
 function ConversationSkeleton() {
   return (
@@ -35,8 +41,12 @@ function Body({
   state,
   items,
   pendingKeys,
+  enterKeys,
   onReload,
-}: Pick<ConversationViewProps, "state" | "items" | "pendingKeys" | "onReload">): ReactNode {
+}: Pick<
+  ConversationViewProps,
+  "state" | "items" | "pendingKeys" | "enterKeys" | "onReload"
+>): ReactNode {
   if (state === "failed") {
     return (
       <section role="alert" className="grid justify-items-center gap-2 px-8 pt-16 text-center">
@@ -60,7 +70,7 @@ function Body({
       </p>
     );
   }
-  return <Bubbles items={items} pendingKeys={pendingKeys} />;
+  return <Bubbles items={items} pendingKeys={pendingKeys} enterKeys={enterKeys} />;
 }
 
 export function ConversationView({
@@ -68,28 +78,61 @@ export function ConversationView({
   state,
   items,
   pendingKeys,
+  enterKeys,
+  stale = false,
   sendEnabled,
   onSend,
   onReload,
   scrollerRef,
+  onBack,
+  dragX,
 }: ConversationViewProps) {
+  const reduced = useReducedMotion();
+
   return (
-    <div className="column flex h-dvh flex-col">
-      <header className="flex items-center gap-2 border-b px-3 pt-[max(1rem,env(safe-area-inset-top))] pb-3">
-        <Link
-          href="/messaggi"
-          aria-label="Torna ai messaggi"
-          className="grid size-11 flex-none place-items-center rounded-full transition-colors hover:bg-accent"
-        >
-          <ChevronLeft className="size-6" strokeWidth={1.8} aria-hidden="true" />
-        </Link>
-        <AuthorAvatar username={title} avatarUrl={null} className="size-9" />
-        <h1 className="min-w-0 flex-1 truncate text-base font-semibold">{title}</h1>
+    <motion.div
+      initial={reduced ? false : { x: 40, opacity: 0 }}
+      animate={{ x: 0, opacity: 1 }}
+      transition={ENTER_SLIDE}
+      style={dragX ? { x: dragX } : {}}
+      className="flex h-dvh min-w-0 flex-col bg-background"
+    >
+      <header className="border-b px-3 pt-[max(1rem,env(safe-area-inset-top))] pb-3">
+        <div className="column flex items-center gap-2">
+          <button
+            type="button"
+            onClick={onBack}
+            aria-label="Torna ai messaggi"
+            className="grid size-11 flex-none place-items-center rounded-full transition-colors hover:bg-accent"
+          >
+            <ChevronLeft className="size-6" strokeWidth={1.8} aria-hidden="true" />
+          </button>
+          <AuthorAvatar username={title} avatarUrl={null} className="size-9 flex-none" />
+          <div className="min-w-0 flex-1">
+            <h1 className="truncate text-base font-semibold">{title}</h1>
+            {stale ? (
+              <p className="text-xs text-muted-foreground" role="status">
+                Non aggiornato
+              </p>
+            ) : null}
+          </div>
+        </div>
       </header>
-      <div ref={scrollerRef} className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
-        <Body state={state} items={items} pendingKeys={pendingKeys} onReload={onReload} />
+      <div
+        ref={scrollerRef}
+        className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-contain"
+      >
+        <div className="column">
+          <Body
+            state={state}
+            items={items}
+            pendingKeys={pendingKeys}
+            enterKeys={enterKeys}
+            onReload={onReload}
+          />
+        </div>
       </div>
       <Composer onSend={onSend} enabled={sendEnabled} />
-    </div>
+    </motion.div>
   );
 }

@@ -7,7 +7,11 @@ import { cooldownMessage, THROTTLE_TOAST } from "@/lib/cooldown-label";
 import { classifyRefreshError } from "@/lib/refresh-failure";
 import { useTRPC } from "@/trpc/client";
 
-export type RefreshProgress = { completed: number; total: number };
+export type RefreshProgress = {
+  completed: number;
+  total: number;
+  authors: { checked: number; total: number } | null;
+};
 
 export function useRefresh() {
   const trpc = useTRPC();
@@ -42,14 +46,18 @@ export function useRefresh() {
   const refresh = async () => {
     if (running.current) return;
     running.current = true;
-    setProgress({ completed: 0, total: 0 });
+    setProgress({ completed: 0, total: 0, authors: null });
     try {
       const { runId, total } = await start.mutateAsync();
-      setProgress({ completed: 0, total });
+      setProgress({ completed: 0, total, authors: null });
       let finished = false;
       while (!finished) {
         const result = await step.mutateAsync({ runId });
-        setProgress({ completed: result.completed, total: result.total });
+        setProgress({
+          completed: result.completed,
+          total: result.total,
+          authors: result.authors,
+        });
         await queryClient.invalidateQueries({ queryKey: trpc.feed.list.infiniteQueryKey() });
         if (result.status === "failed") {
           toast.error("L'aggiornamento si è interrotto. Riprova tra poco.");

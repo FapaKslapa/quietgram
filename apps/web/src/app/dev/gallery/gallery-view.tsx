@@ -4,6 +4,7 @@ import { useMotionValue } from "motion/react";
 import { type ReactNode, useEffect, useState } from "react";
 import {
   CONVERSATION,
+  LONG_THREADS,
   NOW,
   PENDING_KEYS,
   POSTS,
@@ -25,6 +26,7 @@ import { PostaFeedSkeleton } from "@/components/posta/posta-screen";
 import { PullSurface } from "@/components/posta/pull-surface";
 import { RefreshPanel } from "@/components/posta/refresh-panel";
 import { ChoiceSheet } from "@/components/profilo/choice-sheet";
+import { DmSendDrawer } from "@/components/profilo/dm-send-drawer";
 import { ProfiloView } from "@/components/profilo/profilo-view";
 import { RegisterDrawer } from "@/components/register-drawer";
 import { SavedSkeleton } from "@/components/salvati/saved-skeleton";
@@ -62,11 +64,11 @@ function PostaFrame({ settings: initial, openModes, running, empty, loading }: P
     <>
       <PostaHeader mode={mode} modesOpen={open} onOpenModes={() => setOpen(true)}>
         <RefreshPanel
-          label="Aggiornato alle"
-          last="14:21"
-          next="Prossimo aggiornamento dalle 14:51"
+          hint="Prossimo aggiornamento dalle 14:51"
           disabled
-          progress={running ? { completed: 7, total: 18 } : null}
+          progress={
+            running ? { completed: 7, total: 18, authors: { checked: 24, total: 1000 } } : null
+          }
           onRefresh={noop}
         />
       </PostaHeader>
@@ -155,14 +157,7 @@ function PullStatic({ distance, phase }: { distance: number; phase: PullPhase })
       progress={null}
     >
       <PostaHeader mode={mode} modesOpen={false} onOpenModes={noop}>
-        <RefreshPanel
-          label="Aggiornato alle"
-          last="14:21"
-          next="Pronto per aggiornare"
-          disabled={false}
-          progress={null}
-          onRefresh={noop}
-        />
+        <RefreshPanel hint={null} disabled={false} progress={null} onRefresh={noop} />
       </PostaHeader>
       <PostList posts={POSTS.slice(0, 1)} now={NOW} />
     </PullSurface>
@@ -189,15 +184,13 @@ function PullLive() {
       pull={pull}
       phase={phase}
       nextLabel="Prossimo aggiornamento dalle 14:51"
-      progress={busy ? { completed: 7, total: 18 } : null}
+      progress={busy ? { completed: 7, total: 18, authors: null } : null}
     >
       <PostaHeader mode={mode} modesOpen={false} onOpenModes={noop}>
         <RefreshPanel
-          label="Aggiornato alle"
-          last="14:21"
-          next="Pronto per aggiornare"
+          hint={null}
           disabled={busy}
-          progress={busy ? { completed: 7, total: 18 } : null}
+          progress={busy ? { completed: 7, total: 18, authors: null } : null}
           onRefresh={() => setBusy(true)}
         />
       </PostaHeader>
@@ -226,9 +219,10 @@ function ViewerFrame() {
   return <PostList posts={POSTS.slice(1, 2)} now={NOW} />;
 }
 
-function ProfiloFrame({ sheet }: { sheet?: "budget" | "theme" }) {
+function ProfiloFrame({ sheet }: { sheet?: "budget" | "theme" | "dm" }) {
   const [grayscale, setGrayscale] = useState(false);
-  const [open, setOpen] = useState<"budget" | "theme" | null>(sheet ?? null);
+  const [dmSend, setDmSend] = useState(false);
+  const [open, setOpen] = useState<"budget" | "theme" | "dm" | null>(sheet ?? null);
   const [budget, setBudget] = useState(15);
   const [theme, setTheme] = useState<"system" | "light" | "dark">("system");
 
@@ -242,13 +236,20 @@ function ProfiloFrame({ sheet }: { sheet?: "budget" | "theme" }) {
         budgetLabel={budget === 0 ? "Spento" : `${budget} minuti`}
         themeLabel={THEMES.find((entry) => entry.value === theme)?.label ?? "Sistema"}
         loggingOut={false}
+        dmSend={dmSend}
         onGrayscale={setGrayscale}
+        onDmSend={(next) => (next ? setOpen("dm") : setDmSend(false))}
         onOpenFeed={noop}
         onOpenBudget={() => setOpen("budget")}
         onOpenTheme={() => setOpen("theme")}
         onLogout={noop}
       />
       <TabBarView pathname="/profilo" unread={false} />
+      <DmSendDrawer
+        open={open === "dm"}
+        onOpenChange={(next) => setOpen(next ? "dm" : null)}
+        onConfirm={() => setDmSend(true)}
+      />
       <ChoiceSheet
         open={open === "budget"}
         onOpenChange={(next) => setOpen(next ? "budget" : null)}
@@ -348,6 +349,14 @@ const render = (view: GalleryViewName): ReactNode => {
           <TabBarView pathname="/messaggi" unread={false} />
         </>
       );
+    case "messaggi-long":
+      return (
+        <>
+          <ScreenHeader title="Messaggi" variant="double" />
+          <ThreadRows threads={LONG_THREADS} now={NOW} />
+          <TabBarView pathname="/messaggi" unread />
+        </>
+      );
     case "thread":
       return (
         <ConversationView
@@ -358,6 +367,34 @@ const render = (view: GalleryViewName): ReactNode => {
           sendEnabled
           onSend={sendNothing}
           onReload={noop}
+          onBack={noop}
+        />
+      );
+    case "thread-off":
+      return (
+        <ConversationView
+          title="Giulia Rossi"
+          state="ready"
+          items={CONVERSATION}
+          pendingKeys={PENDING_KEYS}
+          sendEnabled={false}
+          onSend={sendNothing}
+          onReload={noop}
+          onBack={noop}
+        />
+      );
+    case "thread-stale":
+      return (
+        <ConversationView
+          title="Maria Concetta Alessandra De Santis Rossi Bianchi Verdi Neri"
+          state="ready"
+          items={CONVERSATION}
+          pendingKeys={PENDING_KEYS}
+          stale
+          sendEnabled
+          onSend={sendNothing}
+          onReload={noop}
+          onBack={noop}
         />
       );
     case "thread-failed":
@@ -370,6 +407,7 @@ const render = (view: GalleryViewName): ReactNode => {
           sendEnabled={false}
           onSend={sendNothing}
           onReload={noop}
+          onBack={noop}
         />
       );
     case "salvati":
@@ -384,6 +422,8 @@ const render = (view: GalleryViewName): ReactNode => {
       return <ProfiloFrame sheet="budget" />;
     case "profilo-theme":
       return <ProfiloFrame sheet="theme" />;
+    case "profilo-dm-confirm":
+      return <ProfiloFrame sheet="dm" />;
     case "login":
       return <LoginForm />;
     case "register":

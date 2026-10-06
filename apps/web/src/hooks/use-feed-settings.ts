@@ -102,6 +102,21 @@ export function useFeedSettings() {
     ),
   );
 
+  const dmSendOptimistic = optimistic<{ dmSendEnabled: boolean }>(
+    (current, { dmSendEnabled }) => ({ ...current, dmSendEnabled }),
+    "Non sono riuscito a salvare la scelta. Riprova.",
+  );
+
+  const setDmSend = useMutation(
+    trpc.settings.setDmSendEnabled.mutationOptions({
+      ...dmSendOptimistic,
+      onSettled: async () => {
+        await dmSendOptimistic.onSettled();
+        await queryClient.invalidateQueries({ queryKey: trpc.refresh.overview.queryKey() });
+      },
+    }),
+  );
+
   const setBudget = useMutation(
     trpc.settings.setSessionBudget.mutationOptions(
       optimistic<{ sessionBudgetMinutes: number | null }>(
@@ -126,6 +141,7 @@ export function useFeedSettings() {
     settings,
     setMode,
     setGrayscale,
+    setDmSend,
     setBudget,
     lockBudget,
     setThreshold,
