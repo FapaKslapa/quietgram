@@ -1,0 +1,9 @@
+{
+  "name": "@nodistraction/ig-engine",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "test": "if [ -x .venv/bin/pytest ]; then .venv/bin/pytest -q; else echo 'ig-engine: skipping tests, run uv sync first'; fi",
+    "typecheck": "if [ -x .venv/bin/mypy ]; then .venv/bin/mypy; else echo 'ig-engine: skipping typecheck, run uv sync first'; fi"
+  }
+}
