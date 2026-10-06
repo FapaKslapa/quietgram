@@ -57,6 +57,13 @@
       "when": 1791329986080,
       "tag": "0007_following_latest_reel",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "6",
+      "when": 1791330965660,
+      "tag": "0008_social",
+      "breakpoints": true
     }
   ]
 }

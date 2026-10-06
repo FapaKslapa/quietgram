@@ -260,6 +260,7 @@ export const following = sqliteTable(
     igUserId: text("ig_user_id").notNull(),
     username: text("username").notNull(),
     avatarUrl: text("avatar_url"),
+    avatarRefreshedAt: integer("avatar_refreshed_at", { mode: "timestamp_ms" }),
     followerCount: integer("follower_count"),
     isVerified: integer("is_verified", { mode: "boolean" }).notNull().default(false),
     isBusiness: integer("is_business", { mode: "boolean" }).notNull().default(false),
@@ -282,7 +283,54 @@ export const userSettings = sqliteTable("user_settings", {
   sessionBudgetMinutes: integer("session_budget_minutes"),
   budgetLockedUntil: integer("budget_locked_until", { mode: "timestamp_ms" }),
   dmSendEnabled: integer("dm_send_enabled", { mode: "boolean" }).notNull().default(false),
+  interactionsEnabled: integer("interactions_enabled", { mode: "boolean" })
+    .notNull()
+    .default(false),
 });
+
+export const storyTray = sqliteTable(
+  "story_tray",
+  {
+    ownerId: text("owner_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    userId: text("user_id").notNull(),
+    username: text("username").notNull(),
+    avatarUrl: text("avatar_url"),
+    latestReelMedia: integer("latest_reel_media"),
+    seen: integer("seen", { mode: "boolean" }).notNull().default(false),
+    position: integer("position").notNull().default(0),
+    fetchedAt: integer("fetched_at", { mode: "timestamp_ms" }).notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.ownerId, t.userId] })],
+);
+
+export const profileCache = sqliteTable(
+  "profile_cache",
+  {
+    ownerId: text("owner_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    userId: text("user_id").notNull(),
+    json: text("json").notNull(),
+    fetchedAt: integer("fetched_at", { mode: "timestamp_ms" }).notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.ownerId, t.userId] })],
+);
+
+export const postState = sqliteTable(
+  "post_state",
+  {
+    ownerId: text("owner_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    mediaId: text("media_id").notNull(),
+    liked: integer("liked", { mode: "boolean" }).notNull().default(false),
+    saved: integer("saved", { mode: "boolean" }).notNull().default(false),
+    updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.ownerId, t.mediaId] })],
+);
 
 export const feedExceptions = sqliteTable(
   "feed_exceptions",
