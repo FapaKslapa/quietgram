@@ -5,13 +5,23 @@ import { type FeedMode, resolveAllowedAuthors } from "@/lib/sync/feed-mode";
 export const DEFAULT_FEED_MODE: FeedMode = "friends";
 export const DEFAULT_CREATOR_THRESHOLD = 10_000;
 
-export type FeedSettings = { feedMode: FeedMode; creatorThreshold: number };
+export const DEFAULT_RECENCY_DAYS = 14;
+export const MIN_RECENCY_DAYS = 3;
+export const MAX_RECENCY_DAYS = 60;
+export const POST_RETENTION_DAYS = 60;
+export const DAY_MS = 86_400_000;
+
+export const recencyCutoff = (now: Date, recencyDays: number): number =>
+  now.getTime() - recencyDays * DAY_MS;
+
+export type FeedSettings = { feedMode: FeedMode; creatorThreshold: number; recencyDays: number };
 
 export const loadSettings = async (db: Db, ownerId: string): Promise<FeedSettings> => {
   const [row] = await db.select().from(userSettings).where(eq(userSettings.ownerId, ownerId));
   return {
     feedMode: row?.feedMode ?? DEFAULT_FEED_MODE,
     creatorThreshold: row?.creatorThreshold ?? DEFAULT_CREATOR_THRESHOLD,
+    recencyDays: row?.recencyDays ?? DEFAULT_RECENCY_DAYS,
   };
 };
 

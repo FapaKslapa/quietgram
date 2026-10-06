@@ -20,6 +20,7 @@ describe("settings router", () => {
     expect(await caller.settings.get()).toEqual({
       feedMode: "friends",
       creatorThreshold: 10000,
+      recencyDays: 14,
       exceptions: [],
     });
   });
@@ -53,6 +54,19 @@ describe("settings router", () => {
     await expect(caller.settings.setThreshold({ creatorThreshold: -1 })).rejects.toMatchObject({
       code: "BAD_REQUEST",
     });
+  });
+
+  it("stores the recency window and rejects values outside 3..60", async () => {
+    const { caller } = await setup();
+    await caller.settings.setRecencyDays({ recencyDays: 30 });
+    expect(await caller.settings.get()).toMatchObject({ recencyDays: 30, feedMode: "friends" });
+    await caller.settings.setRecencyDays({ recencyDays: 3 });
+    expect((await caller.settings.get()).recencyDays).toBe(3);
+    for (const recencyDays of [2, 61, 7.5]) {
+      await expect(caller.settings.setRecencyDays({ recencyDays })).rejects.toMatchObject({
+        code: "BAD_REQUEST",
+      });
+    }
   });
 
   it("adds and removes exceptions for followed accounts only", async () => {

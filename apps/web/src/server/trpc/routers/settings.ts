@@ -2,7 +2,7 @@ import { feedExceptions, feedModes, following, userSettings } from "@nodistracti
 import { TRPCError } from "@trpc/server";
 import { and, asc, eq, inArray, sql } from "drizzle-orm";
 import { z } from "zod";
-import { loadSettings } from "@/lib/sync/settings";
+import { loadSettings, MAX_RECENCY_DAYS, MIN_RECENCY_DAYS } from "@/lib/sync/settings";
 import { createTRPCRouter, protectedProcedure } from "@/server/trpc/init";
 
 const MAX_THRESHOLD = 1_000_000_000;
@@ -13,6 +13,7 @@ const settingsOutput = z.compile(
   z.object({
     feedMode: feedModeSchema,
     creatorThreshold: z.number(),
+    recencyDays: z.number(),
     exceptions: z.array(z.object({ igUserId: z.string(), username: z.string().nullable() })),
   }),
 );
@@ -36,6 +37,9 @@ const escapeLike = (value: string) => value.replace(/[\\%_]/g, (char) => `\\${ch
 const setFeedModeInput = z.compile(z.object({ feedMode: feedModeSchema }));
 const setThresholdInput = z.compile(
   z.object({ creatorThreshold: z.number().int().min(0).max(MAX_THRESHOLD) }),
+);
+const setRecencyDaysInput = z.compile(
+  z.object({ recencyDays: z.number().int().min(MIN_RECENCY_DAYS).max(MAX_RECENCY_DAYS) }),
 );
 const exceptionInput = z.compile(z.object({ igUserId: z.string().regex(/^\d{1,20}$/) }));
 
@@ -111,6 +115,16 @@ export const settingsRouter = createTRPCRouter({
       .onConflictDoUpdate({
         target: userSettings.ownerId,
         set: { creatorThreshold: input.creatorThreshold },
+      });
+  }),
+
+  setRecencyDays: protectedProcedure.input(setRecencyDaysInput).mutation(async ({ ctx, input }) => {
+    await ctx.db
+      .insert(userSettings)
+      .values({ ownerId: ctx.session.user.id, recencyDays: input.recencyDays })
+      .onConflictDoUpdate({
+        target: userSettings.ownerId,
+        set: { recencyDays: input.recencyDays },
       });
   }),
 
