@@ -1,8 +1,8 @@
 import { Images, Play } from "lucide-react";
-import type { LetterMediaItem } from "@/components/posta/letter-media";
+import type { PostMediaItem } from "@/components/posta/post-media";
 import { badgeOf, coverOf, type SavedItem, savedLabel } from "@/lib/saved-grid";
 
-function Cover({ media, username }: { media: LetterMediaItem; username: string }) {
+function Cover({ media, username }: { media: PostMediaItem; username: string }) {
   if (media.kind === "video") {
     return (
       <video
@@ -37,29 +37,28 @@ export function SavedCard({ item, onOpen }: SavedCardProps) {
       type="button"
       onClick={() => onOpen(item)}
       aria-label={savedLabel(item)}
-      className="group block min-w-0 rounded-3xl bg-sheet p-1.5 pb-0 text-left shadow-(--shadow-letter) transition-[transform,box-shadow] duration-300 ease-out-expo [content-visibility:auto] [contain-intrinsic-size:auto_260px] hover:-translate-y-0.5 active:translate-y-0"
+      className="group relative block aspect-4/5 w-full overflow-hidden rounded-md bg-muted text-left [contain-intrinsic-size:auto_200px] [content-visibility:auto]"
     >
-      <span className="relative block aspect-4/5 overflow-hidden rounded-[18px] bg-muted">
-        {cover ? <Cover media={cover} username={item.authorUsername} /> : null}
-        {badge ? (
-          <span
-            aria-hidden="true"
-            className="num absolute top-2 right-2 inline-flex items-center gap-1 rounded-full bg-black/45 px-2 py-1 text-xs font-medium text-white"
-          >
-            {badge.kind === "video" ? (
-              <Play className="size-3.5 fill-current" strokeWidth={0} />
-            ) : (
-              <>
-                <Images className="size-3.5" strokeWidth={1.8} />
-                {badge.count}
-              </>
-            )}
-          </span>
-        ) : null}
-      </span>
-      <span className="block truncate px-3 pt-2.5 pb-3 text-[0.8125rem] font-medium text-soft">
-        {item.authorUsername}
-      </span>
+      {cover ? <Cover media={cover} username={item.authorUsername} /> : null}
+      <span
+        aria-hidden="true"
+        className="absolute inset-0 bg-foreground/0 transition-colors group-hover:bg-foreground/10 group-active:bg-foreground/15"
+      />
+      {badge ? (
+        <span
+          aria-hidden="true"
+          className="num-display absolute top-1.5 right-1.5 inline-flex items-center gap-1 rounded-full bg-background px-2 py-1 text-[11px] font-semibold text-foreground"
+        >
+          {badge.kind === "video" ? (
+            <Play className="size-3 fill-current" strokeWidth={0} />
+          ) : (
+            <>
+              <Images className="size-3" strokeWidth={2} />
+              {badge.count}
+            </>
+          )}
+        </span>
+      ) : null}
     </button>
   );
 }

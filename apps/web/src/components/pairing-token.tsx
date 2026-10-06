@@ -14,7 +14,7 @@ import { useTRPC } from "@/trpc/client";
 const STEPS = [
   "Installa l'estensione nodistraction nel browser dove sei collegato a instagram.com.",
   "Apri l'estensione e incolla il codice nel campo Token di collegamento.",
-  "Premi Collega: la sessione viene salvata cifrata e la posta è pronta.",
+  "Premi Collega: la sessione viene salvata cifrata e sei pronto.",
 ];
 
 export function PairingToken() {
@@ -45,47 +45,43 @@ export function PairingToken() {
   };
 
   return (
-    <main className="mx-auto flex min-h-dvh w-full max-w-120 flex-col pb-10">
-      <header className="relative isolate px-5 pt-5 pb-6">
+    <main className="flex min-h-dvh flex-col pb-10">
+      <header className="relative isolate">
         <Weave variant="wave" surface="head" active />
-        <Link
-          href="/posta"
-          className="-ml-2 inline-flex min-h-11 items-center gap-1 rounded-full pr-3 text-[0.9375rem] font-medium text-soft transition-colors hover:text-ink"
-        >
-          <ChevronLeft className="size-5" strokeWidth={1.6} aria-hidden="true" />
-          Posta
-        </Link>
-        <h1 className="mt-2 text-[2rem] leading-[1.05] font-bold tracking-[-0.035em]">
-          Collega Instagram
-        </h1>
-        <p className="mt-2 max-w-[34ch] text-balance text-soft">
-          Genera un codice e incollalo nell&apos;estensione. Vale una sola volta.
-        </p>
+        <div className="column px-5 pt-5 pb-8">
+          <Link
+            href="/posta"
+            className="-ml-2 inline-flex h-10 items-center gap-1 rounded-full pr-3 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+          >
+            <ChevronLeft className="size-5" strokeWidth={1.8} aria-hidden="true" />
+            Posta
+          </Link>
+          <h1 className="mt-3 text-2xl font-bold tracking-[-0.025em]">Collega Instagram</h1>
+          <p className="mt-2 max-w-[34ch] text-balance text-muted-foreground">
+            Genera un codice e incollalo nell&apos;estensione. Vale una sola volta.
+          </p>
+        </div>
       </header>
-      <section className="mx-3 grid gap-4 rounded-[28px] bg-sheet p-5 shadow-(--shadow-letter)">
+      <section className="column grid gap-4 px-5 pt-4">
         {token && !expired ? (
           <div className="grid gap-3">
-            <p className="text-sm text-soft">Il tuo codice</p>
+            <p className="text-sm text-muted-foreground">Il tuo codice</p>
             <output
               aria-label="Codice di collegamento"
-              className="num block rounded-2xl bg-muted px-4 py-4 text-[1.375rem] leading-snug font-semibold tracking-normal break-all select-all"
+              className="num-display block rounded-md border bg-card px-4 py-4 text-xl leading-snug font-semibold break-all select-all"
             >
               {token}
             </output>
             <div className="flex items-center justify-between gap-3">
-              <p role="timer" className="num text-sm text-soft">
+              <p role="timer" className="num-display text-sm text-muted-foreground">
                 Scade tra{" "}
-                <span className="font-semibold text-ink">{formatCountdown(remaining)}</span>
+                <span className="font-semibold text-foreground">{formatCountdown(remaining)}</span>
               </p>
-              <Button
-                type="button"
-                onClick={() => void copy()}
-                className="h-11 rounded-full px-5 text-[0.9375rem] font-semibold shadow-(--shadow-lift)"
-              >
+              <Button type="button" onClick={() => void copy()}>
                 {copied ? (
-                  <Check className="size-4" strokeWidth={1.8} aria-hidden="true" />
+                  <Check className="size-4" strokeWidth={2} aria-hidden="true" />
                 ) : (
-                  <Copy className="size-4" strokeWidth={1.8} aria-hidden="true" />
+                  <Copy className="size-4" strokeWidth={2} aria-hidden="true" />
                 )}
                 {copied ? "Copiato" : "Copia"}
               </Button>
@@ -93,21 +89,18 @@ export function PairingToken() {
           </div>
         ) : null}
         {expired ? (
-          <p role="status" className="text-sm text-balance text-soft">
+          <p role="status" className="text-sm text-balance text-muted-foreground">
             Il codice è scaduto. Generane uno nuovo.
           </p>
         ) : null}
         <Button
           type="button"
+          size={token && !expired ? "default" : "lg"}
           variant={token && !expired ? "outline" : "default"}
           onClick={() => issue.mutate()}
           disabled={issue.isPending}
           aria-busy={issue.isPending}
-          className={
-            token && !expired
-              ? "h-11 w-full rounded-full bg-sheet text-[0.9375rem] font-semibold"
-              : "h-[52px] w-full rounded-full text-base font-semibold shadow-(--shadow-lift)"
-          }
+          className="w-full"
         >
           {token ? "Genera un nuovo codice" : "Genera codice"}
         </Button>
@@ -117,11 +110,11 @@ export function PairingToken() {
           </p>
         ) : null}
       </section>
-      <ol className="mx-5 mt-8 grid gap-3 [counter-reset:step]">
+      <ol className="column mt-10 grid gap-3 px-5 [counter-reset:step]">
         {STEPS.map((step) => (
           <li
             key={step}
-            className="flex items-baseline gap-3 text-[0.9375rem] before:num before:w-3 before:flex-none before:font-medium before:text-accent before:content-[counter(step)] before:[counter-increment:step]"
+            className="flex items-baseline gap-3 text-[0.9375rem] before:w-3 before:flex-none before:font-semibold before:text-muted-foreground before:content-[counter(step)] before:[counter-increment:step] before:num-display"
           >
             {step}
           </li>

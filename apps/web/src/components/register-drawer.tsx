@@ -15,9 +15,6 @@ type RegisterDrawerProps = {
   onSubmit: (email: string, secret: string) => Promise<void>;
 };
 
-const FIELD =
-  "h-12 rounded-2xl border-0 bg-sheet px-4 text-base shadow-[0_0_0_1px_var(--line)] focus-visible:ring-2 focus-visible:ring-accent dark:bg-sheet";
-
 export function RegisterDrawer({
   open,
   onOpenChange,
@@ -38,7 +35,7 @@ export function RegisterDrawer({
       <DrawerContent>
         <form
           onSubmit={submit}
-          className="min-h-0 overflow-y-auto overscroll-contain px-5 pt-2 pb-[max(1.75rem,env(safe-area-inset-bottom))]"
+          className="column min-h-0 overflow-y-auto overscroll-contain px-5 pt-2 pb-[max(1.5rem,env(safe-area-inset-bottom))]"
         >
           <div className="pb-4">
             <DrawerTitle>Primo accesso</DrawerTitle>
@@ -57,7 +54,6 @@ export function RegisterDrawer({
                 autoComplete="email"
                 value={email}
                 onChange={(event) => setEmail(event.target.value)}
-                className={FIELD}
               />
             </div>
             <div className="grid gap-2">
@@ -68,7 +64,6 @@ export function RegisterDrawer({
                 autoComplete="off"
                 value={secret}
                 onChange={(event) => setSecret(event.target.value)}
-                className={FIELD}
               />
             </div>
           </div>
@@ -81,7 +76,8 @@ export function RegisterDrawer({
             type="submit"
             disabled={pending || !canRegister(email, secret)}
             aria-busy={pending}
-            className="mt-5 h-[52px] w-full rounded-full text-base font-semibold shadow-(--shadow-lift) disabled:bg-line disabled:text-soft disabled:opacity-100 disabled:shadow-none"
+            size="lg"
+            className="mt-6 w-full"
           >
             {pending ? "Creo la passkey" : "Crea passkey"}
           </Button>

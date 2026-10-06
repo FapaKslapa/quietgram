@@ -43,7 +43,7 @@ export function Composer({ onSend, enabled }: ComposerProps) {
   return (
     <form
       onSubmit={onSubmit}
-      className="flex items-end gap-2.5 border-t border-line bg-paper px-3.5 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]"
+      className="flex items-end gap-2 border-t bg-background px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]"
     >
       <div className="relative min-w-0 flex-1">
         <Textarea
@@ -56,27 +56,28 @@ export function Composer({ onSend, enabled }: ComposerProps) {
           aria-label="Scrivi un messaggio"
           placeholder="Scrivi un messaggio"
           aria-invalid={isOverLimit(text) || undefined}
-          className="max-h-36 min-h-[46px] resize-none rounded-[26px] border-0 bg-sheet px-[18px] py-[11px] text-base leading-6 shadow-[0_0_0_1px_var(--line)] focus-visible:ring-2 focus-visible:ring-accent dark:bg-sheet"
+          className="max-h-36 min-h-11 resize-none rounded-xl py-2.5 leading-6"
         />
         {showCounter(text) ? (
           <span
             aria-live="polite"
             className={cn(
-              "num pointer-events-none absolute right-4 -top-5 text-xs",
-              isOverLimit(text) ? "font-semibold text-destructive" : "text-soft",
+              "num-display pointer-events-none absolute right-4 -top-5 text-xs",
+              isOverLimit(text) ? "font-semibold text-destructive" : "text-muted-foreground",
             )}
           >
             <span className="sr-only">Caratteri rimasti su {MAX_MESSAGE_LENGTH}: </span>
             {counterLabel(text)}
           </span>
         ) : null}
-        {hint ? <p className="px-4 pt-1.5 text-xs text-soft">{hint}</p> : null}
+        {hint ? <p className="px-4 pt-1.5 text-xs text-muted-foreground">{hint}</p> : null}
       </div>
       <Button
         type="submit"
         disabled={!sendable}
         aria-label="Invia"
-        className="size-[46px] flex-none rounded-full p-0 shadow-(--shadow-lift) disabled:bg-line disabled:text-soft disabled:opacity-100 disabled:shadow-none"
+        size="icon"
+        className="flex-none"
       >
         <SendHorizontal className="size-5" strokeWidth={1.8} aria-hidden="true" />
       </Button>
