@@ -1,8 +1,10 @@
 import { type Db, igSessions, user } from "@nodistraction/db";
 import { createTestDb } from "@nodistraction/db/testing";
-import type { IgCookies, Requester } from "@nodistraction/ig";
+import { createEngineClient, type IgCookies, type Requester } from "@nodistraction/ig";
 import { encrypt } from "@/lib/auth/crypto";
 import type { SyncDeps } from "@/lib/sync/deps";
+import { createDirectSource, createEngineSource, type SourceFactory } from "@/lib/sync/source";
+import { throttle } from "@/lib/sync/throttle";
 import type { TRPCContext } from "@/server/trpc/init";
 
 export const COOKIE_KEY = btoa("k".repeat(32));
@@ -16,6 +18,46 @@ export type RecordedCall = {
 };
 
 export type Responder = (call: RecordedCall) => unknown;
+
+export type EngineCall = {
+  method: string;
+  path: string;
+  query: Record<string, string>;
+  body: string;
+  accountId: string | null;
+};
+
+export type EngineResponder = (call: EngineCall) => unknown;
+
+export const ENGINE_SECRET = "engine-secret-0123456789";
+
+export class EngineFailure {
+  constructor(
+    readonly status: number,
+    readonly body: unknown,
+  ) {}
+}
+
+export const fakeEngine = (respond: EngineResponder) => {
+  const calls: EngineCall[] = [];
+  const fetcher: typeof fetch = async (input, init) => {
+    const url = new URL(String(input));
+    const call: EngineCall = {
+      method: init?.method ?? "GET",
+      path: url.pathname,
+      query: Object.fromEntries(url.searchParams),
+      body: typeof init?.body === "string" ? init.body : "",
+      accountId: new Headers(init?.headers).get("x-ig-account-id"),
+    };
+    calls.push(call);
+    const result = respond(call);
+    if (result instanceof Error) throw result;
+    if (result instanceof EngineFailure)
+      return Response.json(result.body, { status: result.status });
+    return Response.json(result);
+  };
+  return { fetcher, calls };
+};
 
 export const fakeRequester = (respond: Responder) => {
   const calls: RecordedCall[] = [];
@@ -51,6 +93,7 @@ export type TestEnv = {
   deps: SyncDeps;
   context: TRPCContext;
   calls: RecordedCall[];
+  engineCalls: EngineCall[];
   clock: { current: Date };
   delays: { count: number };
 };
@@ -59,7 +102,7 @@ export const createTestEnv = async (
   respond: Responder = () => {
     throw new Error("unexpected request");
   },
-  options: { withSession?: boolean } = {},
+  options: { withSession?: boolean; engine?: EngineResponder } = {},
 ): Promise<TestEnv> => {
   const db = createTestDb();
   await seedOwner(db);
@@ -67,19 +110,32 @@ export const createTestEnv = async (
   const { requester, calls } = fakeRequester(respond);
   const delays = { count: 0 };
   const clock = { current: new Date("2026-10-04T12:00:00Z") };
-  const runtime = {
-    getCookieKey: () => COOKIE_KEY,
-    now: () => clock.current,
-    createRequester: () => requester,
-    delay: async () => {
-      delays.count += 1;
-    },
+  const delay = async (): Promise<void> => {
+    delays.count += 1;
   };
+  const engine = options.engine ? fakeEngine(options.engine) : null;
+  const source: SourceFactory = engine
+    ? {
+        kind: "engine",
+        create: (account) =>
+          createEngineSource(
+            createEngineClient({
+              baseUrl: "https://engine.test",
+              secret: ENGINE_SECRET,
+              accountId: account.igUserId,
+              fetcher: engine.fetcher,
+            }),
+            account.loadCookies,
+          ),
+      }
+    : { kind: "direct", create: () => createDirectSource(throttle(requester, delay)) };
+  const runtime = { getCookieKey: () => COOKIE_KEY, now: () => clock.current, source, delay };
   return {
     db,
     deps: { db, ...runtime },
     context: { db, getSession: async () => ({ user: { id: OWNER } }), sync: runtime },
     calls,
+    engineCalls: engine?.calls ?? [],
     clock,
     delays,
   };

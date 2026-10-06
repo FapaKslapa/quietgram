@@ -1,6 +1,7 @@
 import { igSessions, syncRuns, syncState } from "@nodistraction/db";
 import { SessionExpiredError } from "@nodistraction/ig";
 import { and, eq } from "drizzle-orm";
+import { startAuthorsPhase, stepAuthors } from "@/lib/sync/authors";
 import { REFRESH_COOLDOWN_MS, remainingCooldownMs } from "@/lib/sync/cooldown";
 import { refreshCounts } from "@/lib/sync/counts";
 import type { SyncDeps } from "@/lib/sync/deps";
@@ -19,7 +20,6 @@ import {
 } from "@/lib/sync/run-state";
 import { withIgSession } from "@/lib/sync/session";
 import { loadSettings } from "@/lib/sync/settings";
-import { throttle } from "@/lib/sync/throttle";
 import { stepTimeline } from "@/lib/sync/timeline";
 
 export type RefreshProgress = {
@@ -29,10 +29,12 @@ export type RefreshProgress = {
   total: number;
 };
 
-const initialState = (stale: boolean): RunState =>
-  stale
-    ? { phase: "following", cursor: null, ids: [] }
+const initialState = async (deps: SyncDeps, ownerId: string, stale: boolean): Promise<RunState> => {
+  if (stale) return { phase: "following", cursor: null, ids: [] };
+  return deps.source.kind === "engine"
+    ? startAuthorsPhase(deps, ownerId)
     : { phase: "timeline", cursor: null, page: 0 };
+};
 
 const findRun = async (deps: SyncDeps, ownerId: string, runId: string) => {
   const [run] = await deps.db
@@ -72,14 +74,16 @@ export const startRefresh = async (
   if (session.status === "expired") throw new SessionExpiredError();
 
   const { feedMode } = await loadSettings(deps.db, ownerId);
-  const first = initialState(
+  const first = await initialState(
+    deps,
+    ownerId,
     mutualsAreStale(
       state?.mutualsRefreshedAt ?? null,
       now,
       await hasStoredFollowing(deps, ownerId),
     ),
   );
-  const total = remainingSteps(first, feedMode);
+  const total = remainingSteps(first, feedMode, deps.source.kind);
   const runId = crypto.randomUUID();
   await deps.db.insert(syncRuns).values({
     id: runId,
@@ -124,17 +128,18 @@ export const runRefreshStep = async (
 
   let next: RunState | null;
   try {
-    next = await withIgSession(deps, ownerId, async ({ requester: raw, igUserId }) => {
-      const requester = throttle(raw, deps.delay);
+    next = await withIgSession(deps, ownerId, async ({ source, igUserId }) => {
       switch (state.phase) {
         case "following":
-          return stepFollowing(deps, ownerId, requester, igUserId, state);
+          return stepFollowing(deps, ownerId, source, igUserId, state);
         case "followers":
-          return stepFollowers(deps, ownerId, requester, igUserId, state);
+          return stepFollowers(deps, ownerId, source, igUserId, state);
         case "timeline":
-          return stepTimeline(deps, ownerId, requester, state, feedMode);
+          return stepTimeline(deps, ownerId, source, state, feedMode);
+        case "authors":
+          return stepAuthors(deps, ownerId, source, state);
         case "counts":
-          await refreshCounts(deps, ownerId, requester);
+          await refreshCounts(deps, ownerId, source);
           return null;
       }
     });
@@ -145,7 +150,7 @@ export const runRefreshStep = async (
 
   const completed = run.completed + 1;
   const finished = next === null;
-  const total = completed + remainingSteps(next, feedMode);
+  const total = completed + remainingSteps(next, feedMode, deps.source.kind);
   await deps.db
     .update(syncRuns)
     .set({

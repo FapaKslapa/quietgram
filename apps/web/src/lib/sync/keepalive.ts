@@ -1,15 +1,15 @@
 import { igSessions, syncRuns } from "@nodistraction/db";
-import { checkSession, IgThrottledError, SessionExpiredError } from "@nodistraction/ig";
+import { IgThrottledError, SessionExpiredError } from "@nodistraction/ig";
 import { eq } from "drizzle-orm";
 import type { SyncDeps } from "@/lib/sync/deps";
-import { buildRequester, markSessionExpired, recordThrottle } from "@/lib/sync/session";
+import { buildSource, markSessionExpired, recordThrottle } from "@/lib/sync/session";
 
 const checkOwner = async (
   deps: SyncDeps,
-  session: { ownerId: string; cipher: string; iv: string },
+  session: { ownerId: string; igUserId: string; cipher: string; iv: string },
 ): Promise<boolean> => {
   try {
-    await checkSession(await buildRequester(deps, session));
+    await buildSource(deps, session).checkSession();
     return true;
   } catch (error) {
     if (error instanceof SessionExpiredError) await markSessionExpired(deps, session.ownerId);

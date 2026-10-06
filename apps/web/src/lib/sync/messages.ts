@@ -1,13 +1,10 @@
 import { type Db, dmMessages, dmThreads } from "@nodistraction/db";
 import {
-  fetchInbox,
-  fetchThread,
   type IgMessage,
   IgRejectedError,
   type IgThread,
   IgThrottledError,
   SessionExpiredError,
-  sendText,
   validateDmText,
 } from "@nodistraction/ig";
 import { and, asc, desc, eq, like, sql } from "drizzle-orm";
@@ -22,7 +19,7 @@ export type StoredThread = IgThread & { preview: string | null };
 export type StoredMessage = Omit<IgMessage, "type">;
 
 export const syncInbox = async (deps: SyncDeps, ownerId: string): Promise<void> => {
-  const threads = await withIgSession(deps, ownerId, ({ requester }) => fetchInbox(requester));
+  const threads = await withIgSession(deps, ownerId, ({ source }) => source.inbox());
   for (const group of chunkRows(threads, 5)) {
     await deps.db
       .insert(dmThreads)
@@ -49,9 +46,7 @@ export const syncThread = async (
   ownerId: string,
   threadId: string,
 ): Promise<void> => {
-  const messages = await withIgSession(deps, ownerId, ({ requester }) =>
-    fetchThread(requester, threadId),
-  );
+  const messages = await withIgSession(deps, ownerId, ({ source }) => source.thread(threadId));
   await deps.db
     .delete(dmMessages)
     .where(
@@ -127,9 +122,9 @@ export const sendMessage = async (
 ): Promise<StoredMessage> => {
   const text = validateDmText(input.text);
   const sentAt = deps.now();
-  const senderId = await withIgSession(deps, ownerId, async ({ requester, igUserId }) => {
+  const senderId = await withIgSession(deps, ownerId, async ({ source, igUserId }) => {
     try {
-      await sendText(requester, input.threadId, text);
+      await source.sendText(input.threadId, text);
     } catch (error) {
       if (
         error instanceof SessionExpiredError ||

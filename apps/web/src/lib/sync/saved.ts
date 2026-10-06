@@ -1,5 +1,4 @@
 import { type Db, saved } from "@nodistraction/db";
-import { fetchSaved } from "@nodistraction/ig";
 import { asc, eq } from "drizzle-orm";
 import { chunkRows } from "@/lib/sync/chunk";
 import type { SyncDeps } from "@/lib/sync/deps";
@@ -14,7 +13,7 @@ export type SavedPost = {
 };
 
 export const syncSaved = async (deps: SyncDeps, ownerId: string): Promise<void> => {
-  const items = await withIgSession(deps, ownerId, ({ requester }) => fetchSaved(requester));
+  const items = await withIgSession(deps, ownerId, ({ source }) => source.saved());
   await deps.db.delete(saved).where(eq(saved.ownerId, ownerId));
   const rows = items.map((post, position) => ({
     id: post.id,

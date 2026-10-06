@@ -1,13 +1,9 @@
 import { following } from "@nodistraction/db";
-import {
-  fetchUserCounts,
-  IgHttpError,
-  type Requester,
-  SessionExpiredError,
-} from "@nodistraction/ig";
+import { IgHttpError, SessionExpiredError } from "@nodistraction/ig";
 import { and, asc, eq, isNull, lt, or } from "drizzle-orm";
 import { ZodError } from "zod";
 import type { SyncDeps } from "@/lib/sync/deps";
+import type { InstagramSource } from "@/lib/sync/source";
 
 export const COUNTS_PER_STEP = 3;
 export const COUNTS_MAX_AGE_MS = 7 * 24 * 60 * 60_000;
@@ -15,7 +11,7 @@ export const COUNTS_MAX_AGE_MS = 7 * 24 * 60 * 60_000;
 export const refreshCounts = async (
   deps: SyncDeps,
   ownerId: string,
-  requester: Requester,
+  source: InstagramSource,
 ): Promise<void> => {
   const staleBefore = new Date(deps.now().getTime() - COUNTS_MAX_AGE_MS);
   const due = await deps.db
@@ -33,7 +29,8 @@ export const refreshCounts = async (
 
   for (const entry of due) {
     try {
-      const counts = await fetchUserCounts(requester, entry.igUserId);
+      const counts = await source.userCounts(entry.igUserId);
+      if (counts === null) return;
       await deps.db
         .update(following)
         .set({ ...counts, countsRefreshedAt: deps.now() })

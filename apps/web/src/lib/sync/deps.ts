@@ -1,10 +1,10 @@
 import type { Db } from "@nodistraction/db";
-import type { IgCookies, Requester } from "@nodistraction/ig";
+import type { SourceFactory } from "@/lib/sync/source";
 
 export type SyncRuntime = {
   getCookieKey: () => string;
   now: () => Date;
-  createRequester: (cookies: IgCookies) => Requester;
+  source: SourceFactory;
   delay: () => Promise<void>;
 };
 

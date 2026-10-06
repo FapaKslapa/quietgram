@@ -1,9 +1,9 @@
 import { igSessions } from "@nodistraction/db";
-import { checkSession, IgThrottledError } from "@nodistraction/ig";
+import { IgThrottledError } from "@nodistraction/ig";
 import { eq } from "drizzle-orm";
 import type { SyncDeps } from "@/lib/sync/deps";
 import { NoSessionError } from "@/lib/sync/errors";
-import { buildRequester, recordThrottle } from "@/lib/sync/session";
+import { buildSource, recordThrottle } from "@/lib/sync/session";
 
 export const recheckSession = async (
   deps: SyncDeps,
@@ -12,7 +12,9 @@ export const recheckSession = async (
   const [session] = await deps.db.select().from(igSessions).where(eq(igSessions.ownerId, ownerId));
   if (!session) throw new NoSessionError();
   try {
-    await checkSession(await buildRequester(deps, session));
+    const source = buildSource(deps, session);
+    await source.refreshSession();
+    await source.checkSession();
   } catch (error) {
     if (error instanceof IgThrottledError) await recordThrottle(deps, ownerId);
     throw error;

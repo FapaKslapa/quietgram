@@ -1,9 +1,11 @@
 import { following, mutuals, syncState } from "@nodistraction/db";
-import { fetchUsersPage, type IgUser, type Requester } from "@nodistraction/ig";
+import type { IgUser } from "@nodistraction/ig";
 import { and, eq, inArray, sql } from "drizzle-orm";
+import { startAuthorsPhase } from "@/lib/sync/authors";
 import { chunk, chunkRows } from "@/lib/sync/chunk";
 import type { SyncDeps } from "@/lib/sync/deps";
 import type { RunState } from "@/lib/sync/run-state";
+import type { InstagramSource } from "@/lib/sync/source";
 
 export const GRAPH_PAGES_PER_STEP = 5;
 
@@ -74,14 +76,14 @@ const removeUnfollowed = async (
 export const stepFollowing = async (
   deps: SyncDeps,
   ownerId: string,
-  requester: Requester,
+  source: InstagramSource,
   igUserId: string,
   state: FollowingState,
 ): Promise<RunState> => {
   const ids = [...state.ids];
   let cursor = state.cursor;
   for (let page = 0; page < GRAPH_PAGES_PER_STEP; page += 1) {
-    const result = await fetchUsersPage(requester, "following", igUserId, cursor);
+    const result = await source.usersPage("following", igUserId, cursor);
     await upsertFollowing(deps, ownerId, result.users);
     ids.push(...result.users.map((entry) => entry.id));
     cursor = result.nextCursor;
@@ -114,7 +116,7 @@ const upsertMutuals = async (deps: SyncDeps, ownerId: string, users: IgUser[]): 
 export const stepFollowers = async (
   deps: SyncDeps,
   ownerId: string,
-  requester: Requester,
+  source: InstagramSource,
   igUserId: string,
   state: FollowersState,
 ): Promise<RunState> => {
@@ -122,7 +124,7 @@ export const stepFollowers = async (
   let cursor = state.cursor;
   if (cursor === null) await deps.db.delete(mutuals).where(eq(mutuals.ownerId, ownerId));
   for (let page = 0; page < GRAPH_PAGES_PER_STEP; page += 1) {
-    const result = await fetchUsersPage(requester, "followers", igUserId, cursor);
+    const result = await source.usersPage("followers", igUserId, cursor);
     await upsertMutuals(
       deps,
       ownerId,
@@ -139,5 +141,7 @@ export const stepFollowers = async (
       target: syncState.ownerId,
       set: { mutualsRefreshedAt: deps.now() },
     });
-  return { phase: "timeline", cursor: null, page: 0 };
+  return source.kind === "engine"
+    ? startAuthorsPhase(deps, ownerId)
+    : { phase: "timeline", cursor: null, page: 0 };
 };

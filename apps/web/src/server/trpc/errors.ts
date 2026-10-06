@@ -1,4 +1,6 @@
 import {
+  EngineSendDisabledError,
+  EngineUnreachableError,
   IgHttpError,
   IgRejectedError,
   IgThrottledError,
@@ -39,6 +41,8 @@ export const describeFailure = (cause: unknown): FailureData | null => {
   if (cause instanceof RunNotFoundError) return { reason: "run_not_found" };
   if (
     cause instanceof IgHttpError ||
+    cause instanceof EngineSendDisabledError ||
+    cause instanceof EngineUnreachableError ||
     cause instanceof ZodError ||
     cause instanceof MessageSendError
   ) {
