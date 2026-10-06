@@ -17,7 +17,7 @@ describe("feed modes", () => {
   });
 
   it("looks a mode up by key", () => {
-    expect(modeDefinition("creators").stamp).toBe("CREATOR");
+    expect(modeDefinition("creators").label).toBe("Creator");
   });
 });
 

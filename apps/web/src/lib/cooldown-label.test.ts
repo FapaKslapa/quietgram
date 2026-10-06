@@ -23,6 +23,6 @@ describe("formatRemaining", () => {
 
 describe("cooldownMessage", () => {
   it("names the remaining time", () => {
-    expect(cooldownMessage(90)).toBe("Hai già ritirato la posta. Riprova tra 1 min 30 s.");
+    expect(cooldownMessage(90)).toBe("Hai già aggiornato. Riprova tra 1 min 30 s.");
   });
 });

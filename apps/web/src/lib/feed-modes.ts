@@ -6,7 +6,6 @@ export type FeedMode = (typeof feedModes)[number];
 export type ModeDefinition = {
   mode: FeedMode;
   label: string;
-  stamp: string;
   description: string;
   weave: WeaveVariant;
 };
@@ -15,21 +14,18 @@ export const MODES: readonly ModeDefinition[] = [
   {
     mode: "friends",
     label: "Amici",
-    stamp: "AMICI",
     description: "Chi ti segue e che segui, più le tue eccezioni.",
     weave: "double",
   },
   {
     mode: "following",
     label: "Seguiti",
-    stamp: "SEGUITI",
     description: "Tutti gli account che segui.",
     weave: "wave",
   },
   {
     mode: "creators",
     label: "Creator",
-    stamp: "CREATOR",
     description: "Solo profili e aziende con tanti follower.",
     weave: "hatch",
   },
@@ -38,7 +34,6 @@ export const MODES: readonly ModeDefinition[] = [
 const fallbackMode: ModeDefinition = {
   mode: "friends",
   label: "Amici",
-  stamp: "AMICI",
   description: "",
   weave: "double",
 };

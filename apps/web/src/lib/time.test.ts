@@ -4,8 +4,6 @@ import {
   formatClock,
   formatDayLabel,
   formatRelativeTime,
-  formatStampDay,
-  formatStampYear,
   formatThreadTime,
 } from "@/lib/time";
 
@@ -45,13 +43,6 @@ describe("formatRelativeTime", () => {
 
   it("treats a future timestamp as today", () => {
     expect(formatRelativeTime(NOW + 3_600_000, NOW)).toBe("oggi 13:00");
-  });
-});
-
-describe("postmark date", () => {
-  it("formats day, month and year", () => {
-    expect(formatStampDay(NOW)).toBe("04 OTT");
-    expect(formatStampYear(NOW)).toBe("2026");
   });
 });
 

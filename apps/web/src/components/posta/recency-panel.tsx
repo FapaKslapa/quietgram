@@ -19,12 +19,10 @@ export function RecencyPanel({ days, onCommit }: RecencyPanelProps) {
   const shown = dragIndex ?? recencyIndex(days);
 
   return (
-    <section className="mt-2.5 grid gap-3 rounded-[22px] bg-sheet px-[18px] py-4 shadow-[0_0_0_1px_var(--line)]">
-      <header className="flex items-baseline justify-between gap-3">
-        <h3 className="font-sans text-base font-semibold tracking-normal">
-          Mostra gli ultimi {recencyAt(shown)} giorni
-        </h3>
-      </header>
+    <section className="grid gap-3 pt-6">
+      <h3 className="text-base font-semibold">
+        Ultimi <span className="num-display">{recencyAt(shown)}</span> giorni
+      </h3>
       <Slider
         min={0}
         max={LAST_INDEX}
@@ -38,7 +36,10 @@ export function RecencyPanel({ days, onCommit }: RecencyPanelProps) {
           setDragIndex(null);
         }}
       />
-      <div className="num flex justify-between text-xs text-soft" aria-hidden="true">
+      <div
+        className="num-display flex justify-between text-xs text-muted-foreground"
+        aria-hidden="true"
+      >
         <span>{RECENCY_STEPS[0]}</span>
         <span>{RECENCY_STEPS[LAST_INDEX]}</span>
       </div>

@@ -19,13 +19,13 @@ export function ThresholdPanel({ threshold, onCommit }: ThresholdPanelProps) {
   const shown = dragIndex ?? thresholdIndex(threshold);
 
   return (
-    <section className="grid gap-3 rounded-[22px] bg-sheet px-[18px] py-4 shadow-[0_0_0_1px_var(--line)]">
-      <header className="flex items-baseline justify-between gap-3">
-        <h3 className="font-sans text-base font-semibold tracking-normal">Soglia</h3>
-        <output className="num font-medium text-accent">
+    <section className="grid gap-3 pt-6">
+      <div className="flex items-baseline justify-between gap-3">
+        <h3 className="text-base font-semibold">Soglia</h3>
+        <output className="num-display text-sm font-medium">
           {formatFollowers(thresholdAt(shown))} follower
         </output>
-      </header>
+      </div>
       <Slider
         min={0}
         max={LAST_INDEX}
@@ -39,11 +39,16 @@ export function ThresholdPanel({ threshold, onCommit }: ThresholdPanelProps) {
           setDragIndex(null);
         }}
       />
-      <div className="num flex justify-between text-xs text-soft" aria-hidden="true">
+      <div
+        className="num-display flex justify-between text-xs text-muted-foreground"
+        aria-hidden="true"
+      >
         <span>{formatFollowers(THRESHOLD_STEPS[0])}</span>
         <span>{formatFollowers(THRESHOLD_STEPS[LAST_INDEX] ?? 0)}</span>
       </div>
-      <small className="text-soft">Contano anche i profili verificati e le aziende.</small>
+      <p className="text-sm text-muted-foreground">
+        Contano anche i profili verificati e le aziende.
+      </p>
     </section>
   );
 }

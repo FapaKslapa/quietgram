@@ -4,18 +4,18 @@ import { type KeyboardEvent, useCallback, useRef, useState } from "react";
 import { clampIndex, indexFromScroll, mediaAspectRatio } from "@/lib/carousel";
 import { cn } from "@/lib/utils";
 
-export type LetterMediaItem = {
+export type PostMediaItem = {
   kind: "image" | "video";
   url: string;
   width: number;
   height: number;
 };
 
-type LetterMediaProps = { media: LetterMediaItem[]; username: string };
+type PostMediaProps = { media: PostMediaItem[]; username: string };
 
 const prefersReducedMotion = () => window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-function Slide({ item, label }: { item: LetterMediaItem; label: string }) {
+function Slide({ item, label }: { item: PostMediaItem; label: string }) {
   if (item.kind === "video") {
     return (
       <video
@@ -25,7 +25,7 @@ function Slide({ item, label }: { item: LetterMediaItem; label: string }) {
         playsInline
         preload="metadata"
         aria-label={label}
-        className="size-full bg-ink object-cover"
+        className="size-full bg-foreground object-cover"
       />
     );
   }
@@ -43,7 +43,7 @@ function Slide({ item, label }: { item: LetterMediaItem; label: string }) {
   );
 }
 
-export function LetterMedia({ media, username }: LetterMediaProps) {
+export function PostMedia({ media, username }: PostMediaProps) {
   const [index, setIndex] = useState(0);
   const track = useRef<HTMLUListElement>(null);
   const first = media[0];
@@ -89,7 +89,7 @@ export function LetterMedia({ media, username }: LetterMediaProps) {
   const aspectRatio = mediaAspectRatio(first.width, first.height);
 
   return (
-    <div className="relative mx-2 overflow-hidden rounded-[22px] bg-muted" style={{ aspectRatio }}>
+    <div className="relative overflow-hidden bg-muted" style={{ aspectRatio }}>
       <ul
         ref={track}
         onScroll={count > 1 ? onScroll : undefined}
@@ -114,13 +114,9 @@ export function LetterMedia({ media, username }: LetterMediaProps) {
           </li>
         ))}
       </ul>
-      <span
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-0 rounded-[inherit] shadow-[inset_0_0_0_1px_rgb(255_255_255/0.18)]"
-      />
       {count > 1 ? (
         <div className="absolute inset-x-0 bottom-3 flex justify-center">
-          <div className="flex items-center gap-0.5 rounded-full bg-black/40 px-1">
+          <div className="flex items-center rounded-full bg-black/45 px-1">
             {media.map((item, position) => (
               <button
                 key={item.url}

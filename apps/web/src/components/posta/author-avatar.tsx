@@ -1,27 +1,25 @@
 "use client";
 
 import { useState } from "react";
-import { avatarColor, initialsOf } from "@/lib/author";
+import { initialsOf } from "@/lib/author";
 import { cn } from "@/lib/utils";
 
 type AuthorAvatarProps = {
-  authorId: string;
   username: string;
   avatarUrl: string | null;
   className?: string;
 };
 
-export function AuthorAvatar({ authorId, username, avatarUrl, className }: AuthorAvatarProps) {
+export function AuthorAvatar({ username, avatarUrl, className }: AuthorAvatarProps) {
   const [failedUrl, setFailedUrl] = useState<string | null>(null);
   const showImage = avatarUrl !== null && avatarUrl !== failedUrl;
 
   return (
     <span
       className={cn(
-        "grid size-10 flex-none place-items-center overflow-hidden rounded-full text-[0.8125rem] font-semibold text-white",
+        "grid size-8 flex-none place-items-center overflow-hidden rounded-full bg-muted text-[0.6875rem] font-semibold text-muted-foreground",
         className,
       )}
-      style={{ backgroundColor: avatarColor(authorId) }}
       aria-hidden="true"
     >
       {showImage ? (

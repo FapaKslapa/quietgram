@@ -39,13 +39,6 @@ const clock = ({ hour, minute }: Zoned): string => `${pad(hour)}:${pad(minute)}`
 
 export const formatClock = (timestamp: number): string => clock(zoned(timestamp));
 
-export const formatStampDay = (timestamp: number): string => {
-  const { day, month } = zoned(timestamp);
-  return `${pad(day)} ${MONTHS[month - 1]}`;
-};
-
-export const formatStampYear = (timestamp: number): string => String(zoned(timestamp).year);
-
 export const formatRelativeTime = (timestamp: number, now: number): string => {
   if (now - timestamp < MINUTE_MS && now >= timestamp) return "adesso";
   const then = zoned(timestamp);

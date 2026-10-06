@@ -1,15 +1,15 @@
-import type { LetterMediaItem } from "@/components/posta/letter-media";
+import type { PostMediaItem } from "@/components/posta/post-media";
 
 export type SavedItem = {
   id: string;
   authorUsername: string;
   caption: string | null;
-  media: LetterMediaItem[];
+  media: PostMediaItem[];
 };
 
 export type SavedBadge = { kind: "video" } | { kind: "carousel"; count: number } | null;
 
-export const coverOf = (item: SavedItem): LetterMediaItem | null => item.media[0] ?? null;
+export const coverOf = (item: SavedItem): PostMediaItem | null => item.media[0] ?? null;
 
 export const badgeOf = (item: SavedItem): SavedBadge => {
   if (item.media.length > 1) return { kind: "carousel", count: item.media.length };

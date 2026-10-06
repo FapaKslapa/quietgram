@@ -35,7 +35,7 @@ export function useRefresh() {
         current ? { ...current, sessionStatus: "expired" as const } : current,
       );
     } else {
-      toast.error("Non sono riuscito a ritirare la posta. Riprova tra poco.");
+      toast.error("Non sono riuscito ad aggiornare. Riprova tra poco.");
     }
   };
 
@@ -52,7 +52,7 @@ export function useRefresh() {
         setProgress({ completed: result.completed, total: result.total });
         await queryClient.invalidateQueries({ queryKey: trpc.feed.list.infiniteQueryKey() });
         if (result.status === "failed") {
-          toast.error("Il ritiro si è interrotto. Riprova tra poco.");
+          toast.error("L'aggiornamento si è interrotto. Riprova tra poco.");
         }
         finished = result.done;
       }
