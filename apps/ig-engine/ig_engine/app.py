@@ -7,7 +7,8 @@ from ig_engine.client_pool import ClientFactory, ClientPool
 from ig_engine.config import Settings
 from ig_engine.errors import ApiError, handle_api_error
 from ig_engine.instagrapi_client import create_instagrapi_client
-from ig_engine.routes import direct, graph, health, posts, session
+from ig_engine.rate_limit import InteractionLimiter
+from ig_engine.routes import direct, graph, health, interactions, posts, session, social
 
 
 async def handle_validation_error(_: Request, exc: RequestValidationError) -> JSONResponse:
@@ -24,6 +25,7 @@ def create_app(
     resolved = settings or Settings()
     app = FastAPI(docs_url=None, redoc_url=None, openapi_url=None)
     app.state.settings = resolved
+    app.state.limiter = InteractionLimiter(resolved.interactions_max_per_hour)
     app.state.pool = ClientPool(
         data_dir=resolved.data_dir,
         factory=client_factory,
@@ -42,7 +44,7 @@ def create_app(
         return await handle_validation_error(request, exc)
 
     protected = APIRouter(prefix="/v1", dependencies=[Depends(verify_request)])
-    for module in (session, graph, posts, direct):
+    for module in (session, graph, posts, social, interactions, direct):
         protected.include_router(module.router)
     app.include_router(health.router)
     app.include_router(protected)

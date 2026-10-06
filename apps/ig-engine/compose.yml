@@ -9,6 +9,7 @@ services:
       - ./.env
     environment:
       DATA_DIR: /data
+      INTERACTIONS_ENABLED: "${INTERACTIONS_ENABLED:-false}"
     volumes:
       - ./data:/data
     read_only: true

@@ -1,7 +1,20 @@
 import threading
 
 from ig_engine.instagram import SessionSettings
-from ig_engine.schemas import Media, Message, Post, Thread, TimelinePage, User
+from ig_engine.schemas import (
+    Comment,
+    Friendship,
+    Media,
+    Message,
+    Post,
+    PostsPage,
+    Profile,
+    Story,
+    Thread,
+    TimelinePage,
+    TrayEntry,
+    User,
+)
 
 SESSION_ID = "1234567890%3AabcdefghijklmnopqrstuvwxyzABCDEF%3A28"
 
@@ -65,9 +78,86 @@ class FakeInstagramClient:
         self.record("followers")
         return []
 
-    def user_posts(self, user_id: str, amount: int) -> list[Post]:
-        self.record("user_posts")
-        return [sample_post("clips")]
+    def user_posts(
+        self, user_id: str, amount: int, cursor: str | None, include_reels: bool
+    ) -> PostsPage:
+        self.record(f"user_posts:{amount}:{cursor}:{include_reels}")
+        posts = [sample_post("clips"), sample_post()]
+        return PostsPage(
+            posts=posts if include_reels else [sample_post()],
+            next_cursor="more",
+        )
+
+    def stories_tray(self) -> list[TrayEntry]:
+        self.record("stories_tray")
+        return [
+            TrayEntry(
+                user_id="5", username="bob", avatar_url=None, latest_reel_media=10, seen=False
+            )
+        ]
+
+    def user_stories(self, user_id: str) -> list[Story]:
+        self.record("user_stories")
+        return [
+            Story(
+                id="s1",
+                taken_at_ms=1,
+                expires_at_ms=2,
+                media=Media(kind="image", url="https://cdn.example/s.jpg", width=0, height=0),
+                product_type="story",
+            )
+        ]
+
+    def user_profile(self, user_id: str) -> Profile:
+        self.record("user_profile")
+        return Profile(
+            id=user_id,
+            username="bob",
+            full_name="Bob",
+            biography="",
+            avatar_url=None,
+            is_private=False,
+            is_verified=False,
+            is_business=False,
+            follower_count=1,
+            following_count=2,
+            media_count=3,
+            external_url=None,
+            friendship=Friendship(following=True, followed_by=False),
+        )
+
+    def comments(self, media_id: str, amount: int) -> list[Comment]:
+        self.record("comments")
+        return [
+            Comment(
+                id="c1",
+                user_id="5",
+                username="bob",
+                avatar_url=None,
+                text="nice",
+                created_at_ms=1,
+                like_count=0,
+                parent_id=None,
+            )
+        ]
+
+    def like(self, media_id: str) -> None:
+        self.record(f"like:{media_id}")
+
+    def unlike(self, media_id: str) -> None:
+        self.record(f"unlike:{media_id}")
+
+    def save(self, media_id: str) -> None:
+        self.record(f"save:{media_id}")
+
+    def unsave(self, media_id: str) -> None:
+        self.record(f"unsave:{media_id}")
+
+    def add_comment(self, media_id: str, text: str) -> None:
+        self.record(f"add_comment:{media_id}:{text}")
+
+    def delete_comment(self, media_id: str, comment_id: str) -> None:
+        self.record(f"delete_comment:{media_id}:{comment_id}")
 
     def timeline(self, cursor: str | None) -> TimelinePage:
         self.record("timeline")

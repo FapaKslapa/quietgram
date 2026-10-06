@@ -4,9 +4,13 @@ from types import SimpleNamespace
 from ig_engine.mapping import (
     message_kind,
     select_saved_collection,
+    to_comment,
     to_message,
     to_post,
+    to_profile,
+    to_story,
     to_thread,
+    to_tray,
     to_user,
 )
 
@@ -161,3 +165,97 @@ def test_user_keeps_latest_reel_media() -> None:
         pk=6, username="cy", profile_pic_url=None, is_verified=True, latest_reel_media=1_700_000_000
     )
     assert to_user(user).latest_reel_media == 1_700_000_000
+
+
+def test_tray_mapping_keeps_order_and_seen_semantics() -> None:
+    raw = {
+        "tray": [
+            {
+                "user": {"pk": 1, "username": "a", "profile_pic_url": "https://cdn.example/a.jpg"},
+                "latest_reel_media": 100,
+                "seen": 100,
+            },
+            {"user": {"pk": "2", "username": "b"}, "latest_reel_media": 200, "seen": 150},
+            {"user": {"pk": "3", "username": "c"}, "latest_reel_media": 300, "seen": 0},
+            {"id": "broken"},
+        ]
+    }
+    tray = to_tray(raw)
+    assert [(entry.user_id, entry.seen) for entry in tray] == [
+        ("1", True),
+        ("2", False),
+        ("3", False),
+    ]
+    assert tray[0].avatar_url == "https://cdn.example/a.jpg"
+    assert tray[1].avatar_url is None
+
+
+def test_tray_tolerates_garbage() -> None:
+    assert to_tray(None) == []
+    assert to_tray({"tray": "x"}) == []
+
+
+def test_story_mapping() -> None:
+    video = SimpleNamespace(
+        pk="9",
+        taken_at=MOMENT,
+        product_type="",
+        video_url="https://cdn.example/s.mp4",
+        thumbnail_url="https://cdn.example/s.jpg",
+    )
+    story = to_story(video)
+    assert story is not None
+    assert story.media.kind == "video"
+    assert story.expires_at_ms == MOMENT_MS + 86_400_000
+    assert story.product_type == "story"
+    assert (
+        to_story(SimpleNamespace(**{**vars(video), "video_url": None, "thumbnail_url": None}))
+        is None
+    )
+
+
+def test_profile_mapping_with_and_without_relationship() -> None:
+    user = SimpleNamespace(
+        pk="3",
+        username="carol",
+        full_name=None,
+        biography=None,
+        profile_pic_url_hd=None,
+        profile_pic_url="https://cdn.example/c.jpg",
+        is_private=True,
+        is_verified=False,
+        is_business=True,
+        follower_count=5,
+        following_count=6,
+        media_count=7,
+        external_url="",
+    )
+    relationship = SimpleNamespace(following=True, followed_by=True)
+    profile = to_profile(user, relationship)
+    assert profile.friendship.following is True
+    assert profile.full_name == ""
+    assert profile.external_url is None
+    assert profile.avatar_url == "https://cdn.example/c.jpg"
+    assert to_profile(user, None).friendship.followed_by is False
+
+
+def test_comment_mapping() -> None:
+    comment = SimpleNamespace(
+        pk="4",
+        user=SimpleNamespace(pk="8", username="dave", profile_pic_url=None),
+        text="hi",
+        created_at_utc=MOMENT,
+        like_count=None,
+        replied_to_comment_id="3",
+    )
+    mapped = to_comment(comment)
+    assert mapped.model_dump() == {
+        "id": "4",
+        "user_id": "8",
+        "username": "dave",
+        "avatar_url": None,
+        "text": "hi",
+        "created_at_ms": MOMENT_MS,
+        "like_count": 0,
+        "parent_id": "3",
+    }

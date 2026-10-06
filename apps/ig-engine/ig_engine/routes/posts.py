@@ -4,21 +4,29 @@ from fastapi import APIRouter, Depends, Path, Query
 
 from ig_engine.client_pool import ClientPool
 from ig_engine.dependencies import AccountId, get_pool
-from ig_engine.schemas import PostsResponse, TimelinePage
+from ig_engine.schemas import PostsPage, PostsResponse, TimelinePage
 
 router = APIRouter()
 
 Pool = Annotated[ClientPool, Depends(get_pool)]
 Amount = Annotated[int, Query(ge=1, le=100)]
+UserPostsAmount = Annotated[int, Query(ge=1, le=24)]
 UserId = Annotated[str, Path(pattern=r"^\d{1,32}$")]
+Cursor = Annotated[str | None, Query(max_length=512)]
 
 
 @router.get("/users/{user_id}/posts")
 async def user_posts(
-    user_id: UserId, account_id: AccountId, pool: Pool, amount: Amount = 12
-) -> PostsResponse:
-    posts = await pool.run(account_id, lambda client: client.user_posts(user_id, amount))
-    return PostsResponse(posts=posts)
+    user_id: UserId,
+    account_id: AccountId,
+    pool: Pool,
+    amount: UserPostsAmount = 12,
+    cursor: Cursor = None,
+    include_reels: bool = False,
+) -> PostsPage:
+    return await pool.run(
+        account_id, lambda client: client.user_posts(user_id, amount, cursor, include_reels)
+    )
 
 
 @router.get("/timeline")

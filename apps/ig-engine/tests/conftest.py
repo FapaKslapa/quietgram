@@ -17,12 +17,20 @@ SECRET = "test-secret-0123456789"
 
 
 class Harness:
-    def __init__(self, data_dir: Path, send_enabled: bool = False) -> None:
+    def __init__(
+        self,
+        data_dir: Path,
+        send_enabled: bool = False,
+        interactions_enabled: bool = False,
+        max_per_hour: int = 30,
+    ) -> None:
         self.behavior = Behavior()
         settings = Settings(
             engine_secret=SECRET,
             data_dir=data_dir,
             dm_send_enabled=send_enabled,
+            interactions_enabled=interactions_enabled,
+            interactions_max_per_hour=max_per_hour,
             min_delay_seconds=0,
             max_delay_seconds=0,
         )
@@ -78,3 +86,11 @@ def harness(tmp_path: Path) -> Harness:
 @pytest.fixture
 def harness_factory(tmp_path: Path) -> Callable[[bool], Harness]:
     return lambda send_enabled: Harness(tmp_path, send_enabled)
+
+
+@pytest.fixture
+def interactive(tmp_path: Path) -> Harness:
+    harness = Harness(tmp_path, interactions_enabled=True)
+    harness.login()
+    harness.calls.clear()
+    return harness

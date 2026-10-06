@@ -11,6 +11,8 @@ class Settings(BaseSettings):
     min_delay_seconds: float = Field(default=1.5, ge=0)
     max_delay_seconds: float = Field(default=4.0, ge=0)
     dm_send_enabled: bool = False
+    interactions_enabled: bool = False
+    interactions_max_per_hour: int = Field(default=30, ge=1)
 
     @model_validator(mode="after")
     def check_delay_range(self) -> Self:

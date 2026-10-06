@@ -56,8 +56,10 @@ def test_reel_product_type_is_preserved(harness: Harness) -> None:
     harness.login()
     saved = harness.request("GET", "/v1/saved").json()
     assert saved["posts"][0]["product_type"] == "clips"
-    user_posts = harness.request("GET", "/v1/users/2/posts").json()
-    assert user_posts["posts"][0]["product_type"] == "clips"
+    default = harness.request("GET", "/v1/users/2/posts").json()
+    assert [post["product_type"] for post in default["posts"]] == ["feed"]
+    with_reels = harness.request("GET", "/v1/users/2/posts", query="?include_reels=true").json()
+    assert [post["product_type"] for post in with_reels["posts"]] == ["clips", "feed"]
 
 
 def test_timeline_returns_cursor(harness: Harness) -> None:

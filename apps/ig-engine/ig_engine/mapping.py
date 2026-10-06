@@ -1,9 +1,37 @@
 from datetime import datetime
 
-from instagrapi.types import Collection, DirectMessage, DirectThread, Media, Resource, UserShort
+from instagrapi.types import (
+    Collection,
+    DirectMessage,
+    DirectThread,
+    Media,
+    Relationship,
+    Resource,
+    UserShort,
+)
+from instagrapi.types import (
+    Comment as CommentIn,
+)
+from instagrapi.types import (
+    Story as StoryIn,
+)
+from instagrapi.types import (
+    User as ProfileIn,
+)
 
+from ig_engine.schemas import (
+    Comment,
+    Friendship,
+    Message,
+    MessageKind,
+    Post,
+    Profile,
+    Story,
+    Thread,
+    TrayEntry,
+    User,
+)
 from ig_engine.schemas import Media as MediaOut
-from ig_engine.schemas import Message, MessageKind, Post, Thread, User
 
 ALBUM_MEDIA_TYPE = 8
 VIDEO_MEDIA_TYPE = 2
@@ -11,6 +39,8 @@ VOICE_ITEM_TYPE = "voice_media"
 MEDIA_ITEM_TYPES = ("media", "raw_media")
 SAVED_ALL_TYPE = "ALL_MEDIA_AUTO_COLLECTION"
 SAVED_ALL_NAME = "all posts"
+STORY_LIFETIME_MS = 24 * 60 * 60 * 1000
+REEL_PRODUCT_TYPE = "clips"
 
 
 def to_millis(moment: datetime) -> int:
@@ -105,3 +135,101 @@ def select_saved_collection(collections: list[Collection]) -> str | None:
         (c for c in collections if (c.name or "").casefold() == SAVED_ALL_NAME), None
     )
     return None if chosen is None else str(chosen.id)
+
+
+def is_reel(post: Post) -> bool:
+    return post.product_type == REEL_PRODUCT_TYPE
+
+
+def as_mapping(value: object) -> dict[str, object]:
+    if not isinstance(value, dict):
+        return {}
+    return {str(key): item for key, item in value.items()}
+
+
+def as_int(value: object) -> int | None:
+    if isinstance(value, bool) or not isinstance(value, int | float | str):
+        return None
+    try:
+        return int(value)
+    except ValueError:
+        return None
+
+
+def to_tray_entry(entry: object) -> TrayEntry | None:
+    data = as_mapping(entry)
+    user = as_mapping(data.get("user"))
+    user_id = user.get("pk") or user.get("id")
+    if user_id is None:
+        return None
+    latest = as_int(data.get("latest_reel_media"))
+    seen_at = as_int(data.get("seen")) or 0
+    avatar = user.get("profile_pic_url")
+    return TrayEntry(
+        user_id=str(user_id),
+        username=str(user.get("username") or ""),
+        avatar_url=avatar if isinstance(avatar, str) else None,
+        latest_reel_media=latest,
+        seen=seen_at > 0 and (latest is None or seen_at >= latest),
+    )
+
+
+def to_tray(raw: object) -> list[TrayEntry]:
+    entries = as_mapping(raw).get("tray")
+    if not isinstance(entries, list):
+        return []
+    mapped = (to_tray_entry(entry) for entry in entries)
+    return [entry for entry in mapped if entry is not None]
+
+
+def to_story(story: StoryIn) -> Story | None:
+    if story.video_url is not None:
+        media = MediaOut(kind="video", url=str(story.video_url), width=0, height=0)
+    elif story.thumbnail_url is not None:
+        media = MediaOut(kind="image", url=str(story.thumbnail_url), width=0, height=0)
+    else:
+        return None
+    taken = to_millis(story.taken_at)
+    return Story(
+        id=str(story.pk),
+        taken_at_ms=taken,
+        expires_at_ms=taken + STORY_LIFETIME_MS,
+        media=media,
+        product_type=story.product_type or "story",
+    )
+
+
+def to_profile(user: ProfileIn, relationship: Relationship | None) -> Profile:
+    avatar = user.profile_pic_url_hd or user.profile_pic_url
+    return Profile(
+        id=str(user.pk),
+        username=user.username,
+        full_name=user.full_name or "",
+        biography=user.biography or "",
+        avatar_url=None if avatar is None else str(avatar),
+        is_private=bool(user.is_private),
+        is_verified=bool(user.is_verified),
+        is_business=bool(user.is_business),
+        follower_count=user.follower_count,
+        following_count=user.following_count,
+        media_count=user.media_count,
+        external_url=user.external_url or None,
+        friendship=Friendship(
+            following=bool(relationship and relationship.following),
+            followed_by=bool(relationship and relationship.followed_by),
+        ),
+    )
+
+
+def to_comment(comment: CommentIn) -> Comment:
+    avatar = comment.user.profile_pic_url
+    return Comment(
+        id=str(comment.pk),
+        user_id=str(comment.user.pk),
+        username=comment.user.username or "",
+        avatar_url=None if avatar is None else str(avatar),
+        text=comment.text,
+        created_at_ms=to_millis(comment.created_at_utc),
+        like_count=comment.like_count or 0,
+        parent_id=comment.replied_to_comment_id or None,
+    )

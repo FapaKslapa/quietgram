@@ -1,6 +1,17 @@
 from typing import Protocol
 
-from ig_engine.schemas import Message, Post, Thread, TimelinePage, User
+from ig_engine.schemas import (
+    Comment,
+    Message,
+    Post,
+    PostsPage,
+    Profile,
+    Story,
+    Thread,
+    TimelinePage,
+    TrayEntry,
+    User,
+)
 
 type SessionSettings = dict[str, object]
 
@@ -16,7 +27,29 @@ class InstagramClient(Protocol):
 
     def followers(self, amount: int) -> list[User]: ...
 
-    def user_posts(self, user_id: str, amount: int) -> list[Post]: ...
+    def user_posts(
+        self, user_id: str, amount: int, cursor: str | None, include_reels: bool
+    ) -> PostsPage: ...
+
+    def stories_tray(self) -> list[TrayEntry]: ...
+
+    def user_stories(self, user_id: str) -> list[Story]: ...
+
+    def user_profile(self, user_id: str) -> Profile: ...
+
+    def comments(self, media_id: str, amount: int) -> list[Comment]: ...
+
+    def like(self, media_id: str) -> None: ...
+
+    def unlike(self, media_id: str) -> None: ...
+
+    def save(self, media_id: str) -> None: ...
+
+    def unsave(self, media_id: str) -> None: ...
+
+    def add_comment(self, media_id: str, text: str) -> None: ...
+
+    def delete_comment(self, media_id: str, comment_id: str) -> None: ...
 
     def timeline(self, cursor: str | None) -> TimelinePage: ...
 

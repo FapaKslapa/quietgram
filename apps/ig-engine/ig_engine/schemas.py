@@ -3,6 +3,7 @@ from typing import Literal
 from pydantic import BaseModel, Field, field_validator
 
 MAX_MESSAGE_LENGTH = 1000
+MAX_COMMENT_LENGTH = 2200
 MIN_SESSIONID_LENGTH = 31
 
 
@@ -75,6 +76,75 @@ class PostsResponse(BaseModel):
     posts: list[Post]
 
 
+class PostsPage(BaseModel):
+    posts: list[Post]
+    next_cursor: str | None
+
+
+class TrayEntry(BaseModel):
+    user_id: str
+    username: str
+    avatar_url: str | None
+    latest_reel_media: int | None
+    seen: bool
+
+
+class TrayResponse(BaseModel):
+    tray: list[TrayEntry]
+
+
+class Story(BaseModel):
+    id: str
+    taken_at_ms: int
+    expires_at_ms: int
+    media: Media
+    product_type: str
+
+
+class StoriesResponse(BaseModel):
+    stories: list[Story]
+
+
+class Friendship(BaseModel):
+    following: bool
+    followed_by: bool
+
+
+class Profile(BaseModel):
+    id: str
+    username: str
+    full_name: str
+    biography: str
+    avatar_url: str | None
+    is_private: bool
+    is_verified: bool
+    is_business: bool
+    follower_count: int
+    following_count: int
+    media_count: int
+    external_url: str | None
+    friendship: Friendship
+
+
+class Comment(BaseModel):
+    id: str
+    user_id: str
+    username: str
+    avatar_url: str | None
+    text: str
+    created_at_ms: int
+    like_count: int
+    parent_id: str | None
+
+
+class CommentsResponse(BaseModel):
+    comments: list[Comment]
+
+
+class Ok(BaseModel):
+    ok: bool = True
+
+
 class ThreadsResponse(BaseModel):
     threads: list[Thread]
 
@@ -85,6 +155,17 @@ class MessagesResponse(BaseModel):
 
 class SendMessageRequest(BaseModel):
     text: str = Field(min_length=1, max_length=MAX_MESSAGE_LENGTH)
+
+    @field_validator("text")
+    @classmethod
+    def reject_blank(cls, value: str) -> str:
+        if not value.strip():
+            raise ValueError("text must not be blank")
+        return value
+
+
+class AddCommentRequest(BaseModel):
+    text: str = Field(min_length=1, max_length=MAX_COMMENT_LENGTH)
 
     @field_validator("text")
     @classmethod
