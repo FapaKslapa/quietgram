@@ -170,6 +170,8 @@ export const posts = sqliteTable(
   "posts",
   {
     id: text("id").notNull(),
+    shortcode: text("shortcode"),
+    productType: text("product_type"),
     ownerId: text("owner_id")
       .notNull()
       .references(() => user.id, { onDelete: "cascade" }),
@@ -187,6 +189,8 @@ export const saved = sqliteTable(
   "saved",
   {
     id: text("id").notNull(),
+    shortcode: text("shortcode"),
+    productType: text("product_type"),
     ownerId: text("owner_id")
       .notNull()
       .references(() => user.id, { onDelete: "cascade" }),
@@ -222,12 +226,27 @@ export const dmMessages = sqliteTable(
     threadId: text("thread_id").notNull(),
     senderId: text("sender_id").notNull(),
     text: text("text"),
+    kind: text("kind", { enum: ["text", "photo", "video", "voice", "other"] })
+      .notNull()
+      .default("text"),
     sentAt: integer("sent_at", { mode: "timestamp_ms" }).notNull(),
   },
   (t) => [
     primaryKey({ columns: [t.ownerId, t.id] }),
     index("dm_thread").on(t.ownerId, t.threadId, t.sentAt),
   ],
+);
+
+export const dmSyncMarks = sqliteTable(
+  "dm_sync_marks",
+  {
+    ownerId: text("owner_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    scope: text("scope").notNull(),
+    syncedAt: integer("synced_at", { mode: "timestamp_ms" }).notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.ownerId, t.scope] })],
 );
 
 export const feedModes = ["friends", "following", "creators"] as const;
@@ -261,6 +280,7 @@ export const userSettings = sqliteTable("user_settings", {
   grayscaleMedia: integer("grayscale_media", { mode: "boolean" }).notNull().default(false),
   sessionBudgetMinutes: integer("session_budget_minutes"),
   budgetLockedUntil: integer("budget_locked_until", { mode: "timestamp_ms" }),
+  dmSendEnabled: integer("dm_send_enabled", { mode: "boolean" }).notNull().default(false),
 });
 
 export const feedExceptions = sqliteTable(
