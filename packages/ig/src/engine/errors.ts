@@ -5,6 +5,13 @@ export class EngineSendDisabledError extends Error {
   }
 }
 
+export class EngineInteractionsDisabledError extends Error {
+  constructor() {
+    super("Engine has interactions disabled");
+    this.name = "EngineInteractionsDisabledError";
+  }
+}
+
 export class EngineUnreachableError extends Error {
   readonly reason: string;
 

@@ -9,15 +9,21 @@ import {
   fetchTimelinePage,
   fetchUserCounts,
   fetchUsersPage,
+  type IgComment,
   type IgCookies,
   type IgMessage,
   type IgPost,
+  type IgProfile,
+  type IgStory,
   type IgThread,
+  type IgTrayEntry,
+  IgUnsupportedError,
   type Requester,
   SessionExpiredError,
   sendText,
   type TimelinePage,
   type UserCounts,
+  type UserPostsPage,
   type UsersPage,
 } from "@nodistraction/ig";
 import type { AppEnv } from "@/lib/env";
@@ -41,6 +47,17 @@ export type InstagramSource = {
   inbox: () => Promise<IgThread[]>;
   thread: (threadId: string) => Promise<IgMessage[]>;
   sendText: (threadId: string, text: string) => Promise<void>;
+  storiesTray: () => Promise<IgTrayEntry[]>;
+  userStories: (userId: string) => Promise<IgStory[]>;
+  userProfile: (userId: string) => Promise<IgProfile>;
+  profilePosts: (userId: string, cursor: string | null) => Promise<UserPostsPage>;
+  comments: (mediaId: string) => Promise<IgComment[]>;
+  like: (mediaId: string) => Promise<void>;
+  unlike: (mediaId: string) => Promise<void>;
+  save: (mediaId: string) => Promise<void>;
+  unsave: (mediaId: string) => Promise<void>;
+  addComment: (mediaId: string, text: string) => Promise<void>;
+  deleteComment: (mediaId: string, commentId: string) => Promise<void>;
 };
 
 export type SourceAccount = {
@@ -57,6 +74,12 @@ export const ENGINE_GRAPH_AMOUNT = 1000;
 export const ENGINE_SAVED_AMOUNT = 100;
 export const ENGINE_INBOX_AMOUNT = 50;
 export const ENGINE_THREAD_AMOUNT = 50;
+export const ENGINE_PROFILE_POSTS_AMOUNT = 24;
+export const ENGINE_COMMENTS_AMOUNT = 50;
+
+const unsupported = (capability: string) => async (): Promise<never> => {
+  throw new IgUnsupportedError(capability);
+};
 
 export const createDirectSource = (requester: Requester): InstagramSource => ({
   kind: "direct",
@@ -70,6 +93,17 @@ export const createDirectSource = (requester: Requester): InstagramSource => ({
   inbox: () => fetchInbox(requester),
   thread: (threadId) => fetchThread(requester, threadId),
   sendText: (threadId, text) => sendText(requester, threadId, text),
+  storiesTray: unsupported("stories"),
+  userStories: unsupported("stories"),
+  userProfile: unsupported("profiles"),
+  profilePosts: unsupported("profile posts"),
+  comments: unsupported("comments"),
+  like: unsupported("likes"),
+  unlike: unsupported("likes"),
+  save: unsupported("saves"),
+  unsave: unsupported("saves"),
+  addComment: unsupported("comments"),
+  deleteComment: unsupported("comments"),
 });
 
 export const createEngineSource = (
@@ -119,7 +153,8 @@ export const createEngineSource = (
         nextCursor: null,
       })),
     timelinePage: (cursor) => ready(() => client.timeline(cursor)),
-    userPosts: (userId, amount) => ready(() => client.userPosts(userId, amount)),
+    userPosts: (userId, amount) =>
+      ready(async () => (await client.userPosts(userId, amount)).posts),
     userCounts: async () => null,
     saved: () => ready(() => client.saved(ENGINE_SAVED_AMOUNT)),
     inbox: () => ready(() => client.threads(ENGINE_INBOX_AMOUNT)),
@@ -128,6 +163,18 @@ export const createEngineSource = (
       ready(async () => {
         await client.sendMessage(threadId, text);
       }),
+    storiesTray: () => ready(() => client.storiesTray()),
+    userStories: (userId) => ready(() => client.userStories(userId)),
+    userProfile: (userId) => ready(() => client.userProfile(userId)),
+    profilePosts: (userId, cursor) =>
+      ready(() => client.userPosts(userId, ENGINE_PROFILE_POSTS_AMOUNT, cursor ?? undefined)),
+    comments: (mediaId) => ready(() => client.comments(mediaId, ENGINE_COMMENTS_AMOUNT)),
+    like: (mediaId) => ready(() => client.like(mediaId)),
+    unlike: (mediaId) => ready(() => client.unlike(mediaId)),
+    save: (mediaId) => ready(() => client.save(mediaId)),
+    unsave: (mediaId) => ready(() => client.unsave(mediaId)),
+    addComment: (mediaId, text) => ready(() => client.addComment(mediaId, text)),
+    deleteComment: (mediaId, commentId) => ready(() => client.deleteComment(mediaId, commentId)),
   };
 };
 

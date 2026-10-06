@@ -29,3 +29,10 @@ export class IgThrottledError extends Error {
     this.name = "IgThrottledError";
   }
 }
+
+export class IgUnsupportedError extends Error {
+  constructor(readonly capability: string) {
+    super(`Instagram source does not support ${capability}`);
+    this.name = "IgUnsupportedError";
+  }
+}

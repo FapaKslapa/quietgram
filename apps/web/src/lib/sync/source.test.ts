@@ -1,3 +1,4 @@
+import { IgUnsupportedError } from "@nodistraction/ig";
 import { describe, expect, it } from "vitest";
 import { createSessionHandOff, createSourceFactory } from "@/lib/sync/source";
 import { ENGINE_SECRET } from "@/test/helpers";
@@ -28,6 +29,21 @@ describe("createSourceFactory", () => {
       loadCookies: async () => ({ sessionId: "s", csrfToken: "c", userId: "1" }),
     });
     expect(source).toMatchObject({ kind: "direct", userPosts: null });
+  });
+});
+
+describe("direct source social capabilities", () => {
+  it("reports typed unsupported errors", async () => {
+    const source = createSourceFactory({}, delay).create({
+      igUserId: "1",
+      loadCookies: async () => ({ sessionId: "s", csrfToken: "c", userId: "1" }),
+    });
+    await expect(source.storiesTray()).rejects.toThrow(IgUnsupportedError);
+    await expect(source.like("1")).rejects.toThrow(IgUnsupportedError);
+    await expect(source.addComment("1", "a")).rejects.toThrow(IgUnsupportedError);
+    await expect(source.profilePosts("1", null)).rejects.toMatchObject({
+      name: "IgUnsupportedError",
+    });
   });
 });
 

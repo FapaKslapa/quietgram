@@ -67,6 +67,78 @@ const messageSchema = z.object({
   sent_at_ms: z.number(),
 });
 
+const text = z
+  .string()
+  .nullish()
+  .transform((value) => value ?? "");
+
+const trayEntrySchema = z.object({
+  user_id: idSchema,
+  username: text,
+  avatar_url: z.string().nullish().catch(null),
+  latest_reel_media: z.number().nullish().catch(null),
+  seen: z
+    .boolean()
+    .nullish()
+    .transform((value) => value ?? false),
+});
+
+const storySchema = z.object({
+  id: idSchema,
+  taken_at_ms: z.number(),
+  expires_at_ms: z.number(),
+  media: mediaSchema,
+  product_type: z.string().nullish().catch(null),
+});
+
+const tolerantList = <Output>(item: z.ZodType<Output>) =>
+  z.array(z.unknown()).transform((items) =>
+    items.flatMap((entry) => {
+      const parsed = item.safeParse(entry);
+      return parsed.success ? [parsed.data] : [];
+    }),
+  );
+
+const count = z
+  .number()
+  .nullish()
+  .transform((value) => value ?? 0);
+
+const flag = z
+  .boolean()
+  .nullish()
+  .transform((value) => value ?? false);
+
+const profileSchema = z.object({
+  id: idSchema,
+  username: text,
+  full_name: text,
+  biography: text,
+  avatar_url: z.string().nullish().catch(null),
+  is_private: flag,
+  is_verified: flag,
+  is_business: flag,
+  follower_count: count,
+  following_count: count,
+  media_count: count,
+  external_url: z.string().nullish().catch(null),
+  friendship: z
+    .object({ following: flag, followed_by: flag })
+    .nullish()
+    .transform((value) => value ?? { following: false, followed_by: false }),
+});
+
+const commentSchema = z.object({
+  id: idSchema,
+  user_id: idSchema,
+  username: text,
+  avatar_url: z.string().nullish().catch(null),
+  text,
+  created_at_ms: z.number(),
+  like_count: count,
+  parent_id: idSchema.nullish().catch(null),
+});
+
 export const sessionStatusSchema = z.compile(
   z.object({ active: z.boolean(), username: z.string().nullable() }),
 );
@@ -80,6 +152,17 @@ export const timelineResponseSchema = z.compile(
   z.object({ posts: z.array(postSchema), next_cursor: z.string().nullish() }),
 );
 
+export const userPostsResponseSchema = z.compile(
+  z.object({ posts: z.array(postSchema), next_cursor: z.string().nullish() }),
+);
+export const trayResponseSchema = z.compile(z.object({ tray: tolerantList(trayEntrySchema) }));
+export const storiesResponseSchema = z.compile(z.object({ stories: tolerantList(storySchema) }));
+export const profileResponseSchema = z.compile(profileSchema);
+export const commentsResponseSchema = z.compile(
+  z.object({ comments: tolerantList(commentSchema) }),
+);
+export const okResponseSchema = z.compile(z.object({ ok: z.literal(true) }));
+
 export const errorBodySchema = z.compile(
   z.object({
     code: z.string(),
@@ -91,3 +174,7 @@ export const errorBodySchema = z.compile(
 export type EnginePost = z.output<typeof postSchema>;
 export type EngineUser = z.output<typeof userSchema>;
 export type EngineMessage = z.output<typeof messageSchema>;
+export type EngineTrayEntry = z.output<typeof trayEntrySchema>;
+export type EngineStory = z.output<typeof storySchema>;
+export type EngineProfile = z.output<typeof profileSchema>;
+export type EngineComment = z.output<typeof commentSchema>;

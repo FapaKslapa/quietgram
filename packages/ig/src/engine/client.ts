@@ -1,26 +1,46 @@
 import type { IgMessage, IgThread } from "#ig/direct";
 import {
+  EngineInteractionsDisabledError,
   EngineResponseError,
   EngineSendDisabledError,
   EngineUnreachableError,
 } from "#ig/engine/errors";
 import {
+  commentsResponseSchema,
+  type EngineComment,
   type EngineMessage,
   type EnginePost,
+  type EngineProfile,
+  type EngineStory,
+  type EngineTrayEntry,
   type EngineUser,
   errorBodySchema,
   messagesResponseSchema,
+  okResponseSchema,
   postsResponseSchema,
+  profileResponseSchema,
   sentMessageSchema,
   sessionStatusSchema,
+  storiesResponseSchema,
   threadsResponseSchema,
   timelineResponseSchema,
+  trayResponseSchema,
+  userPostsResponseSchema,
   usersResponseSchema,
 } from "#ig/engine/schemas";
 import { signedTarget, signRequest } from "#ig/engine/sign";
 import { IgHttpError, IgThrottledError, SessionExpiredError } from "#ig/errors";
 import type { IgUser } from "#ig/mutuals";
 import { type IgPost, isReel, type TimelinePage } from "#ig/posts";
+import {
+  type IgComment,
+  type IgProfile,
+  type IgStory,
+  type IgTrayEntry,
+  validateCommentText,
+} from "#ig/social";
+
+export type UserPostsPage = { posts: IgPost[]; nextCursor: string | null };
 
 export type EngineSessionStatus = { active: boolean; username: string | null };
 
@@ -97,12 +117,65 @@ const toMessage = (message: EngineMessage): IgMessage => ({
   sentAt: message.sent_at_ms,
 });
 
+const toTrayEntry = (entry: EngineTrayEntry): IgTrayEntry => ({
+  userId: entry.user_id,
+  username: entry.username,
+  avatarUrl: entry.avatar_url ?? null,
+  latestReelMedia: entry.latest_reel_media ?? null,
+  seen: entry.seen,
+});
+
+const toStory = (story: EngineStory): IgStory => ({
+  id: story.id,
+  takenAt: story.taken_at_ms,
+  expiresAt: story.expires_at_ms,
+  media: {
+    kind: story.media.kind,
+    url: story.media.url,
+    width: story.media.width ?? 0,
+    height: story.media.height ?? 0,
+  },
+  productType: story.product_type ?? "story",
+});
+
+const toProfile = (profile: EngineProfile): IgProfile => ({
+  id: profile.id,
+  username: profile.username,
+  fullName: profile.full_name,
+  biography: profile.biography,
+  avatarUrl: profile.avatar_url ?? null,
+  isPrivate: profile.is_private,
+  isVerified: profile.is_verified,
+  isBusiness: profile.is_business,
+  followerCount: profile.follower_count,
+  followingCount: profile.following_count,
+  mediaCount: profile.media_count,
+  externalUrl: profile.external_url ? profile.external_url : null,
+  friendship: {
+    following: profile.friendship.following,
+    followedBy: profile.friendship.followed_by,
+  },
+});
+
+const toComment = (comment: EngineComment): IgComment => ({
+  id: comment.id,
+  userId: comment.user_id,
+  username: comment.username,
+  avatarUrl: comment.avatar_url ?? null,
+  text: comment.text,
+  createdAt: comment.created_at_ms,
+  likeCount: comment.like_count,
+  parentId: comment.parent_id ?? null,
+});
+
 const failure = (status: number, text: string): Error => {
   const body = errorBodySchema.safeParse(parseJson(text));
   const code = body.success ? body.data.code : null;
   if (status === 429 && code === "throttled") return new IgThrottledError();
   if (status === 401 && code === "session_expired") return new SessionExpiredError();
   if (status === 403 && code === "send_disabled") return new EngineSendDisabledError();
+  if (status === 403 && code === "interactions_disabled")
+    return new EngineInteractionsDisabledError();
   return new IgHttpError(status);
 };
 
@@ -114,7 +187,7 @@ export const createEngineClient = (options: EngineClientOptions) => {
   const base = options.baseUrl.replace(/\/+$/, "");
 
   const call = async (
-    method: "GET" | "PUT" | "POST",
+    method: "GET" | "PUT" | "POST" | "DELETE",
     path: string,
     query: Query = [],
     payload?: unknown,
@@ -153,6 +226,12 @@ export const createEngineClient = (options: EngineClientOptions) => {
     return json;
   };
 
+  const mediaPath = (mediaId: string): string => encodeURIComponent(mediaId);
+
+  const act = async (method: "POST" | "DELETE", path: string, payload?: unknown): Promise<void> => {
+    check(okResponseSchema, await call(method, path, [], payload));
+  };
+
   return {
     putSession: async (sessionId: string): Promise<EngineSessionStatus> =>
       check(sessionStatusSchema, await call("PUT", "/session", [], { sessionid: sessionId })),
@@ -166,13 +245,53 @@ export const createEngineClient = (options: EngineClientOptions) => {
     followers: async (amount: number): Promise<IgUser[]> =>
       toUsers(check(usersResponseSchema, await call("GET", "/followers", amountQuery(amount)))),
 
-    userPosts: async (userId: string, amount: number): Promise<IgPost[]> =>
-      toPosts(
+    userPosts: async (userId: string, amount: number, cursor?: string): Promise<UserPostsPage> => {
+      const query: Query = cursor
+        ? [...amountQuery(amount), ["cursor", cursor]]
+        : amountQuery(amount);
+      const page = check(
+        userPostsResponseSchema,
+        await call("GET", `/users/${encodeURIComponent(userId)}/posts`, query),
+      );
+      return { posts: toPosts(page.posts), nextCursor: page.next_cursor ?? null };
+    },
+
+    storiesTray: async (): Promise<IgTrayEntry[]> =>
+      check(trayResponseSchema, await call("GET", "/stories/tray")).tray.map(toTrayEntry),
+
+    userStories: async (userId: string): Promise<IgStory[]> =>
+      check(
+        storiesResponseSchema,
+        await call("GET", `/users/${encodeURIComponent(userId)}/stories`),
+      ).stories.map(toStory),
+
+    userProfile: async (userId: string): Promise<IgProfile> =>
+      toProfile(
         check(
-          postsResponseSchema,
-          await call("GET", `/users/${encodeURIComponent(userId)}/posts`, amountQuery(amount)),
-        ).posts,
+          profileResponseSchema,
+          await call("GET", `/users/${encodeURIComponent(userId)}/profile`),
+        ),
       ),
+
+    comments: async (mediaId: string, amount: number): Promise<IgComment[]> =>
+      check(
+        commentsResponseSchema,
+        await call("GET", `/posts/${encodeURIComponent(mediaId)}/comments`, amountQuery(amount)),
+      ).comments.map(toComment),
+
+    like: (mediaId: string): Promise<void> => act("POST", `/posts/${mediaPath(mediaId)}/like`),
+
+    unlike: (mediaId: string): Promise<void> => act("DELETE", `/posts/${mediaPath(mediaId)}/like`),
+
+    save: (mediaId: string): Promise<void> => act("POST", `/posts/${mediaPath(mediaId)}/save`),
+
+    unsave: (mediaId: string): Promise<void> => act("DELETE", `/posts/${mediaPath(mediaId)}/save`),
+
+    addComment: async (mediaId: string, text: string): Promise<void> =>
+      act("POST", `/posts/${mediaPath(mediaId)}/comments`, { text: validateCommentText(text) }),
+
+    deleteComment: (mediaId: string, commentId: string): Promise<void> =>
+      act("DELETE", `/posts/${mediaPath(mediaId)}/comments/${encodeURIComponent(commentId)}`),
 
     timeline: async (cursor?: string): Promise<TimelinePage> => {
       const page = check(
