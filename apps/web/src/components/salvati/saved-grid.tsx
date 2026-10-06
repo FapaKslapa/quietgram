@@ -11,6 +11,7 @@ import {
   SavedTiles,
 } from "@/components/salvati/saved-states";
 import { useSavedSync } from "@/hooks/use-saved-sync";
+import { instagramUrl } from "@/lib/instagram-link";
 import { type SavedItem, shouldAutoSync } from "@/lib/saved-grid";
 import { useTRPC } from "@/trpc/client";
 
@@ -43,6 +44,7 @@ export function SavedGrid() {
       index: 0,
       username: item.authorUsername,
       caption: item.caption,
+      instagramUrl: instagramUrl(item.shortcode, item.productType),
     });
   };
 

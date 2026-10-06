@@ -1,6 +1,6 @@
 "use client";
 
-import { X } from "lucide-react";
+import { ExternalLink, X } from "lucide-react";
 import { animate, motion, type PanInfo, useMotionValue, useTransform } from "motion/react";
 import { useEffect, useRef, useState } from "react";
 import { MediaSlide } from "@/components/media/media-slide";
@@ -15,6 +15,7 @@ export type ViewerRequest = {
   index: number;
   username: string;
   caption: string | null;
+  instagramUrl?: string | null | undefined;
   onIndexChange?: ((index: number) => void) | undefined;
 };
 
@@ -33,7 +34,7 @@ const useViewportWidth = (): number => {
 };
 
 export function ViewerLayer({ request, onRequestClose }: ViewerLayerProps) {
-  const { groupId, items, username, caption, onIndexChange } = request;
+  const { groupId, items, username, caption, instagramUrl, onIndexChange } = request;
   const [index, setIndex] = useState(request.index);
   const [swipedOut, setSwipedOut] = useState(false);
   const width = useViewportWidth();
@@ -177,6 +178,17 @@ export function ViewerLayer({ request, onRequestClose }: ViewerLayerProps) {
       >
         {caption ? (
           <p className="line-clamp-2 text-sm leading-snug text-white/85">{caption}</p>
+        ) : null}
+        {instagramUrl ? (
+          <a
+            href={instagramUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="pointer-events-auto inline-flex h-11 w-fit items-center gap-2 justify-self-center rounded-full bg-white/12 px-5 text-sm font-semibold backdrop-blur-sm"
+          >
+            Apri su Instagram
+            <ExternalLink className="size-4" strokeWidth={1.8} aria-hidden="true" />
+          </a>
         ) : null}
         {count > 1 ? (
           <div className="pointer-events-auto flex justify-center">

@@ -2,6 +2,8 @@ import type { PostMediaItem } from "@/lib/media";
 
 export type SavedItem = {
   id: string;
+  shortcode?: string | null | undefined;
+  productType?: string | null | undefined;
   authorUsername: string;
   caption: string | null;
   media: PostMediaItem[];

@@ -43,6 +43,8 @@ export const POSTS: FeedPost[] = [
   },
   {
     id: "p2",
+    shortcode: "Cabc123xyz",
+    productType: "feed",
     authorId: "2",
     authorUsername: "marco_b",
     authorAvatarUrl: null,
@@ -81,7 +83,14 @@ export const SAVED: SavedItem[] = [
     caption: "Colazione sul balcone.",
     media: POSTS[0]?.media ?? [],
   },
-  { id: "s2", authorUsername: "marco_b", caption: LONG_CAPTION, media: POSTS[1]?.media ?? [] },
+  {
+    id: "s2",
+    shortcode: "Cabc123xyz",
+    productType: "feed",
+    authorUsername: "marco_b",
+    caption: LONG_CAPTION,
+    media: POSTS[1]?.media ?? [],
+  },
   { id: "s3", authorUsername: "panificio.nino", caption: null, media: [video] },
   { id: "s4", authorUsername: "ristorante.da.nino", caption: null, media: POSTS[3]?.media ?? [] },
   {

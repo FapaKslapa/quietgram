@@ -39,6 +39,7 @@ import { TabBarView } from "@/components/shell/tab-bar-view";
 import { usePullToRefresh } from "@/hooks/use-pull-to-refresh";
 import { BUDGET_CHOICES } from "@/lib/budget";
 import { modeDefinition } from "@/lib/feed-modes";
+import { instagramUrl } from "@/lib/instagram-link";
 import { THEMES } from "@/lib/profile";
 import { PULL_THRESHOLD, type PullPhase } from "@/lib/pull";
 
@@ -116,6 +117,7 @@ function SavedFrame({
       index: 0,
       username: SAVED_TARGET.authorUsername,
       caption: SAVED_TARGET.caption,
+      instagramUrl: instagramUrl(SAVED_TARGET.shortcode, SAVED_TARGET.productType),
     });
   }, [openItem, viewer]);
 
@@ -213,6 +215,7 @@ function ViewerFrame() {
       index: 1,
       username: POST_TARGET.authorUsername,
       caption: POST_TARGET.caption,
+      instagramUrl: instagramUrl(POST_TARGET.shortcode, POST_TARGET.productType),
     });
   }, [viewer]);
 

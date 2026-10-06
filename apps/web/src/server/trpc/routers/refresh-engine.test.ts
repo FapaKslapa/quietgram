@@ -22,6 +22,7 @@ const RECENT = NOW - DAY;
 
 const enginePost = (id: string, authorId: string, productType = "feed", takenAtMs = RECENT) => ({
   id,
+  code: `code-${id}`,
   author_id: authorId,
   author_username: `user_${authorId}`,
   caption: null,
@@ -81,8 +82,13 @@ const postCalls = (calls: EngineCall[]) => calls.filter((call) => call.path.ends
 describe("refresh with the engine", () => {
   it("walks the graph then fetches recent posts per allowed author without sleeping", async () => {
     const env = await createTestEnv(undefined, { engine: world() });
-    const { progress } = await runToEnd(createCaller(env.context));
+    const caller = createCaller(env.context);
+    const { progress } = await runToEnd(caller);
     expect(progress).toMatchObject({ status: "done", done: true });
+    const listed = (await caller.feed.list({})).items;
+    expect(listed.map((item) => [item.shortcode, item.productType])).toEqual([
+      ["code-p-5071", "feed"],
+    ]);
     expect(env.calls).toEqual([]);
     expect(env.delays.count).toBe(0);
     expect(postCalls(env.engineCalls).map((call) => [call.path, call.query])).toEqual([
@@ -90,6 +96,7 @@ describe("refresh with the engine", () => {
     ]);
     const stored = await env.db.select().from(posts);
     expect(stored.map((post) => post.id)).toEqual(["p-5071"]);
+    expect(stored[0]).toMatchObject({ shortcode: "code-p-5071", productType: "feed" });
     const rows = await env.db.select().from(following);
     expect(rows.map((row) => [row.igUserId, row.postsCheckedAt?.getTime() ?? null]).sort()).toEqual(
       [

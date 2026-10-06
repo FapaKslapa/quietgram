@@ -7,19 +7,20 @@ import { createTestEnv, type EngineCall, EngineFailure } from "@/test/helpers";
 
 const createCaller = createCallerFactory(appRouter);
 
-const enginePost = (id: string) => ({
+const enginePost = (id: string, productType = "feed") => ({
   id,
+  code: `code-${id}`,
   author_id: "1",
   author_username: "ada",
   caption: "ciao",
   taken_at_ms: 5,
-  product_type: "feed",
+  product_type: productType,
   media: [{ kind: "image", url: "https://cdn/x.jpg", width: 1, height: 1 }],
 });
 
 const respond = (call: EngineCall): unknown => {
   if (call.path === "/v1/session") return { active: true, username: "me" };
-  if (call.path === "/v1/saved") return { posts: [enginePost("s1"), enginePost("s2")] };
+  if (call.path === "/v1/saved") return { posts: [enginePost("s1"), enginePost("s2", "clips")] };
   if (call.path === "/v1/following") return { users: [] };
   if (call.path === "/v1/threads") {
     return {
@@ -45,7 +46,12 @@ describe("engine backed routers", () => {
     const env = await createTestEnv(undefined, { engine: respond, dmSendEnabled: true });
     const caller = createCaller(env.context);
     await caller.saved.sync();
-    expect((await caller.saved.list()).map((post) => post.id)).toEqual(["s1", "s2"]);
+    const saved = await caller.saved.list();
+    expect(saved.map((post) => post.id)).toEqual(["s1", "s2"]);
+    expect(saved.map((post) => [post.shortcode, post.productType])).toEqual([
+      ["code-s1", "feed"],
+      ["code-s2", "clips"],
+    ]);
     expect(env.calls).toEqual([]);
   });
 

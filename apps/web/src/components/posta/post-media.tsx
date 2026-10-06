@@ -13,10 +13,18 @@ type PostMediaProps = {
   username: string;
   groupId: string;
   caption?: string | null;
+  instagramUrl?: string | null;
   priority?: boolean;
 };
 
-export function PostMedia({ media, username, groupId, caption = null, priority }: PostMediaProps) {
+export function PostMedia({
+  media,
+  username,
+  groupId,
+  caption = null,
+  instagramUrl = null,
+  priority,
+}: PostMediaProps) {
   const viewer = useViewer();
   const [index, setIndex] = useState(0);
   const track = useRef<SwipeTrackHandle>(null);
@@ -32,6 +40,7 @@ export function PostMedia({ media, username, groupId, caption = null, priority }
       index: position,
       username,
       caption,
+      instagramUrl,
       onIndexChange: setIndex,
     });
 

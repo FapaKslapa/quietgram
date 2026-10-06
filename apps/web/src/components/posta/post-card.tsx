@@ -1,11 +1,14 @@
 import { AuthorAvatar } from "@/components/posta/author-avatar";
 import { PostCaption } from "@/components/posta/post-caption";
 import { PostMedia } from "@/components/posta/post-media";
+import { instagramUrl } from "@/lib/instagram-link";
 import type { PostMediaItem } from "@/lib/media";
 import { formatRelativeTime } from "@/lib/time";
 
 export type FeedPost = {
   id: string;
+  shortcode?: string | null | undefined;
+  productType?: string | null | undefined;
   authorId: string;
   authorUsername: string;
   authorAvatarUrl: string | null;
@@ -40,6 +43,7 @@ export function PostCard({ post, now }: PostCardProps) {
         username={post.authorUsername}
         groupId={post.id}
         caption={post.caption}
+        instagramUrl={instagramUrl(post.shortcode, post.productType)}
       />
       {post.caption ? (
         <PostCaption username={post.authorUsername} caption={post.caption} />
