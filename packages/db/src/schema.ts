@@ -245,6 +245,7 @@ export const following = sqliteTable(
     isVerified: integer("is_verified", { mode: "boolean" }).notNull().default(false),
     isBusiness: integer("is_business", { mode: "boolean" }).notNull().default(false),
     countsRefreshedAt: integer("counts_refreshed_at", { mode: "timestamp_ms" }),
+    postsCheckedAt: integer("posts_checked_at", { mode: "timestamp_ms" }),
   },
   (t) => [primaryKey({ columns: [t.ownerId, t.igUserId] })],
 );

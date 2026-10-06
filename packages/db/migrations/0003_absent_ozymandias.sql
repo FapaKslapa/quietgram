@@ -1,0 +1,1 @@
+ALTER TABLE `following` ADD `posts_checked_at` integer;

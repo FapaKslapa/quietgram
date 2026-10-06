@@ -1,7 +1,7 @@
 import json
 import time
 
-from ig_engine.auth import sign
+from ig_engine.auth import sign, signed_target
 from tests.conftest import SECRET, Harness
 
 
@@ -91,3 +91,23 @@ def test_query_order_does_not_matter(harness: Harness) -> None:
         "x-ig-account-id": "acc1",
     }
     assert harness.http.get("/v1/timeline?cursor=a&amount=1", headers=headers).status_code == 200
+
+
+PINNED_SECRET = "test-secret-0123456789"
+PINNED_TIMESTAMP = "1700000000"
+
+
+def test_pinned_vector_for_a_get_with_query() -> None:
+    target = signed_target("/v1/timeline", [("cursor", "a/b c*~'!()"), ("amount", "1")])
+    assert target == "/v1/timeline?amount=1&cursor=a%2Fb+c%2A~%27%21%28%29"
+    assert (
+        sign(PINNED_SECRET, PINNED_TIMESTAMP, "GET", target, b"")
+        == "fad3f217ea857f6d6852414044c30cb504eb7f654782ad7732b1bc39c52ddb2c"
+    )
+
+
+def test_pinned_vector_for_a_post_with_body() -> None:
+    assert (
+        sign(PINNED_SECRET, PINNED_TIMESTAMP, "POST", "/v1/threads/42/messages", b'{"text":"ciao"}')
+        == "04b56bf05c8c699fa1ddd5eff8d755f2f2a5f1795884056dca2643fa76a315a0"
+    )
