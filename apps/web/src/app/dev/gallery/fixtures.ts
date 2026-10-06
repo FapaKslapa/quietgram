@@ -1,7 +1,7 @@
 import type { ThreadSummary } from "@/components/messaggi/thread-row";
 import type { ModeSettings } from "@/components/posta/mode-sheet";
 import type { FeedPost } from "@/components/posta/post-card";
-import type { PostMediaItem } from "@/components/posta/post-media";
+import type { PostMediaItem } from "@/lib/media";
 import { buildConversation, type ThreadMessage } from "@/lib/messages";
 import type { SavedItem } from "@/lib/saved-grid";
 

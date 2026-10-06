@@ -1,6 +1,7 @@
 "use client";
 
-import { type ReactNode, useState } from "react";
+import { useMotionValue } from "motion/react";
+import { type ReactNode, useEffect, useState } from "react";
 import {
   CONVERSATION,
   NOW,
@@ -12,26 +13,36 @@ import {
 } from "@/app/dev/gallery/fixtures";
 import type { GalleryViewName } from "@/app/dev/gallery/views";
 import { LoginForm } from "@/components/login-form";
+import { useViewer, ViewerProvider } from "@/components/media/viewer-provider";
 import { ConversationView } from "@/components/messaggi/conversation-view";
 import { ThreadRows, ThreadsEmpty } from "@/components/messaggi/thread-states";
 import { PairingToken } from "@/components/pairing-token";
+import { BudgetLockView } from "@/components/posta/budget-lock-view";
 import { FeedEmpty, FeedEnd, PostList } from "@/components/posta/feed-states";
 import { type ModeSettings, ModeSheet } from "@/components/posta/mode-sheet";
 import { PostaHeader } from "@/components/posta/posta-header";
 import { PostaFeedSkeleton } from "@/components/posta/posta-screen";
+import { PullSurface } from "@/components/posta/pull-surface";
 import { RefreshPanel } from "@/components/posta/refresh-panel";
-import { ProfiloScreen } from "@/components/profilo/profilo-screen";
+import { ChoiceSheet } from "@/components/profilo/choice-sheet";
+import { ProfiloView } from "@/components/profilo/profilo-view";
 import { RegisterDrawer } from "@/components/register-drawer";
-import { SavedDrawer } from "@/components/salvati/saved-drawer";
 import { SavedSkeleton } from "@/components/salvati/saved-skeleton";
 import { SavedEmpty, SavedRefreshControl, SavedTiles } from "@/components/salvati/saved-states";
+import { MediaTone } from "@/components/shell/media-tone";
 import { ScreenError } from "@/components/shell/screen-error";
 import { ScreenHeader } from "@/components/shell/screen-header";
 import { SessionExpiredView } from "@/components/shell/session-expired-view";
 import { TabBarView } from "@/components/shell/tab-bar-view";
+import { usePullToRefresh } from "@/hooks/use-pull-to-refresh";
+import { BUDGET_CHOICES } from "@/lib/budget";
 import { modeDefinition } from "@/lib/feed-modes";
+import { THEMES } from "@/lib/profile";
+import { PULL_THRESHOLD, type PullPhase } from "@/lib/pull";
 
 const noop = () => undefined;
+const SAVED_TARGET = SAVED[1];
+const POST_TARGET = POSTS[1];
 const sendNothing = async () => true;
 
 type PostaFrameProps = {
@@ -93,7 +104,18 @@ function SavedFrame({
   empty?: boolean;
   loading?: boolean;
 }) {
-  const [open, setOpen] = useState(openItem ?? false);
+  const viewer = useViewer();
+
+  useEffect(() => {
+    if (!openItem || !SAVED_TARGET) return;
+    viewer.open({
+      groupId: SAVED_TARGET.id,
+      items: SAVED_TARGET.media,
+      index: 0,
+      username: SAVED_TARGET.authorUsername,
+      caption: SAVED_TARGET.caption,
+    });
+  }, [openItem, viewer]);
 
   return (
     <>
@@ -102,9 +124,154 @@ function SavedFrame({
       </ScreenHeader>
       {loading ? <SavedSkeleton /> : null}
       {empty ? <SavedEmpty /> : null}
-      {loading || empty ? null : <SavedTiles items={SAVED} onOpen={() => setOpen(true)} />}
+      {loading || empty ? null : (
+        <SavedTiles
+          items={SAVED}
+          onOpen={(item) =>
+            viewer.open({
+              groupId: item.id,
+              items: item.media,
+              index: 0,
+              username: item.authorUsername,
+              caption: item.caption,
+            })
+          }
+        />
+      )}
       <TabBarView pathname="/salvati" unread={false} />
-      <SavedDrawer item={SAVED[1] ?? null} open={open} onOpenChange={setOpen} />
+    </>
+  );
+}
+
+function PullStatic({ distance, phase }: { distance: number; phase: PullPhase }) {
+  const pull = useMotionValue(distance);
+  const mode = modeDefinition("friends");
+
+  return (
+    <PullSurface
+      pull={pull}
+      phase={phase}
+      nextLabel="Prossimo aggiornamento dalle 14:51"
+      progress={null}
+    >
+      <PostaHeader mode={mode} modesOpen={false} onOpenModes={noop}>
+        <RefreshPanel
+          label="Aggiornato alle"
+          last="14:21"
+          next="Pronto per aggiornare"
+          disabled={false}
+          progress={null}
+          onRefresh={noop}
+        />
+      </PostaHeader>
+      <PostList posts={POSTS.slice(0, 1)} now={NOW} />
+    </PullSurface>
+  );
+}
+
+function PullLive() {
+  const [busy, setBusy] = useState(false);
+  const [count, setCount] = useState(0);
+  const mode = modeDefinition("friends");
+  const { pull, phase } = usePullToRefresh({
+    enabled: true,
+    cooling: false,
+    busy,
+    onTrigger: () => {
+      setBusy(true);
+      setCount((current) => current + 1);
+      setTimeout(() => setBusy(false), 2200);
+    },
+  });
+
+  return (
+    <PullSurface
+      pull={pull}
+      phase={phase}
+      nextLabel="Prossimo aggiornamento dalle 14:51"
+      progress={busy ? { completed: 7, total: 18 } : null}
+    >
+      <PostaHeader mode={mode} modesOpen={false} onOpenModes={noop}>
+        <RefreshPanel
+          label="Aggiornato alle"
+          last="14:21"
+          next="Pronto per aggiornare"
+          disabled={busy}
+          progress={busy ? { completed: 7, total: 18 } : null}
+          onRefresh={() => setBusy(true)}
+        />
+      </PostaHeader>
+      <p data-testid="pull-count" className="sr-only">
+        {count}
+      </p>
+      <PostList posts={POSTS} now={NOW} />
+    </PullSurface>
+  );
+}
+
+function ViewerFrame() {
+  const viewer = useViewer();
+
+  useEffect(() => {
+    if (!POST_TARGET) return;
+    viewer.open({
+      groupId: POST_TARGET.id,
+      items: POST_TARGET.media,
+      index: 1,
+      username: POST_TARGET.authorUsername,
+      caption: POST_TARGET.caption,
+    });
+  }, [viewer]);
+
+  return <PostList posts={POSTS.slice(1, 2)} now={NOW} />;
+}
+
+function ProfiloFrame({ sheet }: { sheet?: "budget" | "theme" }) {
+  const [grayscale, setGrayscale] = useState(false);
+  const [open, setOpen] = useState<"budget" | "theme" | null>(sheet ?? null);
+  const [budget, setBudget] = useState(15);
+  const [theme, setTheme] = useState<"system" | "light" | "dark">("system");
+
+  return (
+    <>
+      <ProfiloView
+        name="Stefano Marocco"
+        sessionStatus="active"
+        modeLabel={modeDefinition("friends").label}
+        grayscale={grayscale}
+        budgetLabel={budget === 0 ? "Spento" : `${budget} minuti`}
+        themeLabel={THEMES.find((entry) => entry.value === theme)?.label ?? "Sistema"}
+        loggingOut={false}
+        onGrayscale={setGrayscale}
+        onOpenFeed={noop}
+        onOpenBudget={() => setOpen("budget")}
+        onOpenTheme={() => setOpen("theme")}
+        onLogout={noop}
+      />
+      <TabBarView pathname="/profilo" unread={false} />
+      <ChoiceSheet
+        open={open === "budget"}
+        onOpenChange={(next) => setOpen(next ? "budget" : null)}
+        title="Tempo di utilizzo"
+        description="Dopo questo tempo in Posta, il feed si chiude per un'ora."
+        name="session-budget"
+        options={[
+          { value: 0, label: "Spento", description: "Nessun limite." },
+          ...BUDGET_CHOICES.map((minutes) => ({ value: minutes, label: `${minutes} minuti` })),
+        ]}
+        value={budget}
+        onChange={setBudget}
+      />
+      <ChoiceSheet
+        open={open === "theme"}
+        onOpenChange={(next) => setOpen(next ? "theme" : null)}
+        title="Tema"
+        description="Scegli come appare l'app."
+        name="theme"
+        options={THEMES}
+        value={theme}
+        onChange={setTheme}
+      />
     </>
   );
 }
@@ -136,6 +303,27 @@ const render = (view: GalleryViewName): ReactNode => {
       return <PostaFrame settings={SETTINGS} openModes={false} empty />;
     case "posta-loading":
       return <PostaFrame settings={SETTINGS} openModes={false} loading />;
+    case "posta-grayscale":
+      return (
+        <>
+          <MediaTone grayscale />
+          <PostaFrame settings={SETTINGS} openModes={false} />
+        </>
+      );
+    case "pull-pulling":
+      return <PullStatic distance={40} phase="pulling" />;
+    case "pull-armed":
+      return <PullStatic distance={PULL_THRESHOLD + 12} phase="armed" />;
+    case "pull-blocked":
+      return <PullStatic distance={PULL_THRESHOLD + 12} phase="blocked" />;
+    case "pull-live":
+      return <PullLive />;
+    case "carousel":
+      return <PostList posts={POSTS.slice(1, 2)} now={NOW} />;
+    case "viewer":
+      return <ViewerFrame />;
+    case "budget-lock":
+      return <BudgetLockView minutes={15} reopensAt={NOW + 60 * 60_000} />;
     case "modes-friends":
       return <PostaFrame settings={SETTINGS} openModes />;
     case "modes-creators":
@@ -191,12 +379,11 @@ const render = (view: GalleryViewName): ReactNode => {
     case "salvati-open":
       return <SavedFrame openItem />;
     case "profilo":
-      return (
-        <>
-          <ProfiloScreen />
-          <TabBarView pathname="/profilo" unread={false} />
-        </>
-      );
+      return <ProfiloFrame />;
+    case "profilo-budget":
+      return <ProfiloFrame sheet="budget" />;
+    case "profilo-theme":
+      return <ProfiloFrame sheet="theme" />;
     case "login":
       return <LoginForm />;
     case "register":
@@ -209,5 +396,9 @@ const render = (view: GalleryViewName): ReactNode => {
 };
 
 export function GalleryView({ view }: { view: GalleryViewName }) {
-  return <div className="w-full flex-1 pb-28">{render(view)}</div>;
+  return (
+    <ViewerProvider>
+      <div className="w-full flex-1 pb-28">{render(view)}</div>
+    </ViewerProvider>
+  );
 }
