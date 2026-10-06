@@ -51,6 +51,24 @@ describe("feed.list", () => {
     expect(items.find((item) => item.id === "p-friend")?.authorAvatarUrl).toBeNull();
   });
 
+  it("returns an empty locked page while the budget lock is active and reopens after it", async () => {
+    const { env, caller } = await seedFeed();
+    await caller.settings.setSessionBudget({ sessionBudgetMinutes: 5 });
+    const { budgetLockedUntil } = await caller.settings.lockBudget();
+    expect(await caller.feed.list({})).toEqual({
+      items: [],
+      nextCursor: null,
+      lockedUntil: budgetLockedUntil,
+    });
+    const later = createCaller({
+      ...env.context,
+      sync: { ...env.context.sync, now: () => new Date(budgetLockedUntil) },
+    });
+    const page = await later.feed.list({});
+    expect(page.lockedUntil).toBeNull();
+    expect(page.items.length).toBeGreaterThan(0);
+  });
+
   it("shows mutuals and exceptions in friends mode, newest first", async () => {
     const { caller } = await seedFeed();
     const page = await caller.feed.list({});
@@ -88,7 +106,11 @@ describe("feed.list", () => {
 
   it("returns an empty page when nobody is allowed", async () => {
     const env = await createTestEnv();
-    expect(await createCaller(env.context).feed.list({})).toEqual({ items: [], nextCursor: null });
+    expect(await createCaller(env.context).feed.list({})).toEqual({
+      items: [],
+      nextCursor: null,
+      lockedUntil: null,
+    });
   });
 
   it("keeps ties on the same millisecond stable across pages", async () => {

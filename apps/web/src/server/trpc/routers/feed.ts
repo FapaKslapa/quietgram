@@ -33,6 +33,7 @@ const listOutput = z.compile(
       }),
     ),
     nextCursor: z.object({ takenAt: z.number(), id: z.string() }).nullable(),
+    lockedUntil: z.number().nullable(),
   }),
 );
 

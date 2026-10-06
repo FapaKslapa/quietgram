@@ -25,6 +25,21 @@ export const loadSettings = async (db: Db, ownerId: string): Promise<FeedSetting
   };
 };
 
+export type BudgetState = {
+  grayscaleMedia: boolean;
+  sessionBudgetMinutes: number | null;
+  budgetLockedUntil: number | null;
+};
+
+export const loadBudgetState = async (db: Db, ownerId: string): Promise<BudgetState> => {
+  const [row] = await db.select().from(userSettings).where(eq(userSettings.ownerId, ownerId));
+  return {
+    grayscaleMedia: row?.grayscaleMedia ?? false,
+    sessionBudgetMinutes: row?.sessionBudgetMinutes ?? null,
+    budgetLockedUntil: row?.budgetLockedUntil?.getTime() ?? null,
+  };
+};
+
 export const loadAllowedAuthors = async (db: Db, ownerId: string): Promise<Set<string>> => {
   const settings = await loadSettings(db, ownerId);
   const [followingRows, mutualRows, exceptionRows] = await Promise.all([

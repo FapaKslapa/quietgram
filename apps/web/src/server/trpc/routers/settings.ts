@@ -2,7 +2,13 @@ import { feedExceptions, feedModes, following, userSettings } from "@nodistracti
 import { TRPCError } from "@trpc/server";
 import { and, asc, eq, inArray, sql } from "drizzle-orm";
 import { z } from "zod";
-import { loadSettings, MAX_RECENCY_DAYS, MIN_RECENCY_DAYS } from "@/lib/sync/settings";
+import { BUDGET_CHOICES, isBudgetMinutes, lockExpiry } from "@/lib/budget";
+import {
+  loadBudgetState,
+  loadSettings,
+  MAX_RECENCY_DAYS,
+  MIN_RECENCY_DAYS,
+} from "@/lib/sync/settings";
 import { createTRPCRouter, protectedProcedure } from "@/server/trpc/init";
 
 const MAX_THRESHOLD = 1_000_000_000;
@@ -14,6 +20,9 @@ const settingsOutput = z.compile(
     feedMode: feedModeSchema,
     creatorThreshold: z.number(),
     recencyDays: z.number(),
+    grayscaleMedia: z.boolean(),
+    sessionBudgetMinutes: z.number().nullable(),
+    budgetLockedUntil: z.number().nullable(),
     exceptions: z.array(z.object({ igUserId: z.string(), username: z.string().nullable() })),
   }),
 );
@@ -41,12 +50,26 @@ const setThresholdInput = z.compile(
 const setRecencyDaysInput = z.compile(
   z.object({ recencyDays: z.number().int().min(MIN_RECENCY_DAYS).max(MAX_RECENCY_DAYS) }),
 );
+const setGrayscaleInput = z.compile(z.object({ grayscaleMedia: z.boolean() }));
+const setBudgetInput = z.compile(
+  z.object({
+    sessionBudgetMinutes: z
+      .number()
+      .int()
+      .refine(isBudgetMinutes, { message: `Expected one of ${BUDGET_CHOICES.join(", ")}` })
+      .nullable(),
+  }),
+);
+const lockOutput = z.compile(z.object({ budgetLockedUntil: z.number() }));
 const exceptionInput = z.compile(z.object({ igUserId: z.string().regex(/^\d{1,20}$/) }));
 
 export const settingsRouter = createTRPCRouter({
   get: protectedProcedure.output(settingsOutput).query(async ({ ctx }) => {
     const ownerId = ctx.session.user.id;
-    const settings = await loadSettings(ctx.db, ownerId);
+    const [settings, budget] = await Promise.all([
+      loadSettings(ctx.db, ownerId),
+      loadBudgetState(ctx.db, ownerId),
+    ]);
     const exceptionRows = await ctx.db
       .select({ igUserId: feedExceptions.igUserId })
       .from(feedExceptions)
@@ -68,6 +91,7 @@ export const settingsRouter = createTRPCRouter({
     const usernames = new Map(names.map((row) => [row.igUserId, row.username]));
     return {
       ...settings,
+      ...budget,
       exceptions: exceptionRows.map((row) => ({
         igUserId: row.igUserId,
         username: usernames.get(row.igUserId) ?? null,
@@ -126,6 +150,42 @@ export const settingsRouter = createTRPCRouter({
         target: userSettings.ownerId,
         set: { recencyDays: input.recencyDays },
       });
+  }),
+
+  setGrayscaleMedia: protectedProcedure
+    .input(setGrayscaleInput)
+    .mutation(async ({ ctx, input }) => {
+      await ctx.db
+        .insert(userSettings)
+        .values({ ownerId: ctx.session.user.id, grayscaleMedia: input.grayscaleMedia })
+        .onConflictDoUpdate({
+          target: userSettings.ownerId,
+          set: { grayscaleMedia: input.grayscaleMedia },
+        });
+    }),
+
+  setSessionBudget: protectedProcedure.input(setBudgetInput).mutation(async ({ ctx, input }) => {
+    await ctx.db
+      .insert(userSettings)
+      .values({ ownerId: ctx.session.user.id, sessionBudgetMinutes: input.sessionBudgetMinutes })
+      .onConflictDoUpdate({
+        target: userSettings.ownerId,
+        set: { sessionBudgetMinutes: input.sessionBudgetMinutes },
+      });
+  }),
+
+  lockBudget: protectedProcedure.output(lockOutput).mutation(async ({ ctx }) => {
+    const ownerId = ctx.session.user.id;
+    const { sessionBudgetMinutes } = await loadBudgetState(ctx.db, ownerId);
+    if (sessionBudgetMinutes === null) {
+      throw new TRPCError({ code: "BAD_REQUEST", message: "No session budget is set" });
+    }
+    const budgetLockedUntil = lockExpiry(ctx.sync.now().getTime());
+    await ctx.db
+      .update(userSettings)
+      .set({ budgetLockedUntil: new Date(budgetLockedUntil) })
+      .where(eq(userSettings.ownerId, ownerId));
+    return { budgetLockedUntil };
   }),
 
   addException: protectedProcedure.input(exceptionInput).mutation(async ({ ctx, input }) => {

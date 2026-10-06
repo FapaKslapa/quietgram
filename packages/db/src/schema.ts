@@ -258,6 +258,9 @@ export const userSettings = sqliteTable("user_settings", {
   feedMode: text("feed_mode", { enum: feedModes }).notNull().default("friends"),
   creatorThreshold: integer("creator_threshold").notNull().default(10000),
   recencyDays: integer("recency_days").notNull().default(14),
+  grayscaleMedia: integer("grayscale_media", { mode: "boolean" }).notNull().default(false),
+  sessionBudgetMinutes: integer("session_budget_minutes"),
+  budgetLockedUntil: integer("budget_locked_until", { mode: "timestamp_ms" }),
 });
 
 export const feedExceptions = sqliteTable(

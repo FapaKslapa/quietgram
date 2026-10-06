@@ -2,7 +2,13 @@ import type { Db } from "@nodistraction/db";
 import { following, posts } from "@nodistraction/db";
 import { and, desc, eq, gte, inArray, lt, or } from "drizzle-orm";
 import { z } from "zod";
-import { loadAllowedAuthors, loadSettings, recencyCutoff } from "@/lib/sync/settings";
+import { isLocked } from "@/lib/budget";
+import {
+  loadAllowedAuthors,
+  loadBudgetState,
+  loadSettings,
+  recencyCutoff,
+} from "@/lib/sync/settings";
 
 export const FEED_PAGE_SIZE = 30;
 const SCAN_BATCH = 100;
@@ -36,7 +42,11 @@ export type FeedPost = {
 
 export type FeedCursor = { takenAt: number; id: string };
 
-export type FeedPage = { items: FeedPost[]; nextCursor: FeedCursor | null };
+export type FeedPage = {
+  items: FeedPost[];
+  nextCursor: FeedCursor | null;
+  lockedUntil: number | null;
+};
 
 const loadAvatars = async (
   db: Db,
@@ -57,10 +67,14 @@ export const listFeed = async (
   options: { cursor?: FeedCursor | undefined; limit?: number | undefined; now: Date },
 ): Promise<FeedPage> => {
   const limit = options.limit ?? FEED_PAGE_SIZE;
+  const { budgetLockedUntil } = await loadBudgetState(db, ownerId);
+  if (isLocked(budgetLockedUntil, options.now.getTime())) {
+    return { items: [], nextCursor: null, lockedUntil: budgetLockedUntil };
+  }
   const { recencyDays } = await loadSettings(db, ownerId);
   const cutoff = new Date(recencyCutoff(options.now, recencyDays));
   const allowed = await loadAllowedAuthors(db, ownerId);
-  if (allowed.size === 0) return { items: [], nextCursor: null };
+  if (allowed.size === 0) return { items: [], nextCursor: null, lockedUntil: null };
 
   const items: FeedPost[] = [];
   let before = options.cursor;
@@ -110,5 +124,6 @@ export const listFeed = async (
   return {
     items: page,
     nextCursor: hasMore && lastItem ? { takenAt: lastItem.takenAt, id: lastItem.id } : null,
+    lockedUntil: null,
   };
 };

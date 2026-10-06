@@ -21,6 +21,9 @@ describe("settings router", () => {
       feedMode: "friends",
       creatorThreshold: 10000,
       recencyDays: 14,
+      grayscaleMedia: false,
+      sessionBudgetMinutes: null,
+      budgetLockedUntil: null,
       exceptions: [],
     });
   });
@@ -102,5 +105,35 @@ describe("settings router", () => {
       { igUserId: "78", username: "Anna_Rossi", avatarUrl: null },
       { igUserId: "77", username: "friend_77", avatarUrl: null },
     ]);
+  });
+
+  it("stores the grayscale media flag", async () => {
+    const { caller } = await setup();
+    await caller.settings.setGrayscaleMedia({ grayscaleMedia: true });
+    expect((await caller.settings.get()).grayscaleMedia).toBe(true);
+    await caller.settings.setGrayscaleMedia({ grayscaleMedia: false });
+    expect((await caller.settings.get()).grayscaleMedia).toBe(false);
+  });
+
+  it("stores the session budget, allows turning it off and rejects other values", async () => {
+    const { caller } = await setup();
+    await caller.settings.setSessionBudget({ sessionBudgetMinutes: 15 });
+    expect((await caller.settings.get()).sessionBudgetMinutes).toBe(15);
+    await caller.settings.setSessionBudget({ sessionBudgetMinutes: null });
+    expect((await caller.settings.get()).sessionBudgetMinutes).toBeNull();
+    for (const sessionBudgetMinutes of [0, 7, 45, 5.5]) {
+      await expect(
+        caller.settings.setSessionBudget({ sessionBudgetMinutes }),
+      ).rejects.toMatchObject({ code: "BAD_REQUEST" });
+    }
+  });
+
+  it("locks the budget for sixty minutes from the server clock", async () => {
+    const { env, caller } = await setup();
+    await expect(caller.settings.lockBudget()).rejects.toMatchObject({ code: "BAD_REQUEST" });
+    await caller.settings.setSessionBudget({ sessionBudgetMinutes: 10 });
+    const { budgetLockedUntil } = await caller.settings.lockBudget();
+    expect(budgetLockedUntil).toBe(env.context.sync.now().getTime() + 3_600_000);
+    expect((await caller.settings.get()).budgetLockedUntil).toBe(budgetLockedUntil);
   });
 });
