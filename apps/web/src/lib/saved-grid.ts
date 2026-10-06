@@ -1,4 +1,4 @@
-import type { PostMediaItem } from "@/components/posta/post-media";
+import type { PostMediaItem } from "@/lib/media";
 
 export type SavedItem = {
   id: string;
@@ -26,6 +26,3 @@ export const savedLabel = (item: SavedItem): string => {
 
 export const shouldAutoSync = (itemCount: number, alreadyTried: boolean): boolean =>
   itemCount === 0 && !alreadyTried;
-
-export const findSaved = (items: SavedItem[], id: string | null): SavedItem | null =>
-  id === null ? null : (items.find((item) => item.id === id) ?? null);

@@ -1,6 +1,7 @@
 import { AuthorAvatar } from "@/components/posta/author-avatar";
 import { PostCaption } from "@/components/posta/post-caption";
-import { PostMedia, type PostMediaItem } from "@/components/posta/post-media";
+import { PostMedia } from "@/components/posta/post-media";
+import type { PostMediaItem } from "@/lib/media";
 import { formatRelativeTime } from "@/lib/time";
 
 export type FeedPost = {
@@ -34,7 +35,12 @@ export function PostCard({ post, now }: PostCardProps) {
           {formatRelativeTime(post.takenAt, now)}
         </time>
       </div>
-      <PostMedia media={post.media} username={post.authorUsername} />
+      <PostMedia
+        media={post.media}
+        username={post.authorUsername}
+        groupId={post.id}
+        caption={post.caption}
+      />
       {post.caption ? (
         <PostCaption username={post.authorUsername} caption={post.caption} />
       ) : (

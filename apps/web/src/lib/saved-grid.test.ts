@@ -1,12 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-  badgeOf,
-  coverOf,
-  findSaved,
-  type SavedItem,
-  savedLabel,
-  shouldAutoSync,
-} from "@/lib/saved-grid";
+import { badgeOf, coverOf, type SavedItem, savedLabel, shouldAutoSync } from "@/lib/saved-grid";
 
 const image = { kind: "image" as const, url: "a", width: 1, height: 1 };
 const video = { kind: "video" as const, url: "b", width: 1, height: 1 };
@@ -45,14 +38,5 @@ describe("shouldAutoSync", () => {
     expect(shouldAutoSync(0, false)).toBe(true);
     expect(shouldAutoSync(0, true)).toBe(false);
     expect(shouldAutoSync(4, false)).toBe(false);
-  });
-});
-
-describe("findSaved", () => {
-  it("finds by id and tolerates null", () => {
-    const items = [item([image])];
-    expect(findSaved(items, "1")).toBe(items[0]);
-    expect(findSaved(items, "x")).toBeNull();
-    expect(findSaved(items, null)).toBeNull();
   });
 });

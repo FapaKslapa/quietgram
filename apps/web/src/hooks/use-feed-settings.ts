@@ -93,5 +93,44 @@ export function useFeedSettings() {
     ),
   );
 
-  return { settings, setMode, setThreshold, setRecencyDays, addException, removeException };
+  const setGrayscale = useMutation(
+    trpc.settings.setGrayscaleMedia.mutationOptions(
+      optimistic<{ grayscaleMedia: boolean }>(
+        (current, { grayscaleMedia }) => ({ ...current, grayscaleMedia }),
+        "Non sono riuscito a salvare la scelta. Riprova.",
+      ),
+    ),
+  );
+
+  const setBudget = useMutation(
+    trpc.settings.setSessionBudget.mutationOptions(
+      optimistic<{ sessionBudgetMinutes: number | null }>(
+        (current, { sessionBudgetMinutes }) => ({ ...current, sessionBudgetMinutes }),
+        "Non sono riuscito a salvare il tempo. Riprova.",
+      ),
+    ),
+  );
+
+  const lockBudget = useMutation(
+    trpc.settings.lockBudget.mutationOptions({
+      onSettled: async () => {
+        await Promise.all([
+          queryClient.invalidateQueries({ queryKey: settingsKey }),
+          queryClient.invalidateQueries({ queryKey: trpc.feed.list.infiniteQueryKey() }),
+        ]);
+      },
+    }),
+  );
+
+  return {
+    settings,
+    setMode,
+    setGrayscale,
+    setBudget,
+    lockBudget,
+    setThreshold,
+    setRecencyDays,
+    addException,
+    removeException,
+  };
 }

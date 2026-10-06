@@ -1,8 +1,18 @@
 import { Images, Play } from "lucide-react";
-import type { PostMediaItem } from "@/components/posta/post-media";
+import { motion } from "motion/react";
+import { LazyImage } from "@/components/media/lazy-image";
+import type { PostMediaItem } from "@/lib/media";
 import { badgeOf, coverOf, type SavedItem, savedLabel } from "@/lib/saved-grid";
 
-function Cover({ media, username }: { media: PostMediaItem; username: string }) {
+function Cover({
+  media,
+  username,
+  layoutId,
+}: {
+  media: PostMediaItem;
+  username: string;
+  layoutId: string;
+}) {
   if (media.kind === "video") {
     return (
       <video
@@ -15,14 +25,14 @@ function Cover({ media, username }: { media: PostMediaItem; username: string }) 
     );
   }
   return (
-    <img
-      src={media.url}
-      alt={`Foto salvata di ${username}`}
-      loading="lazy"
-      decoding="async"
-      referrerPolicy="no-referrer"
-      className="size-full object-cover"
-    />
+    <motion.div layoutId={layoutId} className="size-full">
+      <LazyImage
+        src={media.url}
+        alt={`Foto salvata di ${username}`}
+        width={media.width}
+        height={media.height}
+      />
+    </motion.div>
   );
 }
 
@@ -39,7 +49,9 @@ export function SavedCard({ item, onOpen }: SavedCardProps) {
       aria-label={savedLabel(item)}
       className="group relative block aspect-4/5 w-full overflow-hidden rounded-md bg-muted text-left [contain-intrinsic-size:auto_200px] [content-visibility:auto]"
     >
-      {cover ? <Cover media={cover} username={item.authorUsername} /> : null}
+      {cover ? (
+        <Cover media={cover} username={item.authorUsername} layoutId={`${item.id}-0`} />
+      ) : null}
       <span
         aria-hidden="true"
         className="absolute inset-0 bg-foreground/0 transition-colors group-hover:bg-foreground/10 group-active:bg-foreground/15"

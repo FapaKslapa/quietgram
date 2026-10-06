@@ -1,8 +1,8 @@
 "use client";
 
 import { useIsMutating, useSuspenseQuery } from "@tanstack/react-query";
-import { useEffect, useRef, useState } from "react";
-import { SavedDrawer } from "@/components/salvati/saved-drawer";
+import { useEffect, useRef } from "react";
+import { useViewer } from "@/components/media/viewer-provider";
 import { SavedSkeleton } from "@/components/salvati/saved-skeleton";
 import {
   SavedEmpty,
@@ -11,7 +11,7 @@ import {
   SavedTiles,
 } from "@/components/salvati/saved-states";
 import { useSavedSync } from "@/hooks/use-saved-sync";
-import { findSaved, type SavedItem, shouldAutoSync } from "@/lib/saved-grid";
+import { type SavedItem, shouldAutoSync } from "@/lib/saved-grid";
 import { useTRPC } from "@/trpc/client";
 
 export function SavedRefreshButton() {
@@ -27,8 +27,7 @@ export function SavedGrid() {
   const { data: items } = useSuspenseQuery(trpc.saved.list.queryOptions());
   const sync = useSavedSync();
   const tried = useRef(false);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [open, setOpen] = useState(false);
+  const viewer = useViewer();
   const empty = items.length === 0;
 
   useEffect(() => {
@@ -38,8 +37,13 @@ export function SavedGrid() {
   }, [items.length, sync.mutate]);
 
   const openItem = (item: SavedItem) => {
-    setSelectedId(item.id);
-    setOpen(true);
+    viewer.open({
+      groupId: item.id,
+      items: item.media,
+      index: 0,
+      username: item.authorUsername,
+      caption: item.caption,
+    });
   };
 
   if (empty && (sync.isIdle || sync.isPending)) return <SavedSkeleton />;
@@ -48,10 +52,5 @@ export function SavedGrid() {
 
   if (empty) return <SavedEmpty />;
 
-  return (
-    <>
-      <SavedTiles items={items} onOpen={openItem} />
-      <SavedDrawer item={findSaved(items, selectedId)} open={open} onOpenChange={setOpen} />
-    </>
-  );
+  return <SavedTiles items={items} onOpen={openItem} />;
 }

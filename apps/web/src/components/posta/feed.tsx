@@ -2,6 +2,7 @@
 
 import { useSuspenseInfiniteQuery } from "@tanstack/react-query";
 import { useMemo } from "react";
+import { BudgetLock } from "@/components/posta/budget-lock";
 import { FeedEmpty, FeedEnd, FeedMoreError, PostList } from "@/components/posta/feed-states";
 import type { FeedPost } from "@/components/posta/post-card";
 import { PostSkeleton } from "@/components/posta/post-skeleton";
@@ -30,6 +31,9 @@ export function Feed({ mode, onOpenModes }: FeedProps) {
   const sentinel = useInView(() => {
     if (hasNextPage && !isFetchingNextPage && !isFetchNextPageError) void fetchNextPage();
   });
+
+  const lockedUntil = data.pages[0]?.lockedUntil ?? null;
+  if (lockedUntil !== null) return <BudgetLock lockedUntil={lockedUntil} />;
 
   if (posts.length === 0) return <FeedEmpty onOpenModes={onOpenModes} />;
 
