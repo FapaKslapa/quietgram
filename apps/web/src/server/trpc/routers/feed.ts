@@ -13,7 +13,7 @@ const mediaSchema = z.object({
 
 const listInput = z.compile(
   z.object({
-    cursor: z.number().int().optional(),
+    cursor: z.object({ takenAt: z.number().int(), id: z.string().min(1).max(128) }).optional(),
     limit: z.number().int().min(1).max(MAX_PAGE_SIZE).default(FEED_PAGE_SIZE),
   }),
 );
@@ -32,7 +32,7 @@ const listOutput = z.compile(
         media: z.array(mediaSchema),
       }),
     ),
-    nextCursor: z.number().nullable(),
+    nextCursor: z.object({ takenAt: z.number(), id: z.string() }).nullable(),
   }),
 );
 
@@ -40,5 +40,7 @@ export const feedRouter = createTRPCRouter({
   list: protectedProcedure
     .input(listInput)
     .output(listOutput)
-    .query(({ ctx, input }) => listFeed(ctx.db, ctx.session.user.id, input)),
+    .query(({ ctx, input }) =>
+      listFeed(ctx.db, ctx.session.user.id, { ...input, now: ctx.sync.now() }),
+    ),
 });

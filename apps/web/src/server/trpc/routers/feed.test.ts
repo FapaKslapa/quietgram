@@ -80,7 +80,7 @@ describe("feed.list", () => {
     await env.db.insert(userSettings).values({ ownerId: "owner", feedMode: "following" });
     const first = await caller.feed.list({ limit: 3 });
     expect(ids(first.items)).toEqual(["p-small", "p-big", "p-friend"]);
-    expect(first.nextCursor).toBe(1_790_000_001_000);
+    expect(first.nextCursor).toEqual({ takenAt: 1_790_000_001_000, id: "p-friend" });
     const second = await caller.feed.list({ limit: 3, cursor: first.nextCursor ?? undefined });
     expect(ids(second.items)).toEqual(["p-mutual"]);
     expect(second.nextCursor).toBeNull();
@@ -89,5 +89,91 @@ describe("feed.list", () => {
   it("returns an empty page when nobody is allowed", async () => {
     const env = await createTestEnv();
     expect(await createCaller(env.context).feed.list({})).toEqual({ items: [], nextCursor: null });
+  });
+
+  it("keeps ties on the same millisecond stable across pages", async () => {
+    const { env, caller } = await seedFeed();
+    await env.db.insert(userSettings).values({ ownerId: "owner", feedMode: "following" });
+    const takenAt = new Date(1_790_000_500_000);
+    await env.db.insert(posts).values(
+      ["a", "b", "c", "d", "e"].map((suffix) => ({
+        id: `tie-${suffix}`,
+        ownerId: "owner",
+        authorId: "mutual",
+        authorUsername: "mutual",
+        caption: null,
+        takenAt,
+        mediaJson: media,
+      })),
+    );
+    const seen: string[] = [];
+    let cursor: { takenAt: number; id: string } | undefined;
+    do {
+      const page = await caller.feed.list({ limit: 2, cursor });
+      seen.push(...ids(page.items));
+      cursor = page.nextCursor ?? undefined;
+    } while (cursor);
+    expect(seen).toEqual([
+      "tie-e",
+      "tie-d",
+      "tie-c",
+      "tie-b",
+      "tie-a",
+      "p-small",
+      "p-big",
+      "p-friend",
+      "p-mutual",
+    ]);
+  });
+
+  it("hides posts older than the recency window and follows the setting", async () => {
+    const { env, caller } = await seedFeed();
+    await env.db.insert(userSettings).values({ ownerId: "owner", feedMode: "following" });
+    const day = 86_400_000;
+    const now = env.clock.current.getTime();
+    await env.db.insert(posts).values(
+      [
+        { id: "old", ageDays: 10 },
+        { id: "older", ageDays: 40 },
+        { id: "fresh", ageDays: 1 },
+      ].map(({ id, ageDays }) => ({
+        id,
+        ownerId: "owner",
+        authorId: "mutual",
+        authorUsername: "mutual",
+        caption: null,
+        takenAt: new Date(now - ageDays * day),
+        mediaJson: media,
+      })),
+    );
+    expect(ids((await caller.feed.list({})).items)).toEqual([
+      "fresh",
+      "old",
+      "p-small",
+      "p-big",
+      "p-friend",
+      "p-mutual",
+    ]);
+    await caller.settings.setRecencyDays({ recencyDays: 3 });
+    expect(ids((await caller.feed.list({})).items)).toEqual(["fresh"]);
+    await caller.settings.setRecencyDays({ recencyDays: 60 });
+    expect(ids((await caller.feed.list({})).items)).toContain("older");
+  });
+
+  it("applies the mode filter inside a dense run of disallowed posts", async () => {
+    const { env, caller } = await seedFeed();
+    const now = env.clock.current.getTime();
+    await env.db.insert(posts).values(
+      Array.from({ length: 150 }, (_, index) => ({
+        id: `noise-${index}`,
+        ownerId: "owner",
+        authorId: "stranger",
+        authorUsername: "stranger",
+        caption: null,
+        takenAt: new Date(now - 1000 - index),
+        mediaJson: media,
+      })),
+    );
+    expect(ids((await caller.feed.list({})).items)).toEqual(["p-friend", "p-mutual"]);
   });
 });

@@ -1,8 +1,8 @@
 import type { Db } from "@nodistraction/db";
 import { following, posts } from "@nodistraction/db";
-import { and, desc, eq, inArray, lt } from "drizzle-orm";
+import { and, desc, eq, gte, inArray, lt, or } from "drizzle-orm";
 import { z } from "zod";
-import { loadAllowedAuthors } from "@/lib/sync/settings";
+import { loadAllowedAuthors, loadSettings, recencyCutoff } from "@/lib/sync/settings";
 
 export const FEED_PAGE_SIZE = 30;
 const SCAN_BATCH = 100;
@@ -34,7 +34,9 @@ export type FeedPost = {
   media: MediaList;
 };
 
-export type FeedPage = { items: FeedPost[]; nextCursor: number | null };
+export type FeedCursor = { takenAt: number; id: string };
+
+export type FeedPage = { items: FeedPost[]; nextCursor: FeedCursor | null };
 
 const loadAvatars = async (
   db: Db,
@@ -52,9 +54,11 @@ const loadAvatars = async (
 export const listFeed = async (
   db: Db,
   ownerId: string,
-  options: { cursor?: number | undefined; limit?: number | undefined },
+  options: { cursor?: FeedCursor | undefined; limit?: number | undefined; now: Date },
 ): Promise<FeedPage> => {
   const limit = options.limit ?? FEED_PAGE_SIZE;
+  const { recencyDays } = await loadSettings(db, ownerId);
+  const cutoff = new Date(recencyCutoff(options.now, recencyDays));
   const allowed = await loadAllowedAuthors(db, ownerId);
   if (allowed.size === 0) return { items: [], nextCursor: null };
 
@@ -68,14 +72,20 @@ export const listFeed = async (
       .where(
         and(
           eq(posts.ownerId, ownerId),
-          before === undefined ? undefined : lt(posts.takenAt, new Date(before)),
+          gte(posts.takenAt, cutoff),
+          before === undefined
+            ? undefined
+            : or(
+                lt(posts.takenAt, new Date(before.takenAt)),
+                and(eq(posts.takenAt, new Date(before.takenAt)), lt(posts.id, before.id)),
+              ),
         ),
       )
       .orderBy(desc(posts.takenAt), desc(posts.id))
       .limit(SCAN_BATCH);
     exhausted = rows.length < SCAN_BATCH;
     const last = rows.at(-1);
-    if (last) before = last.takenAt.getTime();
+    if (last) before = { takenAt: last.takenAt.getTime(), id: last.id };
     for (const row of rows) {
       if (allowed.has(row.authorId)) {
         items.push({
@@ -97,5 +107,8 @@ export const listFeed = async (
   for (const item of page) item.authorAvatarUrl = avatars.get(item.authorId) ?? null;
   const hasMore = items.length > limit;
   const lastItem = page.at(-1);
-  return { items: page, nextCursor: hasMore && lastItem ? lastItem.takenAt : null };
+  return {
+    items: page,
+    nextCursor: hasMore && lastItem ? { takenAt: lastItem.takenAt, id: lastItem.id } : null,
+  };
 };
