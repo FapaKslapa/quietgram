@@ -1,7 +1,7 @@
 from datetime import UTC, datetime
 from types import SimpleNamespace
 
-from ig_engine.mapping import to_message, to_post, to_thread, to_user
+from ig_engine.mapping import select_saved_collection, to_message, to_post, to_thread, to_user
 
 MOMENT = datetime(2024, 1, 1, tzinfo=UTC)
 MOMENT_MS = 1_704_067_200_000
@@ -98,3 +98,29 @@ def test_empty_thread_has_no_preview() -> None:
     mapped = to_thread(thread)
     assert mapped.preview is None
     assert mapped.unread is False
+
+
+def collection(identifier: str, name: str, kind: str | None = None) -> SimpleNamespace:
+    return SimpleNamespace(id=identifier, name=name, type=kind)
+
+
+def test_saved_collection_selected_by_type() -> None:
+    collections = [
+        collection("1", "All posts"),
+        collection("2", "Other", "ALL_MEDIA_AUTO_COLLECTION"),
+    ]
+    assert select_saved_collection(collections) == "2"
+
+
+def test_saved_collection_falls_back_to_case_insensitive_name() -> None:
+    collections = [collection("3", "Trips", "MEDIA"), collection("4", "All posts", "MEDIA")]
+    assert select_saved_collection(collections) == "4"
+
+
+def test_saved_collection_missing_type_field() -> None:
+    assert select_saved_collection([SimpleNamespace(id="5", name="ALL POSTS")]) == "5"
+
+
+def test_empty_collections_select_nothing() -> None:
+    assert select_saved_collection([]) is None
+    assert select_saved_collection([collection("6", "Trips", "MEDIA")]) is None

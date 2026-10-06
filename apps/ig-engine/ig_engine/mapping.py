@@ -1,12 +1,14 @@
 from datetime import datetime
 
-from instagrapi.types import DirectMessage, DirectThread, Media, Resource, UserShort
+from instagrapi.types import Collection, DirectMessage, DirectThread, Media, Resource, UserShort
 
 from ig_engine.schemas import Media as MediaOut
 from ig_engine.schemas import Message, Post, Thread, User
 
 ALBUM_MEDIA_TYPE = 8
 VIDEO_MEDIA_TYPE = 2
+SAVED_ALL_TYPE = "ALL_MEDIA_AUTO_COLLECTION"
+SAVED_ALL_NAME = "all posts"
 
 
 def to_millis(moment: datetime) -> int:
@@ -78,3 +80,11 @@ def to_thread(thread: DirectThread) -> Thread:
         unread=bool(thread.read_state),
         preview=latest.text if latest else None,
     )
+
+
+def select_saved_collection(collections: list[Collection]) -> str | None:
+    by_type = next((c for c in collections if getattr(c, "type", None) == SAVED_ALL_TYPE), None)
+    chosen = by_type or next(
+        (c for c in collections if (c.name or "").casefold() == SAVED_ALL_NAME), None
+    )
+    return None if chosen is None else str(chosen.id)

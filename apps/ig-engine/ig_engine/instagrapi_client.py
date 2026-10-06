@@ -3,10 +3,8 @@ from instagrapi.extractors import extract_media_v1
 from instagrapi.types import Media
 
 from ig_engine.instagram import InstagramClient, SessionSettings
-from ig_engine.mapping import to_message, to_post, to_thread, to_user
+from ig_engine.mapping import select_saved_collection, to_message, to_post, to_thread, to_user
 from ig_engine.schemas import Message, Post, Thread, TimelinePage, User
-
-ALL_SAVED_COLLECTION = "ALL_MEDIA_AUTO_COLLECTION"
 
 
 class InstagrapiClient:
@@ -43,7 +41,10 @@ class InstagrapiClient:
         return TimelinePage(posts=posts, next_cursor=raw.get("next_max_id") or None)
 
     def saved(self, amount: int) -> list[Post]:
-        medias = self._client.collection_medias(ALL_SAVED_COLLECTION, amount)
+        collection_id = select_saved_collection(self._client.collections())
+        if collection_id is None:
+            return []
+        medias = self._client.collection_medias(collection_id, amount)
         return [to_post(media) for media in medias]
 
     def threads(self, amount: int) -> list[Thread]:
