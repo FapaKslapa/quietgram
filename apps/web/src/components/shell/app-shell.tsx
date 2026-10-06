@@ -18,9 +18,7 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   return (
     <>
-      <div className="mx-auto w-full max-w-120 flex-1 pb-[calc(5.5rem+env(safe-area-inset-bottom))]">
-        {children}
-      </div>
+      <div className="w-full flex-1 pb-[calc(6rem+env(safe-area-inset-bottom))]">{children}</div>
       <TabBar />
     </>
   );
