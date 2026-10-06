@@ -246,6 +246,7 @@ export const following = sqliteTable(
     isBusiness: integer("is_business", { mode: "boolean" }).notNull().default(false),
     countsRefreshedAt: integer("counts_refreshed_at", { mode: "timestamp_ms" }),
     postsCheckedAt: integer("posts_checked_at", { mode: "timestamp_ms" }),
+    lastPostAt: integer("last_post_at", { mode: "timestamp_ms" }),
   },
   (t) => [primaryKey({ columns: [t.ownerId, t.igUserId] })],
 );
@@ -256,6 +257,7 @@ export const userSettings = sqliteTable("user_settings", {
     .references(() => user.id, { onDelete: "cascade" }),
   feedMode: text("feed_mode", { enum: feedModes }).notNull().default("friends"),
   creatorThreshold: integer("creator_threshold").notNull().default(10000),
+  recencyDays: integer("recency_days").notNull().default(14),
 });
 
 export const feedExceptions = sqliteTable(
