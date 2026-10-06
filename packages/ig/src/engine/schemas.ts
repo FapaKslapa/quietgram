@@ -1,45 +1,69 @@
 import { z } from "zod";
 
+const idSchema = z.union([z.string(), z.number()]).transform(String);
+
 const userSchema = z.object({
-  id: z.string(),
-  username: z.string(),
-  avatar_url: z.string().nullable(),
-  is_verified: z.boolean(),
-  is_business: z.boolean(),
-  follower_count: z.number().nullable(),
+  id: idSchema,
+  username: z
+    .string()
+    .nullish()
+    .transform((value) => value ?? ""),
+  avatar_url: z.string().nullish().catch(null),
+  is_verified: z.boolean().nullish().catch(null),
+  is_business: z.boolean().nullish().catch(null),
+  follower_count: z.number().nullish().catch(null),
+  latest_reel_media: z.number().nullish().catch(null),
 });
 
 const mediaSchema = z.object({
   kind: z.enum(["image", "video"]),
-  url: z.string(),
-  width: z.number(),
-  height: z.number(),
+  url: z.string().min(1),
+  width: z.number().nullish().catch(0),
+  height: z.number().nullish().catch(0),
 });
 
+const mediaListSchema = z.array(z.unknown()).transform((items) =>
+  items.flatMap((item) => {
+    const parsed = mediaSchema.safeParse(item);
+    return parsed.success ? [parsed.data] : [];
+  }),
+);
+
 const postSchema = z.object({
-  id: z.string(),
-  code: z.string().nullable(),
-  author_id: z.string(),
-  author_username: z.string(),
-  caption: z.string().nullable(),
+  id: idSchema,
+  code: z.string().nullish().catch(null),
+  author_id: idSchema,
+  author_username: z
+    .string()
+    .nullish()
+    .transform((value) => value ?? ""),
+  caption: z.string().nullish().catch(null),
   taken_at_ms: z.number(),
-  product_type: z.string(),
-  media: z.array(mediaSchema),
+  product_type: z.string().nullish().catch(null),
+  media: mediaListSchema.nullish().transform((value) => value ?? []),
 });
 
 const threadSchema = z.object({
-  id: z.string(),
-  title: z.string(),
+  id: idSchema,
+  title: z
+    .string()
+    .nullish()
+    .transform((value) => value ?? ""),
   last_activity_at_ms: z.number(),
-  unread: z.boolean(),
-  preview: z.string().nullable(),
+  unread: z
+    .boolean()
+    .nullish()
+    .transform((value) => value ?? false),
+  preview: z.string().nullish().catch(null),
 });
 
+const messageKindSchema = z.enum(["text", "photo", "video", "voice", "other"]);
+
 const messageSchema = z.object({
-  id: z.string(),
-  sender_id: z.string().nullable(),
-  text: z.string().nullable(),
-  kind: z.enum(["text", "photo", "video", "voice", "other"]),
+  id: idSchema,
+  sender_id: idSchema.nullish().catch(null),
+  text: z.string().nullish().catch(null),
+  kind: messageKindSchema.nullish().catch(null),
   sent_at_ms: z.number(),
 });
 
@@ -53,7 +77,7 @@ export const threadsResponseSchema = z.compile(z.object({ threads: z.array(threa
 export const messagesResponseSchema = z.compile(z.object({ messages: z.array(messageSchema) }));
 export const sentMessageSchema = z.compile(messageSchema);
 export const timelineResponseSchema = z.compile(
-  z.object({ posts: z.array(postSchema), next_cursor: z.string().nullable() }),
+  z.object({ posts: z.array(postSchema), next_cursor: z.string().nullish() }),
 );
 
 export const errorBodySchema = z.compile(
@@ -65,3 +89,5 @@ export const errorBodySchema = z.compile(
 );
 
 export type EnginePost = z.output<typeof postSchema>;
+export type EngineUser = z.output<typeof userSchema>;
+export type EngineMessage = z.output<typeof messageSchema>;

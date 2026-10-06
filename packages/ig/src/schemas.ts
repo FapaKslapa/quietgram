@@ -8,12 +8,14 @@ export const userSchema = z
     username: z.string(),
     profile_pic_url: z.string().nullish(),
     is_verified: z.boolean().nullish(),
+    latest_reel_media: z.number().nullish(),
   })
   .transform((user) => ({
     id: user.pk,
     username: user.username,
     avatarUrl: user.profile_pic_url ?? null,
     isVerified: user.is_verified ?? false,
+    latestReelMedia: user.latest_reel_media ?? null,
   }));
 
 export const usersPageSchema = z.compile(

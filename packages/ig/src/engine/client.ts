@@ -1,7 +1,13 @@
-import type { IgMessage, IgMessageKind, IgThread } from "#ig/direct";
-import { EngineSendDisabledError, EngineUnreachableError } from "#ig/engine/errors";
+import type { IgMessage, IgThread } from "#ig/direct";
 import {
+  EngineResponseError,
+  EngineSendDisabledError,
+  EngineUnreachableError,
+} from "#ig/engine/errors";
+import {
+  type EngineMessage,
   type EnginePost,
+  type EngineUser,
   errorBodySchema,
   messagesResponseSchema,
   postsResponseSchema,
@@ -39,42 +45,55 @@ const parseJson = (text: string): unknown => {
   }
 };
 
+type Checkable<T> = {
+  safeParse: (
+    value: unknown,
+  ) =>
+    | { success: true; data: T }
+    | { success: false; error: { issues: ReadonlyArray<{ path: PropertyKey[] }> } };
+};
+
+const check = <T>(schema: Checkable<T>, value: unknown): T => {
+  const result = schema.safeParse(value);
+  if (result.success) return result.data;
+  const path = result.error.issues[0]?.path.map(String).join(".");
+  throw new EngineResponseError(path ? path : "root");
+};
+
 const toPost = (post: EnginePost): IgPost => ({
   id: post.id,
-  code: post.code,
-  productType: post.product_type,
+  code: post.code ?? null,
+  productType: post.product_type ?? "feed",
   authorId: post.author_id,
   authorUsername: post.author_username,
-  caption: post.caption,
+  caption: post.caption ?? null,
   takenAt: post.taken_at_ms,
-  media: post.media,
+  media: post.media.map((item) => ({
+    kind: item.kind,
+    url: item.url,
+    width: item.width ?? 0,
+    height: item.height ?? 0,
+  })),
 });
 
 const toPosts = (posts: EnginePost[]): IgPost[] =>
   posts.filter((post) => !isReel(post)).map(toPost);
 
-const toUsers = (response: {
-  users: Array<{ id: string; username: string; avatar_url: string | null; is_verified: boolean }>;
-}): IgUser[] =>
+const toUsers = (response: { users: EngineUser[] }): IgUser[] =>
   response.users.map((user) => ({
     id: user.id,
     username: user.username,
-    avatarUrl: user.avatar_url,
-    isVerified: user.is_verified,
+    avatarUrl: user.avatar_url ?? null,
+    isVerified: user.is_verified ?? false,
+    latestReelMedia: user.latest_reel_media ?? null,
   }));
 
-const toMessage = (message: {
-  id: string;
-  sender_id: string | null;
-  text: string | null;
-  kind: IgMessageKind;
-  sent_at_ms: number;
-}): IgMessage => ({
+const toMessage = (message: EngineMessage): IgMessage => ({
   id: message.id,
   senderId: message.sender_id ?? "",
-  type: message.text === null ? "other" : "text",
-  kind: message.kind,
-  text: message.text,
+  type: message.text == null ? "other" : "text",
+  kind: message.kind ?? (message.text ? "text" : "other"),
+  text: message.text ?? null,
   sentAt: message.sent_at_ms,
 });
 
@@ -136,52 +155,58 @@ export const createEngineClient = (options: EngineClientOptions) => {
 
   return {
     putSession: async (sessionId: string): Promise<EngineSessionStatus> =>
-      sessionStatusSchema.parse(await call("PUT", "/session", [], { sessionid: sessionId })),
+      check(sessionStatusSchema, await call("PUT", "/session", [], { sessionid: sessionId })),
 
     sessionStatus: async (): Promise<EngineSessionStatus> =>
-      sessionStatusSchema.parse(await call("GET", "/session")),
+      check(sessionStatusSchema, await call("GET", "/session")),
 
     following: async (amount: number): Promise<IgUser[]> =>
-      toUsers(usersResponseSchema.parse(await call("GET", "/following", amountQuery(amount)))),
+      toUsers(check(usersResponseSchema, await call("GET", "/following", amountQuery(amount)))),
 
     followers: async (amount: number): Promise<IgUser[]> =>
-      toUsers(usersResponseSchema.parse(await call("GET", "/followers", amountQuery(amount)))),
+      toUsers(check(usersResponseSchema, await call("GET", "/followers", amountQuery(amount)))),
 
     userPosts: async (userId: string, amount: number): Promise<IgPost[]> =>
       toPosts(
-        postsResponseSchema.parse(
+        check(
+          postsResponseSchema,
           await call("GET", `/users/${encodeURIComponent(userId)}/posts`, amountQuery(amount)),
         ).posts,
       ),
 
     timeline: async (cursor?: string): Promise<TimelinePage> => {
-      const page = timelineResponseSchema.parse(
+      const page = check(
+        timelineResponseSchema,
         await call("GET", "/timeline", cursor ? [["cursor", cursor]] : []),
       );
-      return { posts: toPosts(page.posts), nextCursor: page.next_cursor };
+      return { posts: toPosts(page.posts), nextCursor: page.next_cursor ?? null };
     },
 
     saved: async (amount: number): Promise<IgPost[]> =>
-      postsResponseSchema.parse(await call("GET", "/saved", amountQuery(amount))).posts.map(toPost),
+      check(postsResponseSchema, await call("GET", "/saved", amountQuery(amount))).posts.map(
+        toPost,
+      ),
 
     threads: async (amount: number): Promise<IgThread[]> =>
-      threadsResponseSchema
-        .parse(await call("GET", "/threads", amountQuery(amount)))
-        .threads.map((thread) => ({
+      check(threadsResponseSchema, await call("GET", "/threads", amountQuery(amount))).threads.map(
+        (thread) => ({
           id: thread.id,
           title: thread.title,
           lastActivityAt: thread.last_activity_at_ms,
           unread: thread.unread,
-        })),
+        }),
+      ),
 
     thread: async (id: string, amount: number): Promise<IgMessage[]> =>
-      messagesResponseSchema
-        .parse(await call("GET", `/threads/${encodeURIComponent(id)}`, amountQuery(amount)))
-        .messages.map(toMessage),
+      check(
+        messagesResponseSchema,
+        await call("GET", `/threads/${encodeURIComponent(id)}`, amountQuery(amount)),
+      ).messages.map(toMessage),
 
     sendMessage: async (id: string, text: string): Promise<IgMessage> =>
       toMessage(
-        sentMessageSchema.parse(
+        check(
+          sentMessageSchema,
           await call("POST", `/threads/${encodeURIComponent(id)}/messages`, [], { text }),
         ),
       ),

@@ -111,7 +111,7 @@ describe("engine client mapping", () => {
       }),
     );
     expect(await client.following(200)).toEqual([
-      { id: "1", username: "ada", avatarUrl: null, isVerified: true },
+      { id: "1", username: "ada", avatarUrl: null, isVerified: true, latestReelMedia: null },
     ]);
     expect(seen[0]?.url).toBe("https://engine.test/v1/following?amount=200");
     await client.followers(5);
@@ -171,8 +171,79 @@ describe("engine client mapping", () => {
   });
 
   it("rejects a response that does not match the schema", async () => {
-    const { client } = clientWith(() => json({ users: [{ id: 1 }] }));
-    await expect(client.following(1)).rejects.toThrow();
+    const { client } = clientWith(() => json({ users: "nope" }));
+    await expect(client.following(1)).rejects.toMatchObject({
+      name: "EngineResponseError",
+      reason: "users",
+    });
+  });
+
+  it("tolerates nulls, missing fields, numeric ids and unknown keys", async () => {
+    const { client } = clientWith(() =>
+      json({
+        posts: [
+          {
+            id: 9_007_199_254_740_990,
+            author_id: 7,
+            author_username: null,
+            caption: undefined,
+            taken_at_ms: 1,
+            product_type: null,
+            surprise: { deep: true },
+            media: [
+              { kind: "image", url: "https://cdn/a.jpg", width: null, height: "x" },
+              { kind: "image", url: "" },
+              { kind: "gif", url: "https://cdn/b.gif", width: 1, height: 1 },
+              null,
+            ],
+          },
+          { id: "p3", author_id: "7", author_username: "ada", taken_at_ms: 2 },
+        ],
+        next_cursor: null,
+      }),
+    );
+    const page = await client.timeline();
+    expect(page.nextCursor).toBeNull();
+    expect(page.posts).toHaveLength(2);
+    expect(page.posts[0]).toMatchObject({
+      authorId: "7",
+      authorUsername: "",
+      caption: null,
+      code: null,
+      productType: "feed",
+      media: [{ kind: "image", url: "https://cdn/a.jpg", width: 0, height: 0 }],
+    });
+    expect(page.posts[1]?.media).toEqual([]);
+  });
+
+  it("tolerates odd messages and threads", async () => {
+    const { client } = clientWith((seen) =>
+      seen.url.includes("/threads/")
+        ? json({
+            messages: [
+              { id: 9_007_199_254_740_991, sender_id: null, text: null, sent_at_ms: 3, extra: 1 },
+              { id: "m2", sender_id: 5, text: "ciao", kind: "bogus", sent_at_ms: 4 },
+            ],
+          })
+        : json({ threads: [{ id: 12, title: null, last_activity_at_ms: 8, unread: null }] }),
+    );
+    expect(await client.threads(1)).toEqual([
+      { id: "12", title: "", lastActivityAt: 8, unread: false },
+    ]);
+    const messages = await client.thread("1", 1);
+    expect(messages.map((message) => [message.senderId, message.kind])).toEqual([
+      ["", "other"],
+      ["5", "text"],
+    ]);
+  });
+
+  it("reports an unreachable engine with a short reason", async () => {
+    const failure = new TypeError("fetch failed");
+    const { client } = clientWith(() => failure);
+    await expect(client.sessionStatus()).rejects.toMatchObject({
+      name: "EngineUnreachableError",
+      reason: "TypeError",
+    });
   });
 });
 

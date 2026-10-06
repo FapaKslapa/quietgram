@@ -3,7 +3,13 @@ import followingFixture from "#fixtures/following.json" with { type: "json" };
 import { computeMutuals, fetchAllUsers, fetchUsersPage } from "#ig/mutuals";
 import type { Requester } from "#ig/request";
 
-const u = (id: string) => ({ id, username: `u${id}`, avatarUrl: null, isVerified: false });
+const u = (id: string) => ({
+  id,
+  username: `u${id}`,
+  avatarUrl: null,
+  isVerified: false,
+  latestReelMedia: null,
+});
 
 const pagedRequester = (pages: unknown[]) => {
   const calls: { path: string; params: Record<string, string> | undefined }[] = [];
@@ -46,8 +52,14 @@ describe("fetchAllUsers", () => {
     ]);
     const users = await fetchAllUsers(requester, "following", "42");
     expect(users).toEqual([
-      { id: "1", username: "a", avatarUrl: "https://example.invalid/a", isVerified: true },
-      { id: "2", username: "b", avatarUrl: null, isVerified: false },
+      {
+        id: "1",
+        username: "a",
+        avatarUrl: "https://example.invalid/a",
+        isVerified: true,
+        latestReelMedia: null,
+      },
+      { id: "2", username: "b", avatarUrl: null, isVerified: false, latestReelMedia: null },
     ]);
     expect(calls.map((c) => c.path)).toEqual([
       "/api/v1/friendships/42/following/",
@@ -78,7 +90,9 @@ describe("fetchUsersPage", () => {
     ]);
     const page = await fetchUsersPage(requester, "followers", "42", "c1");
     expect(page).toEqual({
-      users: [{ id: "2", username: "b", avatarUrl: null, isVerified: false }],
+      users: [
+        { id: "2", username: "b", avatarUrl: null, isVerified: false, latestReelMedia: null },
+      ],
       nextCursor: "c2",
     });
     expect(calls[0]?.params).toEqual({ count: "200", max_id: "c1" });
