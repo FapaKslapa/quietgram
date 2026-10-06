@@ -16,7 +16,11 @@ const engineUser = (id: string) => ({
   follower_count: null,
 });
 
-const enginePost = (id: string, authorId: string, productType = "feed", takenAtMs = 1_000) => ({
+const NOW = Date.parse("2026-10-04T12:00:00Z");
+const DAY = 86_400_000;
+const RECENT = NOW - DAY;
+
+const enginePost = (id: string, authorId: string, productType = "feed", takenAtMs = RECENT) => ({
   id,
   author_id: authorId,
   author_username: `user_${authorId}`,
@@ -181,5 +185,100 @@ describe("refresh with the engine", () => {
     const caller = createCaller(env.context);
     const { runId } = await caller.refresh.start();
     await expect(caller.refresh.step({ runId })).rejects.toMatchObject({ code: "BAD_GATEWAY" });
+  });
+
+  it("never stores posts older than the window and records the last post time", async () => {
+    const env = await createTestEnv(undefined, {
+      engine: world({
+        following: ["5071"],
+        postsFor: (id) => [
+          enginePost("fresh", id, "feed", NOW - 2 * DAY),
+          enginePost("stale", id, "feed", NOW - 20 * DAY),
+        ],
+      }),
+    });
+    await runToEnd(createCaller(env.context));
+    expect((await env.db.select().from(posts)).map((post) => post.id)).toEqual(["fresh"]);
+    const [row] = await env.db.select().from(following).where(eq(following.igUserId, "5071"));
+    expect(row?.lastPostAt?.getTime()).toBe(NOW - 2 * DAY);
+  });
+
+  it("marks a dormant author as checked without storing anything", async () => {
+    const env = await createTestEnv(undefined, {
+      engine: world({
+        following: ["5071"],
+        postsFor: (id) => [enginePost("june", id, "feed", NOW - 120 * DAY)],
+      }),
+    });
+    await runToEnd(createCaller(env.context));
+    expect(await env.db.select().from(posts)).toEqual([]);
+    const [row] = await env.db.select().from(following).where(eq(following.igUserId, "5071"));
+    expect(row?.postsCheckedAt?.getTime()).toBe(NOW);
+    expect(row?.lastPostAt?.getTime()).toBe(NOW - 120 * DAY);
+  });
+
+  it("checks active authors first and dormant ones at most weekly", async () => {
+    const env = await createTestEnv(undefined, {
+      engine: world({ following: ["1", "2", "3"], followers: ["1", "2", "3"] }),
+    });
+    const caller = createCaller(env.context);
+    await runToEnd(caller);
+    const checked = new Date(NOW - 3_600_000);
+    const setAuthor = (id: string, postsCheckedAt: Date, lastPostAt: Date) =>
+      env.db
+        .update(following)
+        .set({ postsCheckedAt, lastPostAt })
+        .where(eq(following.igUserId, id));
+    await setAuthor("1", new Date(NOW - 40 * DAY), new Date(NOW - 90 * DAY));
+    await setAuthor("2", checked, new Date(NOW - 2 * DAY));
+    await setAuthor("3", new Date(NOW - 8 * DAY), new Date(NOW - 90 * DAY));
+    await env.db
+      .update(syncState)
+      .set({ lastRefreshAt: new Date(0), mutualsRefreshedAt: new Date(NOW) });
+    env.clock.current = new Date(NOW + 2 * 3_600_000);
+    const before = postCalls(env.engineCalls).length;
+    await runToEnd(caller);
+    expect(
+      postCalls(env.engineCalls)
+        .slice(before)
+        .map((call) => call.path),
+    ).toEqual(["/v1/users/2/posts", "/v1/users/1/posts", "/v1/users/3/posts"]);
+
+    await setAuthor("1", new Date(NOW - 3 * DAY), new Date(NOW - 90 * DAY));
+    await setAuthor("3", new Date(NOW - 3 * DAY), new Date(NOW - 90 * DAY));
+    await env.db
+      .update(syncState)
+      .set({ lastRefreshAt: new Date(0), mutualsRefreshedAt: new Date(NOW) });
+    env.clock.current = new Date(NOW + 4 * 3_600_000);
+    const afterFirst = postCalls(env.engineCalls).length;
+    await runToEnd(caller);
+    expect(
+      postCalls(env.engineCalls)
+        .slice(afterFirst)
+        .map((call) => call.path),
+    ).toEqual(["/v1/users/2/posts"]);
+  });
+
+  it("deletes stored posts older than sixty days when the run finishes", async () => {
+    const env = await createTestEnv(undefined, { engine: world({ following: ["5071"] }) });
+    await env.db.insert(posts).values(
+      [
+        ["ancient", 61],
+        ["edge", 59],
+      ].map(([id, age]) => ({
+        id: String(id),
+        ownerId: "owner",
+        authorId: "9",
+        authorUsername: "nine",
+        caption: null,
+        takenAt: new Date(NOW - Number(age) * DAY),
+        mediaJson: "[]",
+      })),
+    );
+    await runToEnd(createCaller(env.context));
+    expect((await env.db.select().from(posts)).map((post) => post.id).sort()).toEqual([
+      "edge",
+      "p-5071",
+    ]);
   });
 });

@@ -237,6 +237,32 @@ describe("refresh.step", () => {
     expect(await env.db.select().from(posts)).toHaveLength(2);
   });
 
+  it("does not store timeline posts older than the recency window", async () => {
+    const env = await createTestEnv((call) => {
+      if (call.path !== "/api/v1/feed/timeline/") return world()(call);
+      return {
+        feed_items: [
+          ["old-post", 1_780_000_000],
+          ["new-post", 1_790_000_000],
+        ].map(([pk, takenAt]) => ({
+          media_or_ad: {
+            pk,
+            product_type: "feed",
+            taken_at: takenAt,
+            user: { pk: "5071", username: "user_5071" },
+            caption: null,
+            image_versions2: {
+              candidates: [{ url: "https://example.invalid/i", width: 1, height: 1 }],
+            },
+          },
+        })),
+        next_max_id: null,
+      };
+    });
+    await runToEnd(createCaller(env.context));
+    expect((await env.db.select().from(posts)).map((post) => post.id)).toEqual(["new-post"]);
+  });
+
   it("gives an empty feed instead of an error when there are no mutuals", async () => {
     const env = await createTestEnv(world({ followers: [] }));
     const caller = createCaller(env.context);

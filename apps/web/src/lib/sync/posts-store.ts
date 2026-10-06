@@ -3,6 +3,7 @@ import type { IgPost } from "@nodistraction/ig";
 import { and, eq, inArray } from "drizzle-orm";
 import { chunk, chunkRows } from "@/lib/sync/chunk";
 import type { SyncDeps } from "@/lib/sync/deps";
+import { loadSettings, recencyCutoff } from "@/lib/sync/settings";
 
 const findStoredIds = async (
   deps: SyncDeps,
@@ -25,12 +26,15 @@ export const storePosts = async (
   ownerId: string,
   incoming: IgPost[],
 ): Promise<{ alreadyStored: number }> => {
+  const { recencyDays } = await loadSettings(deps.db, ownerId);
+  const cutoff = recencyCutoff(deps.now(), recencyDays);
+  const recent = incoming.filter((post) => post.takenAt >= cutoff);
   const stored = await findStoredIds(
     deps,
     ownerId,
-    incoming.map((post) => post.id),
+    recent.map((post) => post.id),
   );
-  const fresh = incoming.filter((post) => !stored.has(post.id));
+  const fresh = recent.filter((post) => !stored.has(post.id));
   for (const rows of chunkRows(fresh, 7)) {
     await deps.db
       .insert(posts)

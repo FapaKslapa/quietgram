@@ -8,24 +8,42 @@ import {
   POSTS_PER_AUTHOR,
   type RunState,
 } from "@/lib/sync/run-state";
-import { loadAllowedAuthors } from "@/lib/sync/settings";
+import { DAY_MS, loadAllowedAuthors, loadSettings, recencyCutoff } from "@/lib/sync/settings";
 import type { InstagramSource } from "@/lib/sync/source";
 
 type AuthorsState = Extract<RunState, { phase: "authors" }>;
 
+const DORMANT_RECHECK_MS = 7 * DAY_MS;
+
 const dueAuthors = async (deps: SyncDeps, ownerId: string, since: number): Promise<string[]> => {
   const allowed = await loadAllowedAuthors(deps.db, ownerId);
+  const { recencyDays } = await loadSettings(deps.db, ownerId);
+  const windowStart = recencyCutoff(new Date(since), recencyDays);
   const rows = await deps.db
-    .select({ id: following.igUserId, checkedAt: following.postsCheckedAt })
+    .select({
+      id: following.igUserId,
+      checkedAt: following.postsCheckedAt,
+      lastPostAt: following.lastPostAt,
+    })
     .from(following)
     .where(eq(following.ownerId, ownerId));
-  return rows
-    .filter(
-      (row) => allowed.has(row.id) && (row.checkedAt === null || row.checkedAt.getTime() < since),
+  const candidates = rows
+    .filter((row) => allowed.has(row.id))
+    .map((row) => ({
+      id: row.id,
+      checkedAt: row.checkedAt?.getTime() ?? null,
+      dormant: row.lastPostAt !== null && row.lastPostAt.getTime() < windowStart,
+    }));
+  return candidates
+    .filter((row) =>
+      row.dormant
+        ? row.checkedAt === null || row.checkedAt < since - DORMANT_RECHECK_MS
+        : row.checkedAt === null || row.checkedAt < since,
     )
     .sort(
       (left, right) =>
-        (left.checkedAt?.getTime() ?? 0) - (right.checkedAt?.getTime() ?? 0) ||
+        Number(left.dormant) - Number(right.dormant) ||
+        (left.checkedAt ?? 0) - (right.checkedAt ?? 0) ||
         left.id.localeCompare(right.id),
     )
     .map((row) => row.id);
@@ -48,10 +66,19 @@ export const stepAuthors = async (
   const due = await dueAuthors(deps, ownerId, state.since);
   const batch = due.slice(0, Math.min(AUTHORS_PER_STEP, state.remaining));
   for (const authorId of batch) {
-    await storePosts(deps, ownerId, await fetchPosts(authorId, POSTS_PER_AUTHOR));
+    const fetched = await fetchPosts(authorId, POSTS_PER_AUTHOR);
+    await storePosts(deps, ownerId, fetched);
+    const newest = fetched.reduce<number | null>(
+      (latest, post) => (latest === null || post.takenAt > latest ? post.takenAt : latest),
+      null,
+    );
     await deps.db
       .update(following)
-      .set({ postsCheckedAt: deps.now() })
+      .set(
+        newest === null
+          ? { postsCheckedAt: deps.now() }
+          : { postsCheckedAt: deps.now(), lastPostAt: new Date(newest) },
+      )
       .where(and(eq(following.ownerId, ownerId), eq(following.igUserId, authorId)));
   }
   const remaining = Math.min(state.remaining - batch.length, due.length - batch.length);

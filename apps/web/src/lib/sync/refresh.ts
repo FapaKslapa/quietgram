@@ -1,6 +1,6 @@
-import { igSessions, syncRuns, syncState } from "@nodistraction/db";
+import { igSessions, posts, syncRuns, syncState } from "@nodistraction/db";
 import { IgThrottledError, SessionExpiredError } from "@nodistraction/ig";
-import { and, eq, gt } from "drizzle-orm";
+import { and, eq, gt, lt } from "drizzle-orm";
 import { startAuthorsPhase, stepAuthors } from "@/lib/sync/authors";
 import { REFRESH_COOLDOWN_MS, remainingCooldownMs } from "@/lib/sync/cooldown";
 import { refreshCounts } from "@/lib/sync/counts";
@@ -20,7 +20,7 @@ import {
   serializeRunState,
 } from "@/lib/sync/run-state";
 import { withIgSession } from "@/lib/sync/session";
-import { loadSettings } from "@/lib/sync/settings";
+import { DAY_MS, loadSettings, POST_RETENTION_DAYS } from "@/lib/sync/settings";
 import { stepTimeline } from "@/lib/sync/timeline";
 
 export type RefreshProgress = {
@@ -156,6 +156,11 @@ const failRun = async (
   }
 };
 
+const deletePostsBeyondRetention = async (deps: SyncDeps, ownerId: string): Promise<void> => {
+  const limit = new Date(deps.now().getTime() - POST_RETENTION_DAYS * DAY_MS);
+  await deps.db.delete(posts).where(and(eq(posts.ownerId, ownerId), lt(posts.takenAt, limit)));
+};
+
 export const runRefreshStep = async (
   deps: SyncDeps,
   ownerId: string,
@@ -191,6 +196,7 @@ export const runRefreshStep = async (
 
   const completed = run.completed + 1;
   const finished = next === null;
+  if (finished) await deletePostsBeyondRetention(deps, ownerId);
   const total = completed + remainingSteps(next, feedMode, deps.source.kind);
   await deps.db
     .update(syncRuns)
