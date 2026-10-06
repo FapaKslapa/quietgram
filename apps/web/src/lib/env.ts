@@ -7,6 +7,8 @@ const envSchema = z.compile(
     ALLOWED_EMAILS: z.string().min(3),
     COOKIE_KEY: z.string().min(32),
     BOOTSTRAP_SECRET: z.string().min(16),
+    IG_ENGINE_URL: z.url().or(z.literal("")).optional(),
+    IG_ENGINE_SECRET: z.string().min(16).or(z.literal("")).optional(),
   }),
 );
 

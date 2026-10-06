@@ -14,6 +14,13 @@ describe("parseEnv", () => {
     expect(parseEnv(valid)).toEqual(valid);
   });
 
+  it("accepts the optional engine settings", () => {
+    const engine = { IG_ENGINE_URL: "https://engine.test", IG_ENGINE_SECRET: "e".repeat(16) };
+    expect(parseEnv({ ...valid, ...engine })).toEqual({ ...valid, ...engine });
+    expect(() => parseEnv({ ...valid, IG_ENGINE_URL: "not a url" })).toThrow();
+    expect(() => parseEnv({ ...valid, IG_ENGINE_SECRET: "short" })).toThrow();
+  });
+
   it("ignores unrelated bindings", () => {
     expect(parseEnv({ ...valid, DB: {} })).toEqual(valid);
   });

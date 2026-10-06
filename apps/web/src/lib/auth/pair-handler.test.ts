@@ -66,4 +66,29 @@ describe("handlePair", () => {
     expect(row).toMatchObject({ ownerId: "u1", igUserId: "42", status: "active" });
     expect((await handlePair(post({ token, ...body }), deps)).status).toBe(401);
   });
+
+  it("hands the session id to the engine after storing it", async () => {
+    const handed: string[][] = [];
+    const token = await issuePairingToken(db, "u1", now);
+    const response = await handlePair(post({ token, ...body }), {
+      ...deps,
+      handOffSession: async (igUserId, sessionId) => {
+        handed.push([igUserId, sessionId]);
+      },
+    });
+    expect(response.status).toBe(200);
+    expect(handed).toEqual([["42", "sess"]]);
+  });
+
+  it("still pairs when the engine hand over fails", async () => {
+    const token = await issuePairingToken(db, "u1", now);
+    const response = await handlePair(post({ token, ...body }), {
+      ...deps,
+      handOffSession: async () => {
+        throw new Error("engine down");
+      },
+    });
+    expect(response.status).toBe(200);
+    expect(await db.select().from(igSessions)).toHaveLength(1);
+  });
 });

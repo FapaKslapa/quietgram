@@ -13,7 +13,12 @@ const pairBodySchema = z.compile(
 
 const EXTENSION_ORIGIN = /^(chrome|moz)-extension:\/\//;
 
-export type PairDeps = { db: Db; cookieKey: string; now: Date };
+export type PairDeps = {
+  db: Db;
+  cookieKey: string;
+  now: Date;
+  handOffSession?: ((igUserId: string, sessionId: string) => Promise<void>) | null;
+};
 
 const corsHeaders = (origin: string | null): Record<string, string> =>
   origin
@@ -56,5 +61,6 @@ export const handlePair = async (request: Request, deps: PairDeps): Promise<Resp
   }
 
   await savePairedSession(deps.db, deps.cookieKey, ownerId, cookies, deps.now);
+  await deps.handOffSession?.(cookies.userId, cookies.sessionId).catch(() => undefined);
   return Response.json({ ok: true }, { headers });
 };
