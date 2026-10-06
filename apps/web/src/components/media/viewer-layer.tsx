@@ -40,11 +40,11 @@ export function ViewerLayer({ request, onRequestClose }: ViewerLayerProps) {
   const y = useMotionValue(0);
   const fade = useTransform(y, backdropOpacity);
   const track = useRef<SwipeTrackHandle>(null);
-  const closeButton = useRef<HTMLButtonElement>(null);
+  const dialog = useRef<HTMLDivElement>(null);
   const count = items.length;
 
   useEffect(() => {
-    closeButton.current?.focus({ preventScroll: true });
+    dialog.current?.focus({ preventScroll: true });
   }, []);
 
   useEffect(() => {
@@ -80,8 +80,9 @@ export function ViewerLayer({ request, onRequestClose }: ViewerLayerProps) {
     await animate(y, direction * window.innerHeight, {
       type: "spring",
       velocity: info.velocity.y,
-      stiffness: 220,
-      damping: 34,
+      stiffness: 420,
+      restDelta: 4,
+      damping: 44,
     });
     onRequestClose();
   };
@@ -92,7 +93,9 @@ export function ViewerLayer({ request, onRequestClose }: ViewerLayerProps) {
       aria-modal="true"
       aria-label={`Post di ${username}`}
       data-viewer
-      className="fixed inset-0 z-[70] overflow-hidden text-white"
+      ref={dialog}
+      tabIndex={-1}
+      className="fixed inset-0 z-[70] overflow-hidden text-white outline-none"
     >
       <motion.div
         aria-hidden="true"
@@ -117,7 +120,6 @@ export function ViewerLayer({ request, onRequestClose }: ViewerLayerProps) {
           className="flex items-center justify-between px-3 pt-[max(0.75rem,env(safe-area-inset-top))]"
         >
           <button
-            ref={closeButton}
             type="button"
             onClick={onRequestClose}
             aria-label="Chiudi"

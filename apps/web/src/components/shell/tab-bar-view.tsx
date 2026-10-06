@@ -38,7 +38,7 @@ export function TabBarView({ pathname, unread }: TabBarViewProps) {
             >
               <span
                 className={cn(
-                  "relative flex flex-col items-center gap-1 rounded-full px-3.5 py-1.5",
+                  "relative isolate flex flex-col items-center gap-1 rounded-full px-3.5 py-1.5",
                 )}
               >
                 {active ? (

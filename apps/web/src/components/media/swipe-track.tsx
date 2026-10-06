@@ -89,7 +89,9 @@ export function SwipeTrack({
   useImperativeHandle(handleRef, () => ({ goTo: commit }), [commit]);
 
   const onDragEnd = (_: unknown, info: PanInfo) => {
-    if (axis.current === "y" && onVerticalEnd) {
+    const locked = axis.current;
+    axis.current = null;
+    if (locked === "y" && onVerticalEnd) {
       onVerticalEnd(info);
       return;
     }
@@ -128,7 +130,7 @@ export function SwipeTrack({
       tabIndex={multiple || onActivate ? 0 : undefined}
       className={cn("relative size-full overflow-hidden outline-offset-[-2px]", className)}
     >
-      <motion.div
+      <motion.ul
         drag={multiple || vertical ? (vertical ? true : "x") : false}
         dragDirectionLock={vertical}
         dragMomentum={false}
@@ -147,15 +149,12 @@ export function SwipeTrack({
         onDirectionLock={(locked) => {
           axis.current = locked;
         }}
-        onDragStart={() => {
-          axis.current = null;
-        }}
         onDragEnd={onDragEnd}
         style={y ? { x, y } : { x }}
         className="flex size-full"
       >
         {children}
-      </motion.div>
+      </motion.ul>
     </section>
   );
 }
