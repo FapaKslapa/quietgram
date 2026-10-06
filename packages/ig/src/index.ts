@@ -7,6 +7,13 @@ export {
   sendText,
   validateDmText,
 } from "#ig/direct";
+export {
+  createEngineClient,
+  type EngineClient,
+  type EngineClientOptions,
+  type EngineSessionStatus,
+} from "#ig/engine/client";
+export { EngineSendDisabledError, EngineUnreachableError } from "#ig/engine/errors";
 export { IgHttpError, IgRejectedError, IgThrottledError, SessionExpiredError } from "#ig/errors";
 export {
   computeMutuals,
