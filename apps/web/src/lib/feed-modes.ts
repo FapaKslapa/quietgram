@@ -67,3 +67,14 @@ export const thresholdIndex = (threshold: number): number => {
 export const thresholdAt = (index: number): number =>
   THRESHOLD_STEPS[Math.min(Math.max(Math.trunc(index), 0), THRESHOLD_STEPS.length - 1)] ??
   THRESHOLD_STEPS[0];
+
+export const RECENCY_STEPS = [3, 7, 14, 30, 60] as const;
+
+export const recencyIndex = (days: number): number => {
+  const exact = RECENCY_STEPS.findIndex((step) => step >= days);
+  return exact === -1 ? RECENCY_STEPS.length - 1 : exact;
+};
+
+export const recencyAt = (index: number): number =>
+  RECENCY_STEPS[Math.min(Math.max(Math.trunc(index), 0), RECENCY_STEPS.length - 1)] ??
+  RECENCY_STEPS[0];

@@ -57,6 +57,15 @@ export function useFeedSettings() {
     ),
   );
 
+  const setRecencyDays = useMutation(
+    trpc.settings.setRecencyDays.mutationOptions(
+      optimistic<{ recencyDays: number }>(
+        (current, { recencyDays }) => ({ ...current, recencyDays }),
+        "Non sono riuscito a salvare i giorni. Riprova.",
+      ),
+    ),
+  );
+
   const addException = useMutation(
     trpc.settings.addException.mutationOptions(
       optimistic<{ igUserId: string; username?: string }>(
@@ -84,5 +93,5 @@ export function useFeedSettings() {
     ),
   );
 
-  return { settings, setMode, setThreshold, addException, removeException };
+  return { settings, setMode, setThreshold, setRecencyDays, addException, removeException };
 }

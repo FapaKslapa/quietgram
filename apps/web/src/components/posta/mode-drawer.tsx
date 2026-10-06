@@ -2,6 +2,7 @@
 
 import { Weave } from "@/components/brand/weave";
 import { ExceptionsPanel } from "@/components/posta/exceptions-panel";
+import { RecencyPanel } from "@/components/posta/recency-panel";
 import { Reveal } from "@/components/posta/reveal";
 import { ThresholdPanel } from "@/components/posta/threshold-panel";
 import { Button } from "@/components/ui/button";
@@ -21,7 +22,8 @@ type ModeDrawerProps = {
 };
 
 export function ModeDrawer({ open, onOpenChange }: ModeDrawerProps) {
-  const { settings, setMode, setThreshold, addException, removeException } = useFeedSettings();
+  const { settings, setMode, setThreshold, setRecencyDays, addException, removeException } =
+    useFeedSettings();
 
   return (
     <Drawer open={open} onOpenChange={onOpenChange} showSwipeHandle>
@@ -73,6 +75,10 @@ export function ModeDrawer({ open, onOpenChange }: ModeDrawerProps) {
               onCommit={(creatorThreshold) => setThreshold.mutate({ creatorThreshold })}
             />
           </Reveal>
+          <RecencyPanel
+            days={settings.recencyDays}
+            onCommit={(recencyDays) => setRecencyDays.mutate({ recencyDays })}
+          />
           <DrawerClose
             render={
               <Button className="mt-[18px] h-[52px] w-full rounded-full text-base font-semibold shadow-[0_10px_22px_-10px_var(--accent)]" />

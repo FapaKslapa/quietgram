@@ -3,6 +3,9 @@ import {
   formatFollowers,
   MODES,
   modeDefinition,
+  RECENCY_STEPS,
+  recencyAt,
+  recencyIndex,
   THRESHOLD_STEPS,
   thresholdAt,
   thresholdIndex,
@@ -37,5 +40,17 @@ describe("threshold steps", () => {
     expect(thresholdAt(-1)).toBe(1_000);
     expect(thresholdAt(99)).toBe(500_000);
     expect(thresholdAt(3)).toBe(50_000);
+  });
+});
+
+describe("recency steps", () => {
+  it("maps days to the nearest step at or above and back", () => {
+    expect(RECENCY_STEPS).toEqual([3, 7, 14, 30, 60]);
+    expect(recencyIndex(14)).toBe(2);
+    expect(recencyIndex(10)).toBe(2);
+    expect(recencyIndex(99)).toBe(4);
+    expect(recencyAt(-1)).toBe(3);
+    expect(recencyAt(3)).toBe(30);
+    expect(recencyAt(9)).toBe(60);
   });
 });
