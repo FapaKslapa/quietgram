@@ -1,7 +1,8 @@
+import { validateDmText } from "@nodistraction/ig";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { listMessages, listThreads, sendMessage, syncInbox, syncThread } from "@/lib/sync/messages";
-import { DM_SEND_ENABLED } from "@/server/config";
+import { loadDmSendEnabled } from "@/lib/sync/settings";
 import { guarded } from "@/server/trpc/errors";
 import { createTRPCRouter, protectedProcedure, syncDepsOf } from "@/server/trpc/init";
 
@@ -18,6 +19,7 @@ const messageSchema = z.object({
   id: z.string(),
   senderId: z.string(),
   text: z.string().nullable(),
+  kind: z.enum(["text", "photo", "video", "voice", "other"]),
   sentAt: z.number(),
 });
 
@@ -29,6 +31,7 @@ const threadsOutput = z.compile(
       lastActivityAt: z.number(),
       unread: z.boolean(),
       preview: z.string().nullable(),
+      previewKind: z.enum(["text", "photo", "video", "voice", "other"]).nullable(),
     }),
   ),
 );
@@ -58,10 +61,13 @@ export const messagesRouter = createTRPCRouter({
   send: protectedProcedure
     .input(sendInput)
     .output(sentOutput)
-    .mutation(({ ctx, input }) => {
-      if (!DM_SEND_ENABLED) {
-        throw new TRPCError({ code: "PRECONDITION_FAILED", message: SEND_DISABLED_MESSAGE });
-      }
-      return guarded(() => sendMessage(syncDepsOf(ctx), ctx.session.user.id, input));
-    }),
+    .mutation(({ ctx, input }) =>
+      guarded(async () => {
+        validateDmText(input.text);
+        if (!(await loadDmSendEnabled(ctx.db, ctx.session.user.id))) {
+          throw new TRPCError({ code: "PRECONDITION_FAILED", message: SEND_DISABLED_MESSAGE });
+        }
+        return sendMessage(syncDepsOf(ctx), ctx.session.user.id, input);
+      }),
+    ),
 });

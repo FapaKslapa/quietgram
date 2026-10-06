@@ -5,6 +5,7 @@ import { z } from "zod";
 import { BUDGET_CHOICES, isBudgetMinutes, lockExpiry } from "@/lib/budget";
 import {
   loadBudgetState,
+  loadDmSendEnabled,
   loadSettings,
   MAX_RECENCY_DAYS,
   MIN_RECENCY_DAYS,
@@ -23,6 +24,7 @@ const settingsOutput = z.compile(
     grayscaleMedia: z.boolean(),
     sessionBudgetMinutes: z.number().nullable(),
     budgetLockedUntil: z.number().nullable(),
+    dmSendEnabled: z.boolean(),
     exceptions: z.array(z.object({ igUserId: z.string(), username: z.string().nullable() })),
   }),
 );
@@ -51,6 +53,7 @@ const setRecencyDaysInput = z.compile(
   z.object({ recencyDays: z.number().int().min(MIN_RECENCY_DAYS).max(MAX_RECENCY_DAYS) }),
 );
 const setGrayscaleInput = z.compile(z.object({ grayscaleMedia: z.boolean() }));
+const setDmSendInput = z.compile(z.object({ dmSendEnabled: z.boolean() }));
 const setBudgetInput = z.compile(
   z.object({
     sessionBudgetMinutes: z
@@ -66,9 +69,10 @@ const exceptionInput = z.compile(z.object({ igUserId: z.string().regex(/^\d{1,20
 export const settingsRouter = createTRPCRouter({
   get: protectedProcedure.output(settingsOutput).query(async ({ ctx }) => {
     const ownerId = ctx.session.user.id;
-    const [settings, budget] = await Promise.all([
+    const [settings, budget, dmSendEnabled] = await Promise.all([
       loadSettings(ctx.db, ownerId),
       loadBudgetState(ctx.db, ownerId),
+      loadDmSendEnabled(ctx.db, ownerId),
     ]);
     const exceptionRows = await ctx.db
       .select({ igUserId: feedExceptions.igUserId })
@@ -92,6 +96,7 @@ export const settingsRouter = createTRPCRouter({
     return {
       ...settings,
       ...budget,
+      dmSendEnabled,
       exceptions: exceptionRows.map((row) => ({
         igUserId: row.igUserId,
         username: usernames.get(row.igUserId) ?? null,
@@ -163,6 +168,16 @@ export const settingsRouter = createTRPCRouter({
           set: { grayscaleMedia: input.grayscaleMedia },
         });
     }),
+
+  setDmSendEnabled: protectedProcedure.input(setDmSendInput).mutation(async ({ ctx, input }) => {
+    await ctx.db
+      .insert(userSettings)
+      .values({ ownerId: ctx.session.user.id, dmSendEnabled: input.dmSendEnabled })
+      .onConflictDoUpdate({
+        target: userSettings.ownerId,
+        set: { dmSendEnabled: input.dmSendEnabled },
+      });
+  }),
 
   setSessionBudget: protectedProcedure.input(setBudgetInput).mutation(async ({ ctx, input }) => {
     await ctx.db

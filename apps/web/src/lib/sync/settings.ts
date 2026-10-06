@@ -58,3 +58,11 @@ export const loadAllowedAuthors = async (db: Db, ownerId: string): Promise<Set<s
     threshold: settings.creatorThreshold,
   });
 };
+
+export const loadDmSendEnabled = async (db: Db, ownerId: string): Promise<boolean> => {
+  const [row] = await db
+    .select({ enabled: userSettings.dmSendEnabled })
+    .from(userSettings)
+    .where(eq(userSettings.ownerId, ownerId));
+  return row?.enabled ?? false;
+};

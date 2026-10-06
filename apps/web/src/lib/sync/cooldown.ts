@@ -10,3 +10,8 @@ export const remainingCooldownMs = (
   cooldownMs: number,
 ): number =>
   lastRefreshAt === null ? 0 : Math.max(0, cooldownMs - (now.getTime() - lastRefreshAt.getTime()));
+
+export const MESSAGES_COOLDOWN_MS = 60_000;
+
+export const isWithinWindow = (lastAt: Date | null, now: Date, windowMs: number): boolean =>
+  remainingCooldownMs(lastAt, now, windowMs) > 0;

@@ -1,4 +1,4 @@
-import { type Db, igSessions, user } from "@nodistraction/db";
+import { type Db, igSessions, user, userSettings } from "@nodistraction/db";
 import { createTestDb } from "@nodistraction/db/testing";
 import { createEngineClient, type IgCookies, type Requester } from "@nodistraction/ig";
 import { encrypt } from "@/lib/auth/crypto";
@@ -102,11 +102,14 @@ export const createTestEnv = async (
   respond: Responder = () => {
     throw new Error("unexpected request");
   },
-  options: { withSession?: boolean; engine?: EngineResponder } = {},
+  options: { withSession?: boolean; engine?: EngineResponder; dmSendEnabled?: boolean } = {},
 ): Promise<TestEnv> => {
   const db = createTestDb();
   await seedOwner(db);
   if (options.withSession ?? true) await seedSession(db);
+  if (options.dmSendEnabled) {
+    await db.insert(userSettings).values({ ownerId: OWNER, dmSendEnabled: true });
+  }
   const { requester, calls } = fakeRequester(respond);
   const delays = { count: 0 };
   const clock = { current: new Date("2026-10-04T12:00:00Z") };

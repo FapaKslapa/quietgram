@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
+  isWithinWindow,
+  MESSAGES_COOLDOWN_MS,
   REFRESH_COOLDOWN_MS,
   remainingCooldownMs,
   THROTTLE_COOLDOWN_MS,
@@ -31,5 +33,18 @@ describe("cooldown constants", () => {
     expect(REFRESH_COOLDOWN_MS).toBe(FIFTEEN_MINUTES);
     expect(THROTTLE_COOLDOWN_MS).toBe(2 * FIFTEEN_MINUTES);
     expect(throttleMarker(now).getTime()).toBe(now.getTime() + FIFTEEN_MINUTES);
+  });
+});
+
+describe("isWithinWindow", () => {
+  it("is false without a previous sync", () => {
+    expect(isWithinWindow(null, now, MESSAGES_COOLDOWN_MS)).toBe(false);
+  });
+
+  it("is true inside 60 seconds and false at the edge", () => {
+    expect(isWithinWindow(new Date(now.getTime() - 59_000), now, MESSAGES_COOLDOWN_MS)).toBe(true);
+    expect(isWithinWindow(new Date(now.getTime() - 60_000), now, MESSAGES_COOLDOWN_MS)).toBe(
+      false,
+    );
   });
 });

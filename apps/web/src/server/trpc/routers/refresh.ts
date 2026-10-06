@@ -4,7 +4,7 @@ import { z } from "zod";
 import { REFRESH_COOLDOWN_MS } from "@/lib/sync/cooldown";
 import { recheckSession } from "@/lib/sync/recheck";
 import { getRefreshStatus, runRefreshStep, startRefresh } from "@/lib/sync/refresh";
-import { DM_SEND_ENABLED } from "@/server/config";
+import { loadDmSendEnabled } from "@/lib/sync/settings";
 import { guarded } from "@/server/trpc/errors";
 import { createTRPCRouter, protectedProcedure, syncDepsOf } from "@/server/trpc/init";
 
@@ -49,7 +49,7 @@ export const refreshRouter = createTRPCRouter({
       viewerId: session?.igUserId ?? null,
       lastRefreshAt: marker === null ? null : Math.min(marker, ctx.sync.now().getTime()),
       nextRefreshAt: marker === null ? null : marker + REFRESH_COOLDOWN_MS,
-      dmSendEnabled: DM_SEND_ENABLED,
+      dmSendEnabled: await loadDmSendEnabled(ctx.db, ownerId),
     };
   }),
 

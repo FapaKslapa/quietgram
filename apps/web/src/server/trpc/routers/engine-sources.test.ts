@@ -1,11 +1,9 @@
 import { igSessions, syncRuns } from "@nodistraction/db";
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 import { runKeepAlive } from "@/lib/sync/keepalive";
 import { createCallerFactory } from "@/server/trpc/init";
 import { appRouter } from "@/server/trpc/routers/_app";
 import { createTestEnv, type EngineCall, EngineFailure } from "@/test/helpers";
-
-vi.mock("@/server/config", () => ({ DM_SEND_ENABLED: true }));
 
 const createCaller = createCallerFactory(appRouter);
 
@@ -44,7 +42,7 @@ const respond = (call: EngineCall): unknown => {
 
 describe("engine backed routers", () => {
   it("syncs saved posts", async () => {
-    const env = await createTestEnv(undefined, { engine: respond });
+    const env = await createTestEnv(undefined, { engine: respond, dmSendEnabled: true });
     const caller = createCaller(env.context);
     await caller.saved.sync();
     expect((await caller.saved.list()).map((post) => post.id)).toEqual(["s1", "s2"]);
@@ -52,7 +50,7 @@ describe("engine backed routers", () => {
   });
 
   it("syncs the inbox and a thread", async () => {
-    const env = await createTestEnv(undefined, { engine: respond });
+    const env = await createTestEnv(undefined, { engine: respond, dmSendEnabled: true });
     const caller = createCaller(env.context);
     await caller.messages.syncInbox();
     expect((await caller.messages.threads()).map((thread) => thread.id)).toEqual(["77"]);
@@ -64,7 +62,7 @@ describe("engine backed routers", () => {
   });
 
   it("sends a message through the engine", async () => {
-    const env = await createTestEnv(undefined, { engine: respond });
+    const env = await createTestEnv(undefined, { engine: respond, dmSendEnabled: true });
     await createCaller(env.context).messages.send({ threadId: "77", text: "yo" });
     const sent = env.engineCalls.find((call) => call.method === "POST");
     expect(sent).toMatchObject({ path: "/v1/threads/77/messages", body: '{"text":"yo"}' });
@@ -72,6 +70,7 @@ describe("engine backed routers", () => {
 
   it("maps a disabled engine send to a bad gateway", async () => {
     const env = await createTestEnv(undefined, {
+      dmSendEnabled: true,
       engine: (call) =>
         call.method === "POST" ? new EngineFailure(403, { code: "send_disabled" }) : respond(call),
     });
@@ -83,7 +82,7 @@ describe("engine backed routers", () => {
 
 describe("engine session checks", () => {
   it("keeps an active session active with one cheap engine call", async () => {
-    const env = await createTestEnv(undefined, { engine: respond });
+    const env = await createTestEnv(undefined, { engine: respond, dmSendEnabled: true });
     await runKeepAlive(env.deps);
     expect(env.engineCalls.map((call) => call.path)).toEqual(["/v1/session", "/v1/following"]);
     expect(env.engineCalls[1]?.query).toEqual({ amount: "1" });
@@ -93,6 +92,7 @@ describe("engine session checks", () => {
 
   it("flips the session when the engine reports it expired", async () => {
     const env = await createTestEnv(undefined, {
+      dmSendEnabled: true,
       engine: (call) =>
         call.path === "/v1/following"
           ? new EngineFailure(401, { code: "session_expired" })
@@ -104,7 +104,7 @@ describe("engine session checks", () => {
   });
 
   it("recheck pushes the stored session to the engine before checking", async () => {
-    const env = await createTestEnv(undefined, { engine: respond });
+    const env = await createTestEnv(undefined, { engine: respond, dmSendEnabled: true });
     await env.db.update(igSessions).set({ status: "expired" });
     const caller = createCaller(env.context);
     await expect(caller.refresh.recheck()).resolves.toEqual({ sessionStatus: "active" });

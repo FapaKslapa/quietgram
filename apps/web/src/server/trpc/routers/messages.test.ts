@@ -7,12 +7,10 @@ import {
 } from "@nodistraction/ig";
 import inboxFixture from "@nodistraction/ig/fixtures/inbox.json" with { type: "json" };
 import threadFixture from "@nodistraction/ig/fixtures/thread.json" with { type: "json" };
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 import { createCallerFactory } from "@/server/trpc/init";
 import { appRouter } from "@/server/trpc/routers/_app";
 import { createTestEnv, type RecordedCall } from "@/test/helpers";
-
-vi.mock("@/server/config", () => ({ DM_SEND_ENABLED: true }));
 
 const createCaller = createCallerFactory(appRouter);
 
@@ -27,7 +25,7 @@ const respond = (call: RecordedCall): unknown => {
 
 describe("messages router", () => {
   it("syncs the inbox and lists threads by recent activity", async () => {
-    const env = await createTestEnv(respond);
+    const env = await createTestEnv(respond, { dmSendEnabled: true });
     const caller = createCaller(env.context);
     await caller.messages.syncInbox();
     const threads = await caller.messages.threads();
@@ -38,7 +36,7 @@ describe("messages router", () => {
   });
 
   it("syncs a thread then returns its messages in order", async () => {
-    const env = await createTestEnv(respond);
+    const env = await createTestEnv(respond, { dmSendEnabled: true });
     const caller = createCaller(env.context);
     const messages = await caller.messages.thread({ threadId: "7127" });
     expect(messages.length).toBe(threadFixture.thread.items.length);
@@ -48,7 +46,7 @@ describe("messages router", () => {
   });
 
   it("previews the latest stored message of a thread once it is synced", async () => {
-    const env = await createTestEnv(respond);
+    const env = await createTestEnv(respond, { dmSendEnabled: true });
     const caller = createCaller(env.context);
     await caller.messages.syncInbox();
     const [first] = await caller.messages.threads();
@@ -59,7 +57,7 @@ describe("messages router", () => {
   });
 
   it("rejects empty text before any network call", async () => {
-    const env = await createTestEnv(respond);
+    const env = await createTestEnv(respond, { dmSendEnabled: true });
     const caller = createCaller(env.context);
     await expect(caller.messages.send({ threadId: "7127", text: "   " })).rejects.toMatchObject({
       code: "BAD_REQUEST",
@@ -68,7 +66,7 @@ describe("messages router", () => {
   });
 
   it("rejects text over the limit before any network call", async () => {
-    const env = await createTestEnv(respond);
+    const env = await createTestEnv(respond, { dmSendEnabled: true });
     const caller = createCaller(env.context);
     await expect(
       caller.messages.send({ threadId: "7127", text: "x".repeat(1001) }),
@@ -77,7 +75,7 @@ describe("messages router", () => {
   });
 
   it("rejects a malformed thread id before any network call", async () => {
-    const env = await createTestEnv(respond);
+    const env = await createTestEnv(respond, { dmSendEnabled: true });
     const caller = createCaller(env.context);
     await expect(caller.messages.send({ threadId: "../x", text: "hi" })).rejects.toMatchObject({
       code: "BAD_REQUEST",
@@ -86,7 +84,7 @@ describe("messages router", () => {
   });
 
   it("sends and stores the message locally, replaced on the next thread sync", async () => {
-    const env = await createTestEnv(respond);
+    const env = await createTestEnv(respond, { dmSendEnabled: true });
     const caller = createCaller(env.context);
     await caller.messages.syncInbox();
     const sent = await caller.messages.send({ threadId: "7127", text: "  hello  " });
@@ -98,10 +96,13 @@ describe("messages router", () => {
   });
 
   it("surfaces a clear error and stores nothing when sending fails", async () => {
-    const env = await createTestEnv((call) => {
-      if (call.method === "postForm") throw new IgHttpError(400);
-      return respond(call);
-    });
+    const env = await createTestEnv(
+      (call) => {
+        if (call.method === "postForm") throw new IgHttpError(400);
+        return respond(call);
+      },
+      { dmSendEnabled: true },
+    );
     const caller = createCaller(env.context);
     await expect(caller.messages.send({ threadId: "7127", text: "hello" })).rejects.toMatchObject({
       code: "BAD_GATEWAY",
@@ -113,10 +114,13 @@ describe("messages router", () => {
   });
 
   it("reports a rejected write with the reason and keeps the session active", async () => {
-    const env = await createTestEnv((call) => {
-      if (call.method === "postForm") throw new IgRejectedError(403, "feedback_required", true);
-      return respond(call);
-    });
+    const env = await createTestEnv(
+      (call) => {
+        if (call.method === "postForm") throw new IgRejectedError(403, "feedback_required", true);
+        return respond(call);
+      },
+      { dmSendEnabled: true },
+    );
     const caller = createCaller(env.context);
     await expect(caller.messages.send({ threadId: "7127", text: "hello" })).rejects.toMatchObject({
       code: "BAD_GATEWAY",
@@ -130,10 +134,13 @@ describe("messages router", () => {
   });
 
   it("reports a rejected write without a reason", async () => {
-    const env = await createTestEnv((call) => {
-      if (call.method === "postForm") throw new IgRejectedError(403, null, false);
-      return respond(call);
-    });
+    const env = await createTestEnv(
+      (call) => {
+        if (call.method === "postForm") throw new IgRejectedError(403, null, false);
+        return respond(call);
+      },
+      { dmSendEnabled: true },
+    );
     await expect(
       createCaller(env.context).messages.send({ threadId: "7127", text: "hello" }),
     ).rejects.toMatchObject({
@@ -143,10 +150,13 @@ describe("messages router", () => {
   });
 
   it("marks the session expired on a true login_required", async () => {
-    const env = await createTestEnv((call) => {
-      if (call.method === "postForm") throw new SessionExpiredError();
-      return respond(call);
-    });
+    const env = await createTestEnv(
+      (call) => {
+        if (call.method === "postForm") throw new SessionExpiredError();
+        return respond(call);
+      },
+      { dmSendEnabled: true },
+    );
     await expect(
       createCaller(env.context).messages.send({ threadId: "7127", text: "hello" }),
     ).rejects.toMatchObject({ code: "PRECONDITION_FAILED" });
@@ -155,10 +165,13 @@ describe("messages router", () => {
   });
 
   it("keeps the session active and sets a retry time when instagram throttles", async () => {
-    const env = await createTestEnv((call) => {
-      if (call.method === "postForm") throw new IgThrottledError();
-      return respond(call);
-    });
+    const env = await createTestEnv(
+      (call) => {
+        if (call.method === "postForm") throw new IgThrottledError();
+        return respond(call);
+      },
+      { dmSendEnabled: true },
+    );
     const caller = createCaller(env.context);
     await expect(caller.messages.send({ threadId: "7127", text: "hello" })).rejects.toMatchObject({
       code: "TOO_MANY_REQUESTS",
@@ -171,5 +184,43 @@ describe("messages router", () => {
     const overview = await caller.refresh.overview();
     expect(overview.nextRefreshAt).toBe(env.clock.current.getTime() + 30 * 60_000);
     expect(overview.lastRefreshAt).toBe(env.clock.current.getTime());
+  });
+});
+
+describe("messages cooldown", () => {
+  it("does not call Instagram again for the same inbox or thread within 60 seconds", async () => {
+    const env = await createTestEnv(respond);
+    const caller = createCaller(env.context);
+    await caller.messages.syncInbox();
+    await caller.messages.syncInbox();
+    await caller.messages.thread({ threadId: "7127" });
+    await caller.messages.thread({ threadId: "7127" });
+    expect(env.calls.map((call) => call.path)).toEqual([
+      "/api/v1/direct_v2/inbox/",
+      "/api/v1/direct_v2/threads/7127/",
+    ]);
+  });
+
+  it("syncs a different thread right away and each view again after 60 seconds", async () => {
+    const env = await createTestEnv(respond);
+    const caller = createCaller(env.context);
+    await caller.messages.thread({ threadId: "7127" });
+    await caller.messages.thread({ threadId: "8000" });
+    env.clock.current = new Date(env.clock.current.getTime() + 61_000);
+    await caller.messages.thread({ threadId: "7127" });
+    expect(env.calls).toHaveLength(3);
+  });
+
+  it("does not start the window when the sync fails", async () => {
+    let failing = true;
+    const env = await createTestEnv((call) => {
+      if (failing) throw new IgHttpError(500);
+      return respond(call);
+    });
+    const caller = createCaller(env.context);
+    await expect(caller.messages.syncInbox()).rejects.toBeDefined();
+    failing = false;
+    await caller.messages.syncInbox();
+    expect(await caller.messages.threads()).not.toHaveLength(0);
   });
 });

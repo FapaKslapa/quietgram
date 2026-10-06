@@ -18,6 +18,7 @@ describe("settings router", () => {
   it("returns defaults", async () => {
     const { caller } = await setup();
     expect(await caller.settings.get()).toEqual({
+      dmSendEnabled: false,
       feedMode: "friends",
       creatorThreshold: 10000,
       recencyDays: 14,
