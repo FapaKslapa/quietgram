@@ -64,3 +64,30 @@ def test_signature_binds_method_and_path(harness: Harness) -> None:
         "x-ig-account-id": "acc1",
     }
     assert harness.http.get("/v1/following", headers=headers).status_code == 401
+
+
+def test_query_string_is_covered_by_the_signature(harness: Harness) -> None:
+    harness.login()
+    timestamp = str(int(time.time()))
+    headers = {
+        "x-engine-timestamp": timestamp,
+        "x-engine-signature": sign(SECRET, timestamp, "GET", "/v1/following?amount=5", b""),
+        "x-ig-account-id": "acc1",
+    }
+    assert harness.http.get("/v1/following?amount=5", headers=headers).status_code == 200
+    assert harness.http.get("/v1/following?amount=500", headers=headers).status_code == 401
+    assert harness.http.get("/v1/following", headers=headers).status_code == 401
+
+
+def test_query_order_does_not_matter(harness: Harness) -> None:
+    harness.login()
+    response = harness.request("GET", "/v1/timeline", query="?cursor=a&amount=1")
+    assert response.status_code == 200
+    timestamp = str(int(time.time()))
+    target = "/v1/timeline?amount=1&cursor=a"
+    headers = {
+        "x-engine-timestamp": timestamp,
+        "x-engine-signature": sign(SECRET, timestamp, "GET", target, b""),
+        "x-ig-account-id": "acc1",
+    }
+    assert harness.http.get("/v1/timeline?cursor=a&amount=1", headers=headers).status_code == 200

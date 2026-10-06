@@ -2,13 +2,14 @@ import json
 import time
 from collections.abc import Callable
 from pathlib import Path
+from urllib.parse import parse_qsl
 
 import httpx
 import pytest
 from fastapi.testclient import TestClient
 
 from ig_engine.app import create_app
-from ig_engine.auth import sign
+from ig_engine.auth import sign, signed_target
 from ig_engine.config import Settings
 from tests.fakes import SESSION_ID, Behavior, FakeInstagramClient
 
@@ -48,7 +49,13 @@ class Harness:
         timestamp = str(int(time.time()) - age_seconds)
         headers = {
             "x-engine-timestamp": timestamp,
-            "x-engine-signature": sign(secret, timestamp, method, path, payload),
+            "x-engine-signature": sign(
+                secret,
+                timestamp,
+                method,
+                signed_target(path, parse_qsl(query.lstrip("?"))),
+                payload,
+            ),
             "content-type": "application/json",
         }
         if account is not None:

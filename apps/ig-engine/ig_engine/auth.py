@@ -2,6 +2,7 @@ import hashlib
 import hmac
 import time
 from typing import Annotated
+from urllib.parse import urlencode
 
 from fastapi import Depends, Request
 
@@ -16,6 +17,12 @@ def sign(secret: str, timestamp: str, method: str, path: str, body: bytes) -> st
     digest = hashlib.sha256(body).hexdigest()
     message = f"{timestamp}.{method.upper()}.{path}.{digest}"
     return hmac.new(secret.encode(), message.encode(), hashlib.sha256).hexdigest()
+
+
+def signed_target(path: str, query_items: list[tuple[str, str]]) -> str:
+    if not query_items:
+        return path
+    return f"{path}?{urlencode(sorted(query_items))}"
 
 
 async def verify_request(
@@ -35,7 +42,7 @@ async def verify_request(
         settings.engine_secret.get_secret_value(),
         timestamp,
         request.method,
-        request.url.path,
+        signed_target(request.url.path, request.query_params.multi_items()),
         await request.body(),
     )
     if not hmac.compare_digest(expected, signature):
