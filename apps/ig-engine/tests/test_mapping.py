@@ -1,0 +1,100 @@
+from datetime import UTC, datetime
+from types import SimpleNamespace
+
+from ig_engine.mapping import to_message, to_post, to_thread, to_user
+
+MOMENT = datetime(2024, 1, 1, tzinfo=UTC)
+MOMENT_MS = 1_704_067_200_000
+
+
+def media(**overrides: object) -> SimpleNamespace:
+    base: dict[str, object] = {
+        "pk": 11,
+        "user": SimpleNamespace(pk="7", username="alice"),
+        "caption_text": "hello",
+        "taken_at": MOMENT,
+        "product_type": "feed",
+        "media_type": 1,
+        "dimensions": SimpleNamespace(width=640, height=800),
+        "video_url": None,
+        "thumbnail_url": "https://cdn.example/p.jpg",
+        "resources": [],
+    }
+    return SimpleNamespace(**{**base, **overrides})
+
+
+def test_image_post_mapping() -> None:
+    post = to_post(media())
+    assert post.model_dump() == {
+        "id": "11",
+        "author_id": "7",
+        "author_username": "alice",
+        "caption": "hello",
+        "taken_at_ms": MOMENT_MS,
+        "product_type": "feed",
+        "media": [
+            {"kind": "image", "url": "https://cdn.example/p.jpg", "width": 640, "height": 800}
+        ],
+    }
+
+
+def test_reel_keeps_product_type_and_video_kind() -> None:
+    reel = media(product_type="clips", media_type=2, video_url="https://cdn.example/r.mp4")
+    post = to_post(reel)
+    assert post.product_type == "clips"
+    assert post.media[0].kind == "video"
+    assert post.media[0].url == "https://cdn.example/r.mp4"
+
+
+def test_empty_caption_becomes_null_and_missing_dimensions_become_zero() -> None:
+    post = to_post(media(caption_text="", dimensions=None))
+    assert post.caption is None
+    assert (post.media[0].width, post.media[0].height) == (0, 0)
+
+
+def test_album_maps_each_resource() -> None:
+    resources = [
+        SimpleNamespace(media_type=1, video_url=None, thumbnail_url="https://cdn.example/1.jpg"),
+        SimpleNamespace(media_type=2, video_url="https://cdn.example/2.mp4", thumbnail_url=None),
+    ]
+    post = to_post(media(media_type=8, resources=resources))
+    assert [item.kind for item in post.media] == ["image", "video"]
+
+
+def test_user_mapping_defaults() -> None:
+    user = SimpleNamespace(
+        pk=5, username="bob", profile_pic_url="https://cdn.example/b.jpg", is_verified=None
+    )
+    mapped = to_user(user)
+    assert mapped.model_dump() == {
+        "id": "5",
+        "username": "bob",
+        "avatar_url": "https://cdn.example/b.jpg",
+        "is_verified": False,
+        "is_business": False,
+        "follower_count": None,
+    }
+
+
+def test_thread_and_message_mapping() -> None:
+    latest = SimpleNamespace(
+        id="m1", user_id=None, text="yo", timestamp=MOMENT, is_sent_by_viewer=False
+    )
+    thread = SimpleNamespace(
+        id="99", thread_title="Alice", last_activity_at=MOMENT, read_state=1, messages=[latest]
+    )
+    mapped = to_thread(thread)
+    assert (mapped.id, mapped.title, mapped.unread, mapped.preview) == ("99", "Alice", True, "yo")
+    assert mapped.last_activity_at_ms == MOMENT_MS
+    message = to_message(latest)
+    assert message.sender_id is None
+    assert message.sent_at_ms == MOMENT_MS
+
+
+def test_empty_thread_has_no_preview() -> None:
+    thread = SimpleNamespace(
+        id="1", thread_title="", last_activity_at=MOMENT, read_state=0, messages=[]
+    )
+    mapped = to_thread(thread)
+    assert mapped.preview is None
+    assert mapped.unread is False
