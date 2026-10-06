@@ -1,6 +1,6 @@
 import { igSessions, syncRuns, syncState } from "@nodistraction/db";
-import { SessionExpiredError } from "@nodistraction/ig";
-import { and, eq } from "drizzle-orm";
+import { IgThrottledError, SessionExpiredError } from "@nodistraction/ig";
+import { and, eq, gt } from "drizzle-orm";
 import { startAuthorsPhase, stepAuthors } from "@/lib/sync/authors";
 import { REFRESH_COOLDOWN_MS, remainingCooldownMs } from "@/lib/sync/cooldown";
 import { refreshCounts } from "@/lib/sync/counts";
@@ -13,6 +13,7 @@ import {
   stepFollowing,
 } from "@/lib/sync/graph";
 import {
+  parseRestoreAt,
   parseRunState,
   type RunState,
   remainingSteps,
@@ -56,12 +57,31 @@ const toProgress = (run: {
   total: run.total,
 });
 
+const DOUBLE_START_WINDOW_MS = 2 * 60_000;
+
+const findActiveRun = async (deps: SyncDeps, ownerId: string, now: Date) => {
+  const [run] = await deps.db
+    .select()
+    .from(syncRuns)
+    .where(
+      and(
+        eq(syncRuns.ownerId, ownerId),
+        eq(syncRuns.kind, "refresh"),
+        eq(syncRuns.status, "running"),
+        gt(syncRuns.startedAt, new Date(now.getTime() - DOUBLE_START_WINDOW_MS)),
+      ),
+    );
+  return run ?? null;
+};
+
 export const startRefresh = async (
   deps: SyncDeps,
   ownerId: string,
   cooldownMs: number = REFRESH_COOLDOWN_MS,
 ): Promise<{ runId: string; total: number }> => {
   const now = deps.now();
+  const active = await findActiveRun(deps, ownerId, now);
+  if (active) return { runId: active.id, total: active.total };
   const [state] = await deps.db.select().from(syncState).where(eq(syncState.ownerId, ownerId));
   const remaining = remainingCooldownMs(state?.lastRefreshAt ?? null, now, cooldownMs);
   if (remaining > 0) throw new CooldownError(Math.ceil(remaining / 1000));
@@ -93,7 +113,7 @@ export const startRefresh = async (
     status: "running",
     total,
     completed: 0,
-    state: serializeRunState(first),
+    state: serializeRunState(first, state?.lastRefreshAt?.getTime() ?? null),
   });
   await deps.db
     .insert(syncState)
@@ -108,11 +128,32 @@ export const getRefreshStatus = async (
   runId: string,
 ): Promise<RefreshProgress> => toProgress(await findRun(deps, ownerId, runId));
 
-const failRun = async (deps: SyncDeps, runId: string): Promise<void> => {
+const restoreMarker = async (
+  deps: SyncDeps,
+  ownerId: string,
+  run: { startedAt: Date; state: string | null },
+): Promise<void> => {
+  const previous = parseRestoreAt(run.state);
+  const lastRefreshAt = previous === null ? null : new Date(previous);
+  await deps.db
+    .update(syncState)
+    .set({ lastRefreshAt })
+    .where(and(eq(syncState.ownerId, ownerId), eq(syncState.lastRefreshAt, run.startedAt)));
+};
+
+const failRun = async (
+  deps: SyncDeps,
+  ownerId: string,
+  run: { id: string; startedAt: Date; completed: number; state: string | null },
+  error: unknown,
+): Promise<void> => {
   await deps.db
     .update(syncRuns)
     .set({ status: "failed", finishedAt: deps.now() })
-    .where(eq(syncRuns.id, runId));
+    .where(eq(syncRuns.id, run.id));
+  if (run.completed === 0 && !(error instanceof IgThrottledError)) {
+    await restoreMarker(deps, ownerId, run);
+  }
 };
 
 export const runRefreshStep = async (
@@ -144,7 +185,7 @@ export const runRefreshStep = async (
       }
     });
   } catch (error) {
-    await failRun(deps, runId);
+    await failRun(deps, ownerId, run, error);
     throw error;
   }
 
@@ -156,7 +197,7 @@ export const runRefreshStep = async (
     .set({
       completed,
       total,
-      state: next ? serializeRunState(next) : null,
+      state: next ? serializeRunState(next, parseRestoreAt(run.state)) : null,
       status: finished ? "done" : "running",
       finishedAt: finished ? deps.now() : null,
     })

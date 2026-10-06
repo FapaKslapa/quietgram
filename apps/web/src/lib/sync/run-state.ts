@@ -31,7 +31,15 @@ export type RunState = z.output<typeof runStateSchema>;
 export const parseRunState = (raw: string | null): RunState =>
   runStateSchema.parse(JSON.parse(raw ?? "null"));
 
-export const serializeRunState = (state: RunState): string => JSON.stringify(state);
+const restoreSchema = z.compile(z.object({ restoreAt: z.number().nullable().optional() }));
+
+export const parseRestoreAt = (raw: string | null): number | null => {
+  const parsed = restoreSchema.safeParse(JSON.parse(raw ?? "{}"));
+  return parsed.success ? (parsed.data.restoreAt ?? null) : null;
+};
+
+export const serializeRunState = (state: RunState, restoreAt: number | null = null): string =>
+  JSON.stringify({ ...state, restoreAt });
 
 export const afterTimeline = (mode: FeedMode): RunState | null =>
   mode === "creators" ? { phase: "counts" } : null;

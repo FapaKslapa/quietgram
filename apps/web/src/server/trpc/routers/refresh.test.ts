@@ -410,6 +410,86 @@ describe("refresh throttling", () => {
   });
 });
 
+describe("refresh cooldown consumption", () => {
+  it("restores the previous marker when the first step fails with a network error", async () => {
+    const env = await createTestEnv(() => {
+      throw new IgHttpError(500);
+    });
+    const previous = new Date("2026-10-04T11:00:00Z");
+    await env.db.insert(syncState).values({ ownerId: "owner", lastRefreshAt: previous });
+    const caller = createCaller(env.context);
+    const { runId } = await caller.refresh.start();
+    await expect(caller.refresh.step({ runId })).rejects.toBeDefined();
+    const overview = await caller.refresh.overview();
+    expect(overview.lastRefreshAt).toBe(previous.getTime());
+    await expect(caller.refresh.start()).resolves.toMatchObject({ total: 4 });
+  });
+
+  it("clears the marker when a first-ever refresh fails before any step", async () => {
+    const env = await createTestEnv(() => {
+      throw new IgHttpError(500);
+    });
+    const caller = createCaller(env.context);
+    const { runId } = await caller.refresh.start();
+    await expect(caller.refresh.step({ runId })).rejects.toBeDefined();
+    expect((await caller.refresh.overview()).nextRefreshAt).toBeNull();
+  });
+
+  it("keeps the cooldown once a step has completed", async () => {
+    const env = await createTestEnv((call) => {
+      if (call.path === "/api/v1/feed/timeline/") throw new IgHttpError(500);
+      return world()(call);
+    });
+    const caller = createCaller(env.context);
+    const { runId } = await caller.refresh.start();
+    await caller.refresh.step({ runId });
+    await caller.refresh.step({ runId });
+    await expect(caller.refresh.step({ runId })).rejects.toBeDefined();
+    const overview = await caller.refresh.overview();
+    expect(overview.nextRefreshAt).toBe(env.clock.current.getTime() + 15 * 60_000);
+  });
+
+  it("does not undo the throttle penalty on a first-step throttle", async () => {
+    const env = await createTestEnv(() => {
+      throw new IgThrottledError();
+    });
+    const caller = createCaller(env.context);
+    const { runId } = await caller.refresh.start();
+    await expect(caller.refresh.step({ runId })).rejects.toBeDefined();
+    expect((await caller.refresh.overview()).nextRefreshAt).toBe(
+      env.clock.current.getTime() + 30 * 60_000,
+    );
+  });
+
+  it("restores the marker when the session is expired at the first step", async () => {
+    const env = await createTestEnv(world());
+    const caller = createCaller(env.context);
+    const { runId } = await caller.refresh.start();
+    await env.db.update(igSessions).set({ status: "expired" });
+    await expect(caller.refresh.step({ runId })).rejects.toBeDefined();
+    expect((await caller.refresh.overview()).nextRefreshAt).toBeNull();
+  });
+});
+
+describe("refresh.start double click", () => {
+  it("returns the running run when started less than two minutes ago", async () => {
+    const env = await createTestEnv(world());
+    const caller = createCaller(env.context);
+    const first = await caller.refresh.start();
+    env.clock.current = new Date(env.clock.current.getTime() + 90_000);
+    await expect(caller.refresh.start()).resolves.toEqual(first);
+    expect(await env.db.select().from(syncRuns)).toHaveLength(1);
+  });
+
+  it("falls back to the cooldown once the run is older than two minutes", async () => {
+    const env = await createTestEnv(world());
+    const caller = createCaller(env.context);
+    await caller.refresh.start();
+    env.clock.current = new Date(env.clock.current.getTime() + 121_000);
+    await expect(caller.refresh.start()).rejects.toMatchObject({ code: "TOO_MANY_REQUESTS" });
+  });
+});
+
 describe("refresh.recheck", () => {
   it("reactivates an expired session with the lightest call", async () => {
     const env = await createTestEnv(() => currentUserFixture);
