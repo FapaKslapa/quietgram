@@ -22,6 +22,7 @@ class User(BaseModel):
     is_verified: bool
     is_business: bool
     follower_count: int | None
+    latest_reel_media: int | None
 
 
 class Media(BaseModel):

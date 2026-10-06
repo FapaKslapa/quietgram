@@ -26,6 +26,7 @@ def to_user(user: UserShort) -> User:
         is_verified=bool(user.is_verified),
         is_business=bool(getattr(user, "is_business", False)),
         follower_count=getattr(user, "follower_count", None),
+        latest_reel_media=getattr(user, "latest_reel_media", None),
     )
 
 

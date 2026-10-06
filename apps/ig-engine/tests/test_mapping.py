@@ -86,6 +86,7 @@ def test_user_mapping_defaults() -> None:
         "is_verified": False,
         "is_business": False,
         "follower_count": None,
+        "latest_reel_media": None,
     }
 
 
@@ -153,3 +154,10 @@ def test_message_kinds() -> None:
     assert message_kind(item("raw_media")) == "photo"
     assert message_kind(item("reel_share")) == "other"
     assert message_kind(item("placeholder")) == "other"
+
+
+def test_user_keeps_latest_reel_media() -> None:
+    user = SimpleNamespace(
+        pk=6, username="cy", profile_pic_url=None, is_verified=True, latest_reel_media=1_700_000_000
+    )
+    assert to_user(user).latest_reel_media == 1_700_000_000

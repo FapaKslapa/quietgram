@@ -57,6 +57,7 @@ class FakeInstagramClient:
                 is_verified=False,
                 is_business=False,
                 follower_count=None,
+                latest_reel_media=1_700_000_000,
             )
         ]
 
