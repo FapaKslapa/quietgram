@@ -266,6 +266,7 @@ export const following = sqliteTable(
     countsRefreshedAt: integer("counts_refreshed_at", { mode: "timestamp_ms" }),
     postsCheckedAt: integer("posts_checked_at", { mode: "timestamp_ms" }),
     lastPostAt: integer("last_post_at", { mode: "timestamp_ms" }),
+    latestReelMedia: integer("latest_reel_media"),
   },
   (t) => [primaryKey({ columns: [t.ownerId, t.igUserId] })],
 );

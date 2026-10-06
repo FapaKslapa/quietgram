@@ -1,0 +1,1 @@
+ALTER TABLE `following` ADD `latest_reel_media` integer;
