@@ -2,17 +2,70 @@
 <html lang="it">
   <head>
     <meta charset="utf-8" />
+    <meta name="color-scheme" content="light dark" />
     <title>nodistraction</title>
-    <style>
-      body { width: 280px; padding: 12px; font-family: system-ui, sans-serif; }
-      input, button { width: 100%; box-sizing: border-box; margin-top: 8px; padding: 6px; }
-    </style>
+    <link rel="stylesheet" href="popup.css" />
   </head>
   <body>
-    <label for="token">Token di collegamento</label>
-    <input id="token" type="text" autocomplete="off" />
-    <button id="pair" type="button">Collega</button>
-    <p id="status" role="status"></p>
+    <main id="root" data-view="unpaired" data-busy="false">
+      <header class="head">
+        <div class="weave" aria-hidden="true"></div>
+        <svg class="mark" viewBox="0 0 512 512" width="40" height="40" aria-hidden="true">
+          <rect width="512" height="512" rx="116" fill="currentColor" />
+          <path
+            d="M96 256 C 146 176, 196 176, 256 256 S 366 336, 416 256"
+            fill="none"
+            stroke="var(--background)"
+            stroke-width="30"
+            stroke-linecap="round"
+          />
+        </svg>
+      </header>
+
+      <section id="connect" class="panel" hidden>
+        <h1 id="connect-title">Collega Instagram</h1>
+        <p id="connect-help" class="help"></p>
+        <form id="form" novalidate>
+          <label class="field-label" for="code">Codice di collegamento</label>
+          <input
+            id="code"
+            name="code"
+            type="text"
+            inputmode="text"
+            autocomplete="off"
+            autocapitalize="off"
+            autocorrect="off"
+            spellcheck="false"
+            placeholder="Incolla il codice"
+            aria-describedby="error"
+          />
+          <p id="error" class="error" role="alert" hidden></p>
+          <button id="submit" class="button primary" type="submit"></button>
+        </form>
+        <p id="connect-session" class="session"><span class="dot" aria-hidden="true"></span><span id="connect-session-text"></span></p>
+      </section>
+
+      <section id="paired" class="panel" hidden>
+        <svg class="check" viewBox="0 0 56 56" width="48" height="48" aria-hidden="true">
+          <circle class="check-ring" cx="28" cy="28" r="26" />
+          <path class="check-tick" d="M17 29.5 L25 37 L39.5 20" />
+        </svg>
+        <h1>Instagram collegato</h1>
+        <p id="paired-date" class="help"></p>
+        <dl class="card">
+          <div class="row">
+            <dt>Sessione Instagram</dt>
+            <dd id="paired-session"></dd>
+          </div>
+          <div class="row">
+            <dt>App</dt>
+            <dd id="paired-origin"></dd>
+          </div>
+        </dl>
+        <a id="open-app" class="button primary" href="__APP_ORIGIN__/" target="_blank" rel="noopener">Apri l'app</a>
+        <button id="unpair" class="button ghost" type="button">Scollega</button>
+      </section>
+    </main>
     <script src="popup.js"></script>
   </body>
 </html>

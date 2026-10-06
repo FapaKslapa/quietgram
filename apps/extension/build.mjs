@@ -29,4 +29,10 @@ if (firefox) {
 }
 
 await writeFile(`${outdir}/manifest.json`, `${JSON.stringify(manifest, null, 2)}\n`);
-await cp("popup.html", `${outdir}/popup.html`);
+await writeFile(
+  `${outdir}/popup.html`,
+  (await readFile("popup.html", "utf8")).replaceAll("__APP_ORIGIN__", appOrigin),
+);
+await cp("popup.css", `${outdir}/popup.css`);
+await cp("assets/onest.woff2", `${outdir}/onest.woff2`);
+await cp("assets/icons", `${outdir}/icons`, { recursive: true });
