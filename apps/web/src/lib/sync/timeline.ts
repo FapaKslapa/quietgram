@@ -16,14 +16,15 @@ export const stepTimeline = async (
   mode: FeedMode,
 ): Promise<RunState | null> => {
   const allowed = await loadAllowedAuthors(deps.db, ownerId);
-  if (allowed.size === 0) return afterTimeline(mode);
+  if (allowed.size === 0) return afterTimeline(mode, source.kind);
 
   const page = await source.timelinePage(state.cursor ?? undefined);
   const { alreadyStored } = await storePosts(deps, ownerId, filterByAuthors(page.posts, allowed));
 
   const nextPage = state.page + 1;
-  const exhausted = alreadyStored > 0 || page.nextCursor === null || nextPage >= MAX_TIMELINE_PAGES;
+  const caughtUp = source.kind === "direct" && alreadyStored > 0;
+  const exhausted = caughtUp || page.nextCursor === null || nextPage >= MAX_TIMELINE_PAGES;
   return exhausted
-    ? afterTimeline(mode)
+    ? afterTimeline(mode, source.kind)
     : { phase: "timeline", cursor: page.nextCursor, page: nextPage };
 };

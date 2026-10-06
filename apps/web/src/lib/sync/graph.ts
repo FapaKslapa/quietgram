@@ -43,6 +43,7 @@ const upsertFollowing = async (deps: SyncDeps, ownerId: string, users: IgUser[])
           username: entry.username,
           avatarUrl: entry.avatarUrl,
           isVerified: entry.isVerified,
+          latestReelMedia: entry.latestReelMedia,
         })),
       )
       .onConflictDoUpdate({
@@ -51,6 +52,7 @@ const upsertFollowing = async (deps: SyncDeps, ownerId: string, users: IgUser[])
           username: sql`excluded.username`,
           avatarUrl: sql`excluded.avatar_url`,
           isVerified: sql`excluded.is_verified`,
+          latestReelMedia: sql`excluded.latest_reel_media`,
         },
       });
   }

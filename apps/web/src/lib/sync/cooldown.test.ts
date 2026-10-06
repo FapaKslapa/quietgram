@@ -43,8 +43,6 @@ describe("isWithinWindow", () => {
 
   it("is true inside 60 seconds and false at the edge", () => {
     expect(isWithinWindow(new Date(now.getTime() - 59_000), now, MESSAGES_COOLDOWN_MS)).toBe(true);
-    expect(isWithinWindow(new Date(now.getTime() - 60_000), now, MESSAGES_COOLDOWN_MS)).toBe(
-      false,
-    );
+    expect(isWithinWindow(new Date(now.getTime() - 60_000), now, MESSAGES_COOLDOWN_MS)).toBe(false);
   });
 });

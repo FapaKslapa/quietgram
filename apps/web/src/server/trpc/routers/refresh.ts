@@ -18,6 +18,7 @@ const progressOutput = z.compile(
     done: z.boolean(),
     completed: z.number(),
     total: z.number(),
+    authors: z.object({ checked: z.number(), total: z.number() }).nullable(),
   }),
 );
 

@@ -13,6 +13,7 @@ import {
   stepFollowing,
 } from "@/lib/sync/graph";
 import {
+  authorsProgress,
   parseRestoreAt,
   parseRunState,
   type RunState,
@@ -28,6 +29,7 @@ export type RefreshProgress = {
   done: boolean;
   completed: number;
   total: number;
+  authors: { checked: number; total: number } | null;
 };
 
 const initialState = async (deps: SyncDeps, ownerId: string, stale: boolean): Promise<RunState> => {
@@ -50,11 +52,13 @@ const toProgress = (run: {
   status: RefreshProgress["status"];
   completed: number;
   total: number;
-}) => ({
+  state: string | null;
+}): RefreshProgress => ({
   status: run.status,
   done: run.status !== "running",
   completed: run.completed,
   total: run.total,
+  authors: run.status === "running" ? authorsProgress(parseRunState(run.state)) : null,
 });
 
 const DOUBLE_START_WINDOW_MS = 2 * 60_000;
@@ -183,7 +187,7 @@ export const runRefreshStep = async (
         case "timeline":
           return stepTimeline(deps, ownerId, source, state, feedMode);
         case "authors":
-          return stepAuthors(deps, ownerId, source, state);
+          return stepAuthors(deps, ownerId, source, state, feedMode);
         case "counts":
           await refreshCounts(deps, ownerId, source);
           return null;
@@ -208,5 +212,11 @@ export const runRefreshStep = async (
       finishedAt: finished ? deps.now() : null,
     })
     .where(eq(syncRuns.id, runId));
-  return { status: finished ? "done" : "running", done: finished, completed, total };
+  return {
+    status: finished ? "done" : "running",
+    done: finished,
+    completed,
+    total,
+    authors: authorsProgress(next),
+  };
 };

@@ -23,6 +23,8 @@ const listOutput = z.compile(
     items: z.array(
       z.object({
         id: z.string(),
+        shortcode: z.string().nullable(),
+        productType: z.string().nullable(),
         authorId: z.string(),
         authorUsername: z.string(),
         authorAvatarUrl: z.string().nullable(),

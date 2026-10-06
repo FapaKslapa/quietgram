@@ -35,12 +35,14 @@ export const storePosts = async (
     recent.map((post) => post.id),
   );
   const fresh = recent.filter((post) => !stored.has(post.id));
-  for (const rows of chunkRows(fresh, 7)) {
+  for (const rows of chunkRows(fresh, 9)) {
     await deps.db
       .insert(posts)
       .values(
         rows.map((post) => ({
           id: post.id,
+          shortcode: post.code,
+          productType: post.productType,
           ownerId,
           authorId: post.authorId,
           authorUsername: post.authorUsername,

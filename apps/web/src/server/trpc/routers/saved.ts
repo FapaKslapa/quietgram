@@ -7,6 +7,8 @@ const listOutput = z.compile(
   z.array(
     z.object({
       id: z.string(),
+      shortcode: z.string().nullable(),
+      productType: z.string().nullable(),
       authorUsername: z.string(),
       caption: z.string().nullable(),
       media: z.array(

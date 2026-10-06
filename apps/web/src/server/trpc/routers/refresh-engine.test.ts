@@ -35,6 +35,7 @@ type World = {
   followers?: string[];
   active?: boolean;
   postsFor?: (authorId: string) => unknown[];
+  timeline?: unknown[];
   fail?: (call: EngineCall) => unknown;
 };
 
@@ -50,6 +51,9 @@ const world = (config: World = {}) => {
     }
     if (call.path === "/v1/followers") {
       return { users: (config.followers ?? ["5071"]).map(engineUser) };
+    }
+    if (call.path === "/v1/timeline") {
+      return { posts: (config.timeline ?? []).slice(), next_cursor: null };
     }
     const match = /^\/v1\/users\/(\d+)\/posts$/.exec(call.path);
     if (match?.[1]) {
@@ -126,6 +130,47 @@ describe("refresh with the engine", () => {
     await runToEnd(caller);
     const second = postCalls(env.engineCalls).slice(before);
     expect(second[0]?.path).toBe("/v1/users/8/posts");
+  });
+
+  it("also merges timeline posts of allowed authors in following mode without duplicates", async () => {
+    const env = await createTestEnv(undefined, {
+      engine: world({
+        following: ["1", "2"],
+        followers: [],
+        timeline: [
+          enginePost("p-1", "1"),
+          enginePost("t-2", "2"),
+          enginePost("t-9", "9"),
+          enginePost("r-2", "2", "clips"),
+        ],
+      }),
+    });
+    const caller = createCaller(env.context);
+    await caller.settings.setFeedMode({ feedMode: "following" });
+    const { progress } = await runToEnd(caller);
+    expect(progress.done).toBe(true);
+    const stored = await env.db.select().from(posts);
+    expect(stored.map((post) => post.id).sort()).toEqual(["p-1", "p-2", "t-2"]);
+    expect(env.engineCalls.filter((call) => call.path === "/v1/timeline")).toHaveLength(1);
+  });
+
+  it("does not walk the timeline in friends mode", async () => {
+    const env = await createTestEnv(undefined, { engine: world() });
+    await runToEnd(createCaller(env.context));
+    expect(env.engineCalls.some((call) => call.path === "/v1/timeline")).toBe(false);
+  });
+
+  it("reports how many accounts were checked while running", async () => {
+    const ids = ["1", "2", "3", "4", "5", "6", "7", "8"];
+    const env = await createTestEnv(undefined, {
+      engine: world({ following: ids, followers: ids }),
+    });
+    const caller = createCaller(env.context);
+    const { runId } = await caller.refresh.start();
+    await caller.refresh.step({ runId });
+    await caller.refresh.step({ runId });
+    const progress = await caller.refresh.step({ runId });
+    expect(progress.authors).toEqual({ checked: 6, total: 8 });
   });
 
   it("hands the session over once when the engine has none", async () => {

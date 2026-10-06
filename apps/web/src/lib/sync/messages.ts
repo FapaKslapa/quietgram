@@ -82,7 +82,7 @@ export const syncThread = async (
         like(dmMessages.id, `${LOCAL_ID_PREFIX}%`),
       ),
     );
-  for (const group of chunkRows(messages, 6)) {
+  for (const group of chunkRows(messages, 7)) {
     await deps.db
       .insert(dmMessages)
       .values(

@@ -7,6 +7,8 @@ import { withIgSession } from "@/lib/sync/session";
 
 export type SavedPost = {
   id: string;
+  shortcode: string | null;
+  productType: string | null;
   authorUsername: string;
   caption: string | null;
   media: MediaList;
@@ -17,13 +19,15 @@ export const syncSaved = async (deps: SyncDeps, ownerId: string): Promise<void> 
   await deps.db.delete(saved).where(eq(saved.ownerId, ownerId));
   const rows = items.map((post, position) => ({
     id: post.id,
+    shortcode: post.code,
+    productType: post.productType,
     ownerId,
     authorUsername: post.authorUsername,
     caption: post.caption,
     mediaJson: JSON.stringify(post.media),
     position,
   }));
-  for (const group of chunkRows(rows, 6)) {
+  for (const group of chunkRows(rows, 8)) {
     await deps.db.insert(saved).values(group).onConflictDoNothing();
   }
 };
@@ -36,6 +40,8 @@ export const listSaved = async (db: Db, ownerId: string): Promise<SavedPost[]> =
     .orderBy(asc(saved.position));
   return rows.map((row) => ({
     id: row.id,
+    shortcode: row.shortcode,
+    productType: row.productType,
     authorUsername: row.authorUsername,
     caption: row.caption,
     media: parseMedia(row.mediaJson),

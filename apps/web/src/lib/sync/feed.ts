@@ -31,6 +31,8 @@ export const parseMedia = (mediaJson: string): MediaList =>
 
 export type FeedPost = {
   id: string;
+  shortcode: string | null;
+  productType: string | null;
   authorId: string;
   authorUsername: string;
   authorAvatarUrl: string | null;
@@ -104,6 +106,8 @@ export const listFeed = async (
       if (allowed.has(row.authorId)) {
         items.push({
           id: row.id,
+          shortcode: row.shortcode,
+          productType: row.productType,
           authorId: row.authorId,
           authorUsername: row.authorUsername,
           authorAvatarUrl: null,
