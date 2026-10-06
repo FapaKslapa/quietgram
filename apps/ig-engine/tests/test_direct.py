@@ -52,3 +52,9 @@ def test_thread_listing_and_messages(harness: Harness) -> None:
 def test_thread_id_must_be_numeric(harness: Harness) -> None:
     harness.login()
     assert harness.request("GET", "/v1/threads/abc").status_code == 422
+
+
+def test_thread_id_accepts_long_numeric_ids(harness: Harness) -> None:
+    harness.login()
+    response = harness.request("GET", "/v1/threads/340282366841710301281160381813271072048")
+    assert response.status_code == 200

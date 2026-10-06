@@ -17,7 +17,7 @@ router = APIRouter(prefix="/threads")
 
 Pool = Annotated[ClientPool, Depends(get_pool)]
 Amount = Annotated[int, Query(ge=1, le=100)]
-ThreadId = Annotated[str, Path(pattern=r"^\d{1,32}$")]
+ThreadId = Annotated[str, Path(pattern=r"^\d{1,64}$")]
 
 
 @router.get("")
