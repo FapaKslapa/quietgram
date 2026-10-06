@@ -1,10 +1,14 @@
-import { validateDmText } from "@nodistraction/ig";
+import { SessionExpiredError, validateDmText } from "@nodistraction/ig";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
+import { NoSessionError } from "@/lib/sync/errors";
 import { listMessages, listThreads, sendMessage, syncInbox, syncThread } from "@/lib/sync/messages";
 import { loadDmSendEnabled } from "@/lib/sync/settings";
-import { guarded } from "@/server/trpc/errors";
+import { logError } from "@/server/log";
+import { guarded, shortReason } from "@/server/trpc/errors";
 import { createTRPCRouter, protectedProcedure, syncDepsOf } from "@/server/trpc/init";
+
+const READ_FAILURE = "Non riesco a leggere i messaggi";
 
 const SEND_DISABLED_MESSAGE =
   "L'invio dei messaggi non è ancora disponibile: per ora puoi leggere le conversazioni.";
@@ -36,7 +40,9 @@ const threadsOutput = z.compile(
   ),
 );
 
-const messagesOutput = z.compile(z.array(messageSchema));
+const messagesOutput = z.compile(
+  z.object({ messages: z.array(messageSchema), stale: z.boolean() }),
+);
 const sentOutput = z.compile(messageSchema);
 
 export const messagesRouter = createTRPCRouter({
@@ -45,7 +51,7 @@ export const messagesRouter = createTRPCRouter({
     .query(({ ctx }) => listThreads(ctx.db, ctx.session.user.id)),
 
   syncInbox: protectedProcedure.mutation(({ ctx }) =>
-    guarded(() => syncInbox(syncDepsOf(ctx), ctx.session.user.id)),
+    guarded(() => syncInbox(syncDepsOf(ctx), ctx.session.user.id), READ_FAILURE),
   ),
 
   thread: protectedProcedure
@@ -53,9 +59,24 @@ export const messagesRouter = createTRPCRouter({
     .output(messagesOutput)
     .mutation(({ ctx, input }) =>
       guarded(async () => {
-        await syncThread(syncDepsOf(ctx), ctx.session.user.id, input.threadId);
-        return listMessages(ctx.db, ctx.session.user.id, input.threadId);
-      }),
+        const ownerId = ctx.session.user.id;
+        let failure: unknown = null;
+        try {
+          await syncThread(syncDepsOf(ctx), ownerId, input.threadId);
+        } catch (error) {
+          if (error instanceof SessionExpiredError || error instanceof NoSessionError) throw error;
+          logError({
+            path: "messages.thread",
+            code: "STALE",
+            message: shortReason(error) ?? "sync failed",
+            cause: error instanceof Error ? error.name : undefined,
+          });
+          failure = error;
+        }
+        const messages = await listMessages(ctx.db, ownerId, input.threadId);
+        if (failure !== null && messages.length === 0) throw failure;
+        return { messages, stale: failure !== null };
+      }, READ_FAILURE),
     ),
 
   send: protectedProcedure

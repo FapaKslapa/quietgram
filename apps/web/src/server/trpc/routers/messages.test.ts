@@ -38,7 +38,7 @@ describe("messages router", () => {
   it("syncs a thread then returns its messages in order", async () => {
     const env = await createTestEnv(respond, { dmSendEnabled: true });
     const caller = createCaller(env.context);
-    const messages = await caller.messages.thread({ threadId: "7127" });
+    const messages = (await caller.messages.thread({ threadId: "7127" })).messages;
     expect(messages.length).toBe(threadFixture.thread.items.length);
     const times = messages.map((message) => message.sentAt);
     expect(times).toEqual([...times].sort((a, b) => a - b));
@@ -51,7 +51,7 @@ describe("messages router", () => {
     await caller.messages.syncInbox();
     const [first] = await caller.messages.threads();
     expect(first?.preview).toBeNull();
-    const messages = await caller.messages.thread({ threadId: first?.id ?? "" });
+    const messages = (await caller.messages.thread({ threadId: first?.id ?? "" })).messages;
     const after = (await caller.messages.threads()).find((item) => item.id === first?.id);
     expect(after?.preview).toBe(messages.at(-1)?.text);
   });
@@ -90,7 +90,7 @@ describe("messages router", () => {
     const sent = await caller.messages.send({ threadId: "7127", text: "  hello  " });
     expect(sent).toMatchObject({ text: "hello", senderId: "1000" });
     expect(env.calls.at(-1)).toMatchObject({ method: "postForm" });
-    const synced = await caller.messages.thread({ threadId: "7127" });
+    const synced = (await caller.messages.thread({ threadId: "7127" })).messages;
     expect(synced.some((message) => message.id === sent.id)).toBe(false);
     expect(synced.length).toBe(threadFixture.thread.items.length);
   });
@@ -108,7 +108,7 @@ describe("messages router", () => {
       code: "BAD_GATEWAY",
       message: "Message could not be sent",
     });
-    expect(await caller.messages.thread({ threadId: "7127" })).toHaveLength(
+    expect((await caller.messages.thread({ threadId: "7127" })).messages).toHaveLength(
       threadFixture.thread.items.length,
     );
   });
@@ -128,7 +128,7 @@ describe("messages router", () => {
     });
     const [session] = await env.db.select().from(igSessions);
     expect(session?.status).toBe("active");
-    expect(await caller.messages.thread({ threadId: "7127" })).toHaveLength(
+    expect((await caller.messages.thread({ threadId: "7127" })).messages).toHaveLength(
       threadFixture.thread.items.length,
     );
   });
@@ -222,5 +222,47 @@ describe("messages cooldown", () => {
     failing = false;
     await caller.messages.syncInbox();
     expect(await caller.messages.threads()).not.toHaveLength(0);
+  });
+});
+
+describe("messages thread resilience", () => {
+  it("returns stored messages flagged stale when the fetch fails", async () => {
+    let failing = false;
+    const env = await createTestEnv(
+      (call) => {
+        if (failing) throw new IgHttpError(502);
+        return respond(call);
+      },
+      { dmSendEnabled: true },
+    );
+    const caller = createCaller(env.context);
+    const fresh = await caller.messages.thread({ threadId: "7127" });
+    expect(fresh.stale).toBe(false);
+    failing = true;
+    env.clock.current = new Date(env.clock.current.getTime() + 61_000);
+    const stale = await caller.messages.thread({ threadId: "7127" });
+    expect(stale.stale).toBe(true);
+    expect(stale.messages).toEqual(fresh.messages);
+  });
+
+  it("still fails with a short reason when nothing is stored", async () => {
+    const env = await createTestEnv(() => {
+      throw new IgHttpError(502);
+    });
+    await expect(
+      createCaller(env.context).messages.thread({ threadId: "7127" }),
+    ).rejects.toMatchObject({
+      code: "BAD_GATEWAY",
+      message: "Non riesco a leggere i messaggi: Instagram ha risposto 502",
+    });
+  });
+
+  it("keeps expiry errors as errors", async () => {
+    const env = await createTestEnv(() => {
+      throw new SessionExpiredError();
+    });
+    await expect(
+      createCaller(env.context).messages.thread({ threadId: "7127" }),
+    ).rejects.toMatchObject({ code: "PRECONDITION_FAILED" });
   });
 });

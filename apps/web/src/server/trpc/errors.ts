@@ -1,4 +1,5 @@
 import {
+  EngineResponseError,
   EngineSendDisabledError,
   EngineUnreachableError,
   IgHttpError,
@@ -41,6 +42,7 @@ export const describeFailure = (cause: unknown): FailureData | null => {
   if (cause instanceof RunNotFoundError) return { reason: "run_not_found" };
   if (
     cause instanceof IgHttpError ||
+    cause instanceof EngineResponseError ||
     cause instanceof EngineSendDisabledError ||
     cause instanceof EngineUnreachableError ||
     cause instanceof ZodError ||
@@ -74,7 +76,18 @@ const codeFor = (reason: FailureReason | undefined): TRPCError["code"] => {
 
 const THROTTLE_MESSAGE = "Instagram ti chiede di aspettare qualche minuto. Riprova tra un po'.";
 
-const messageFor = (error: unknown): string => {
+export const shortReason = (error: unknown): string | null => {
+  if (error instanceof EngineUnreachableError) return `il motore non risponde (${error.reason})`;
+  if (error instanceof EngineResponseError) return `risposta non valida (${error.reason})`;
+  if (error instanceof ZodError) return "risposta non valida";
+  if (error instanceof IgHttpError) return `Instagram ha risposto ${error.status}`;
+  if (error instanceof EngineSendDisabledError) return "invio disattivato sul motore";
+  return null;
+};
+
+const messageFor = (error: unknown, context?: string): string => {
+  const reason = shortReason(error);
+  if (reason !== null) return context ? `${context}: ${reason}` : reason;
   if (error instanceof IgThrottledError) return THROTTLE_MESSAGE;
   if (error instanceof IgRejectedError) {
     return error.reason === null
@@ -84,9 +97,9 @@ const messageFor = (error: unknown): string => {
   return error instanceof Error ? error.message : "Unexpected failure";
 };
 
-export const toTRPCError = (error: unknown): TRPCError => {
+export const toTRPCError = (error: unknown, context?: string): TRPCError => {
   if (error instanceof TRPCError) return error;
-  const message = messageFor(error);
+  const message = messageFor(error, context);
   return new TRPCError({
     code: codeFor(describeFailure(error)?.reason),
     message,
@@ -94,10 +107,10 @@ export const toTRPCError = (error: unknown): TRPCError => {
   });
 };
 
-export const guarded = async <T>(task: () => Promise<T>): Promise<T> => {
+export const guarded = async <T>(task: () => Promise<T>, context?: string): Promise<T> => {
   try {
     return await task();
   } catch (error) {
-    throw toTRPCError(error);
+    throw toTRPCError(error, context);
   }
 };

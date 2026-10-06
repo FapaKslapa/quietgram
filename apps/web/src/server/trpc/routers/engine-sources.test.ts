@@ -54,7 +54,7 @@ describe("engine backed routers", () => {
     const caller = createCaller(env.context);
     await caller.messages.syncInbox();
     expect((await caller.messages.threads()).map((thread) => thread.id)).toEqual(["77"]);
-    const messages = await caller.messages.thread({ threadId: "77" });
+    const messages = (await caller.messages.thread({ threadId: "77" })).messages;
     expect(messages.map((message) => [message.id, message.senderId])).toEqual([
       ["m1", "1000"],
       ["m2", ""],
