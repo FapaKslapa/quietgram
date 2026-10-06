@@ -42,6 +42,7 @@ const clientWith = (respond: (seen: Seen) => Response | Error) => {
 
 const post = (overrides: Record<string, unknown> = {}) => ({
   id: "p1",
+  code: "Cabc123",
   author_id: "7",
   author_username: "ada",
   caption: null,
@@ -73,7 +74,7 @@ describe("engine client request signing", () => {
 
   it("signs the exact body of a post", async () => {
     const { client, seen } = clientWith(() =>
-      json({ id: "m1", sender_id: "1000", text: "ciao", sent_at_ms: 5 }),
+      json({ id: "m1", sender_id: "1000", text: "ciao", kind: "text", sent_at_ms: 5 }),
     );
     await client.sendMessage("42", "ciao");
     const [request] = seen;
@@ -124,6 +125,8 @@ describe("engine client mapping", () => {
     expect(await client.userPosts("7", 3)).toEqual([
       {
         id: "p1",
+        code: "Cabc123",
+        productType: "feed",
         authorId: "7",
         authorUsername: "ada",
         caption: null,
@@ -132,7 +135,8 @@ describe("engine client mapping", () => {
       },
     ]);
     expect(seen[0]?.url).toBe("https://engine.test/v1/users/7/posts?amount=3");
-    expect(await client.saved(50)).toHaveLength(1);
+    const saved = await client.saved(50);
+    expect(saved.map((entry) => entry.productType)).toEqual(["feed", "clips"]);
   });
 
   it("maps the timeline page", async () => {
@@ -147,8 +151,8 @@ describe("engine client mapping", () => {
       seen.url.includes("/threads/")
         ? json({
             messages: [
-              { id: "m1", sender_id: null, text: null, sent_at_ms: 3 },
-              { id: "m2", sender_id: "9", text: "ciao", sent_at_ms: 4 },
+              { id: "m1", sender_id: null, text: null, kind: "photo", sent_at_ms: 3 },
+              { id: "m2", sender_id: "9", text: "ciao", kind: "text", sent_at_ms: 4 },
             ],
           })
         : json({
@@ -161,8 +165,8 @@ describe("engine client mapping", () => {
       { id: "t1", title: "Ada", lastActivityAt: 8, unread: true },
     ]);
     expect(await client.thread("t1", 20)).toEqual([
-      { id: "m1", senderId: "", type: "other", text: null, sentAt: 3 },
-      { id: "m2", senderId: "9", type: "text", text: "ciao", sentAt: 4 },
+      { id: "m1", senderId: "", type: "other", kind: "photo", text: null, sentAt: 3 },
+      { id: "m2", senderId: "9", type: "text", kind: "text", text: "ciao", sentAt: 4 },
     ]);
   });
 

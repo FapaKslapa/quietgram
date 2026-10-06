@@ -3,6 +3,7 @@ export {
   fetchInbox,
   fetchThread,
   type IgMessage,
+  type IgMessageKind,
   type IgThread,
   sendText,
   validateDmText,

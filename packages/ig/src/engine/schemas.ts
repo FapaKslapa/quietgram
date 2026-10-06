@@ -18,6 +18,7 @@ const mediaSchema = z.object({
 
 const postSchema = z.object({
   id: z.string(),
+  code: z.string().nullable(),
   author_id: z.string(),
   author_username: z.string(),
   caption: z.string().nullable(),
@@ -38,6 +39,7 @@ const messageSchema = z.object({
   id: z.string(),
   sender_id: z.string().nullable(),
   text: z.string().nullable(),
+  kind: z.enum(["text", "photo", "video", "voice", "other"]),
   sent_at_ms: z.number(),
 });
 

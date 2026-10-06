@@ -1,4 +1,4 @@
-import type { IgMessage, IgThread } from "#ig/direct";
+import type { IgMessage, IgMessageKind, IgThread } from "#ig/direct";
 import { EngineSendDisabledError, EngineUnreachableError } from "#ig/engine/errors";
 import {
   type EnginePost,
@@ -41,6 +41,8 @@ const parseJson = (text: string): unknown => {
 
 const toPost = (post: EnginePost): IgPost => ({
   id: post.id,
+  code: post.code,
+  productType: post.product_type,
   authorId: post.author_id,
   authorUsername: post.author_username,
   caption: post.caption,
@@ -65,11 +67,13 @@ const toMessage = (message: {
   id: string;
   sender_id: string | null;
   text: string | null;
+  kind: IgMessageKind;
   sent_at_ms: number;
 }): IgMessage => ({
   id: message.id,
   senderId: message.sender_id ?? "",
   type: message.text === null ? "other" : "text",
+  kind: message.kind,
   text: message.text,
   sentAt: message.sent_at_ms,
 });
@@ -158,7 +162,7 @@ export const createEngineClient = (options: EngineClientOptions) => {
     },
 
     saved: async (amount: number): Promise<IgPost[]> =>
-      toPosts(postsResponseSchema.parse(await call("GET", "/saved", amountQuery(amount))).posts),
+      postsResponseSchema.parse(await call("GET", "/saved", amountQuery(amount))).posts.map(toPost),
 
     threads: async (amount: number): Promise<IgThread[]> =>
       threadsResponseSchema

@@ -3,15 +3,25 @@ import { inboxPageSchema, sendResponseSchema, threadPageSchema } from "#ig/schem
 
 export type IgThread = { id: string; title: string; lastActivityAt: number; unread: boolean };
 
+export type IgMessageKind = "text" | "photo" | "video" | "voice" | "other";
+
 export type IgMessage = {
   id: string;
   senderId: string;
   type: string;
+  kind: IgMessageKind;
   text: string | null;
   sentAt: number;
 };
 
 const MAX_DM_LENGTH = 1000;
+
+export const kindOfItemType = (itemType: string, text: string | null): IgMessageKind => {
+  if (text !== null && text.length > 0) return "text";
+  if (itemType === "voice_media") return "voice";
+  if (itemType === "media" || itemType === "raw_media") return "photo";
+  return "other";
+};
 
 const microsToMillis = (micros: number): number => Math.floor(micros / 1000);
 
@@ -40,6 +50,7 @@ export const fetchThread = async (requester: Requester, threadId: string): Promi
     id: item.item_id,
     senderId: item.user_id,
     type: item.item_type,
+    kind: kindOfItemType(item.item_type, item.text ?? null),
     text: item.text ?? null,
     sentAt: microsToMillis(item.timestamp),
   }));

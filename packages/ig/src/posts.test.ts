@@ -54,9 +54,31 @@ describe("fetchTimelinePage", () => {
   });
 });
 
+describe("post identity", () => {
+  it("carries the shortcode and product type", async () => {
+    const item = {
+      pk: "1",
+      code: "Cxyz",
+      product_type: "clips",
+      taken_at: 10,
+      user: { pk: "2", username: "u" },
+    };
+    const { requester } = requesterReturning({
+      items: [{ media: item }, { media: { ...item, pk: "2", code: null, product_type: null } }],
+    });
+    const saved = await fetchSaved(requester);
+    expect(saved.map((post) => [post.code, post.productType])).toEqual([
+      ["Cxyz", "clips"],
+      [null, "feed"],
+    ]);
+  });
+});
+
 describe("filterByAuthors", () => {
   const post = (authorId: string): IgPost => ({
     id: authorId,
+    code: null,
+    productType: "feed",
     authorId,
     authorUsername: "u",
     caption: null,

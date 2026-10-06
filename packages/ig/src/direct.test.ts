@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import inboxFixture from "#fixtures/inbox.json" with { type: "json" };
 import threadFixture from "#fixtures/thread.json" with { type: "json" };
-import { fetchInbox, fetchThread, sendText, validateDmText } from "#ig/direct";
+import { fetchInbox, fetchThread, kindOfItemType, sendText, validateDmText } from "#ig/direct";
 import type { Requester } from "#ig/request";
 
 type Call = { path: string; body: Record<string, string> };
@@ -99,8 +99,19 @@ describe("fetchThread", () => {
     expect(messages).toHaveLength(threadFixture.thread.items.length);
     expect(messages.find((message) => message.type === "text")?.text).toBe("Fake message");
     expect(messages.find((message) => message.type === "clip")?.text).toBeNull();
+    expect(messages.find((message) => message.type === "text")?.kind).toBe("text");
+    expect(messages.find((message) => message.type === "clip")?.kind).toBe("other");
     expect(messages[0]?.sentAt).toBe(
       Math.floor((threadFixture.thread.items[0]?.timestamp ?? 0) / 1000),
     );
+  });
+});
+
+describe("kindOfItemType", () => {
+  it("classifies item types", () => {
+    expect(kindOfItemType("text", "ciao")).toBe("text");
+    expect(kindOfItemType("voice_media", null)).toBe("voice");
+    expect(kindOfItemType("media", null)).toBe("photo");
+    expect(kindOfItemType("reel_share", null)).toBe("other");
   });
 });

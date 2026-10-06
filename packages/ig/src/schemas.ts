@@ -34,6 +34,7 @@ const mediaNodeSchema = z.object({
 
 export const mediaItemSchema = mediaNodeSchema.extend({
   pk: idSchema,
+  code: z.string().nullish(),
   product_type: z.string().nullish(),
   taken_at: z.number(),
   user: z.object({ pk: idSchema, username: z.string() }),

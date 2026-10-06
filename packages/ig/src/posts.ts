@@ -5,6 +5,8 @@ export type IgMedia = { kind: "image" | "video"; url: string; width: number; hei
 
 export type IgPost = {
   id: string;
+  code: string | null;
+  productType: string;
   authorId: string;
   authorUsername: string;
   caption: string | null;
@@ -24,6 +26,8 @@ const toMedia = (node: MediaNode): IgMedia[] => {
 
 const toPost = (item: MediaItem): IgPost => ({
   id: item.pk,
+  code: item.code ?? null,
+  productType: item.product_type ?? "feed",
   authorId: item.user.pk,
   authorUsername: item.user.username,
   caption: item.caption?.text ?? null,
