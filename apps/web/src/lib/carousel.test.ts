@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { clampIndex, indexFromScroll, mediaAspectRatio } from "@/lib/carousel";
+import { clampIndex, mediaAspectRatio, snapIndex, trackOffset } from "@/lib/carousel";
 
 describe("clampIndex", () => {
   it("keeps the index inside the slides", () => {
@@ -17,18 +17,6 @@ describe("clampIndex", () => {
   });
 });
 
-describe("indexFromScroll", () => {
-  it("maps scroll offset to the nearest slide", () => {
-    expect(indexFromScroll(0, 400, 3)).toBe(0);
-    expect(indexFromScroll(210, 400, 3)).toBe(1);
-    expect(indexFromScroll(5000, 400, 3)).toBe(2);
-  });
-
-  it("ignores an unmeasured container", () => {
-    expect(indexFromScroll(100, 0, 3)).toBe(0);
-  });
-});
-
 describe("mediaAspectRatio", () => {
   it("clamps tall and wide media", () => {
     expect(mediaAspectRatio(1000, 2000)).toBe(0.8);
@@ -38,5 +26,36 @@ describe("mediaAspectRatio", () => {
 
   it("falls back on invalid sizes", () => {
     expect(mediaAspectRatio(0, 0)).toBe(0.8);
+  });
+});
+
+describe("snapIndex", () => {
+  it("stays put on a small drag", () => {
+    expect(snapIndex(1, 3, -30, 0, 400)).toBe(1);
+  });
+
+  it("advances on a long drag to the left and goes back on one to the right", () => {
+    expect(snapIndex(1, 3, -150, 0, 400)).toBe(2);
+    expect(snapIndex(1, 3, 150, 0, 400)).toBe(0);
+  });
+
+  it("advances on a short but fast flick", () => {
+    expect(snapIndex(0, 3, -40, -900, 400)).toBe(1);
+  });
+
+  it("never leaves the range", () => {
+    expect(snapIndex(0, 3, 300, 800, 400)).toBe(0);
+    expect(snapIndex(2, 3, -300, -800, 400)).toBe(2);
+  });
+
+  it("handles an unmeasured width", () => {
+    expect(snapIndex(1, 3, -500, 0, 0)).toBe(1);
+  });
+});
+
+describe("trackOffset", () => {
+  it("moves the track left by whole widths", () => {
+    expect(trackOffset(2, 300)).toBe(-600);
+    expect(trackOffset(0, 300)).toBe(0);
   });
 });
