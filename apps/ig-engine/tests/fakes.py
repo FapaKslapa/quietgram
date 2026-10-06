@@ -9,6 +9,7 @@ SESSION_ID = "1234567890%3AabcdefghijklmnopqrstuvwxyzABCDEF%3A28"
 def sample_post(product_type: str = "feed") -> Post:
     return Post(
         id="1",
+        code="Cabc123",
         author_id="2",
         author_username="alice",
         caption=None,
@@ -81,8 +82,8 @@ class FakeInstagramClient:
 
     def messages(self, thread_id: str, amount: int) -> list[Message]:
         self.record("messages")
-        return [Message(id="m", sender_id="5", text="hi", sent_at_ms=2)]
+        return [Message(id="m", sender_id="5", text="hi", kind="text", sent_at_ms=2)]
 
     def send_message(self, thread_id: str, text: str) -> Message:
         self.record("send_message")
-        return Message(id="m2", sender_id="1", text=text, sent_at_ms=3)
+        return Message(id="m2", sender_id="1", text=text, kind="text", sent_at_ms=3)

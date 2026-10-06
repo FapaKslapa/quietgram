@@ -3,10 +3,12 @@ from datetime import datetime
 from instagrapi.types import Collection, DirectMessage, DirectThread, Media, Resource, UserShort
 
 from ig_engine.schemas import Media as MediaOut
-from ig_engine.schemas import Message, Post, Thread, User
+from ig_engine.schemas import Message, MessageKind, Post, Thread, User
 
 ALBUM_MEDIA_TYPE = 8
 VIDEO_MEDIA_TYPE = 2
+VOICE_ITEM_TYPE = "voice_media"
+MEDIA_ITEM_TYPES = ("media", "raw_media")
 SAVED_ALL_TYPE = "ALL_MEDIA_AUTO_COLLECTION"
 SAVED_ALL_NAME = "all posts"
 
@@ -53,6 +55,7 @@ def to_media_items(media: Media) -> list[MediaOut]:
 def to_post(media: Media) -> Post:
     return Post(
         id=str(media.pk),
+        code=media.code or None,
         author_id=str(media.user.pk),
         author_username=media.user.username or "",
         caption=media.caption_text or None,
@@ -62,11 +65,24 @@ def to_post(media: Media) -> Post:
     )
 
 
+def message_kind(message: DirectMessage) -> MessageKind:
+    if message.text:
+        return "text"
+    if message.item_type == VOICE_ITEM_TYPE:
+        return "voice"
+    if message.item_type in MEDIA_ITEM_TYPES:
+        carried = message.media
+        media_type = None if carried is None else carried.media_type
+        return "video" if media_type == VIDEO_MEDIA_TYPE else "photo"
+    return "other"
+
+
 def to_message(message: DirectMessage) -> Message:
     return Message(
         id=str(message.id),
         sender_id=None if message.user_id is None else str(message.user_id),
         text=message.text,
+        kind=message_kind(message),
         sent_at_ms=to_millis(message.timestamp),
     )
 

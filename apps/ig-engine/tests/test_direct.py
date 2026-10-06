@@ -1,6 +1,7 @@
 from collections.abc import Callable
 
 import pytest
+from instagrapi.exceptions import LoginRequired, PleaseWaitFewMinutes
 
 from tests.conftest import Harness
 
@@ -58,3 +59,23 @@ def test_thread_id_accepts_long_numeric_ids(harness: Harness) -> None:
     harness.login()
     response = harness.request("GET", "/v1/threads/340282366841710301281160381813271072048")
     assert response.status_code == 200
+
+
+def test_send_throttle_maps_to_429(harness_factory: Callable[[bool], Harness]) -> None:
+    harness = harness_factory(True)
+    harness.login()
+    harness.behavior.failure = PleaseWaitFewMinutes("wait")
+    response = harness.request("POST", "/v1/threads/42/messages", {"text": "hello"})
+    assert response.status_code == 429
+    assert response.json()["code"] == "throttled"
+
+
+def test_send_with_expired_session_maps_to_401(
+    harness_factory: Callable[[bool], Harness],
+) -> None:
+    harness = harness_factory(True)
+    harness.login()
+    harness.behavior.failure = LoginRequired("expired")
+    response = harness.request("POST", "/v1/threads/42/messages", {"text": "hello"})
+    assert response.status_code == 401
+    assert response.json() == {"code": "session_expired"}

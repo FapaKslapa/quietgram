@@ -33,6 +33,7 @@ class Media(BaseModel):
 
 class Post(BaseModel):
     id: str
+    code: str | None
     author_id: str
     author_username: str
     caption: str | None
@@ -49,10 +50,14 @@ class Thread(BaseModel):
     preview: str | None
 
 
+type MessageKind = Literal["text", "photo", "video", "voice", "other"]
+
+
 class Message(BaseModel):
     id: str
     sender_id: str | None
     text: str | None
+    kind: MessageKind
     sent_at_ms: int
 
 

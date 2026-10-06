@@ -1,7 +1,14 @@
 from datetime import UTC, datetime
 from types import SimpleNamespace
 
-from ig_engine.mapping import select_saved_collection, to_message, to_post, to_thread, to_user
+from ig_engine.mapping import (
+    message_kind,
+    select_saved_collection,
+    to_message,
+    to_post,
+    to_thread,
+    to_user,
+)
 
 MOMENT = datetime(2024, 1, 1, tzinfo=UTC)
 MOMENT_MS = 1_704_067_200_000
@@ -10,6 +17,7 @@ MOMENT_MS = 1_704_067_200_000
 def media(**overrides: object) -> SimpleNamespace:
     base: dict[str, object] = {
         "pk": 11,
+        "code": "Cabc123",
         "user": SimpleNamespace(pk="7", username="alice"),
         "caption_text": "hello",
         "taken_at": MOMENT,
@@ -27,6 +35,7 @@ def test_image_post_mapping() -> None:
     post = to_post(media())
     assert post.model_dump() == {
         "id": "11",
+        "code": "Cabc123",
         "author_id": "7",
         "author_username": "alice",
         "caption": "hello",
@@ -44,6 +53,10 @@ def test_reel_keeps_product_type_and_video_kind() -> None:
     assert post.product_type == "clips"
     assert post.media[0].kind == "video"
     assert post.media[0].url == "https://cdn.example/r.mp4"
+
+
+def test_missing_code_becomes_null() -> None:
+    assert to_post(media(code="")).code is None
 
 
 def test_empty_caption_becomes_null_and_missing_dimensions_become_zero() -> None:
@@ -124,3 +137,19 @@ def test_saved_collection_missing_type_field() -> None:
 def test_empty_collections_select_nothing() -> None:
     assert select_saved_collection([]) is None
     assert select_saved_collection([collection("6", "Trips", "MEDIA")]) is None
+
+
+def item(item_type: str, text: str | None = None, media_type: int | None = None) -> SimpleNamespace:
+    carried = None if media_type is None else SimpleNamespace(media_type=media_type)
+    return SimpleNamespace(item_type=item_type, text=text, media=carried)
+
+
+def test_message_kinds() -> None:
+    assert message_kind(item("text", "hi")) == "text"
+    assert message_kind(item("link", "see https://x.example")) == "text"
+    assert message_kind(item("voice_media")) == "voice"
+    assert message_kind(item("media", media_type=1)) == "photo"
+    assert message_kind(item("media", media_type=2)) == "video"
+    assert message_kind(item("raw_media")) == "photo"
+    assert message_kind(item("reel_share")) == "other"
+    assert message_kind(item("placeholder")) == "other"
