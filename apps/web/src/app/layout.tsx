@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Onest } from "next/font/google";
+import { AppProviders } from "@/components/app-providers";
 import { Toaster } from "@/components/ui/sonner";
 import { TRPCReactProvider } from "@/trpc/client";
 import "@/app/globals.css";
@@ -36,10 +37,12 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="it" className={`${onest.variable} h-full antialiased`}>
+    <html lang="it" className={`${onest.variable} h-full antialiased`} suppressHydrationWarning>
       <body className="min-h-full flex flex-col">
-        <TRPCReactProvider>{children}</TRPCReactProvider>
-        <Toaster position="top-center" />
+        <AppProviders>
+          <TRPCReactProvider>{children}</TRPCReactProvider>
+          <Toaster position="top-center" />
+        </AppProviders>
       </body>
     </html>
   );

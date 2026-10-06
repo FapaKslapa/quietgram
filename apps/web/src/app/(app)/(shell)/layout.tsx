@@ -14,6 +14,7 @@ export default async function ShellLayout({ children }: { children: ReactNode })
   if (!session) redirect("/login");
 
   prefetch(trpc.refresh.overview.queryOptions());
+  prefetch(trpc.settings.get.queryOptions());
   prefetch(trpc.messages.threads.queryOptions());
 
   return (

@@ -1,4 +1,7 @@
+"use client";
+
 import { Mail, MessageSquare, User } from "lucide-react";
+import { motion } from "motion/react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 
@@ -35,10 +38,17 @@ export function TabBarView({ pathname, unread }: TabBarViewProps) {
             >
               <span
                 className={cn(
-                  "relative flex flex-col items-center gap-1 rounded-full px-3.5 py-1.5 transition-colors duration-300",
-                  active && "bg-accent",
+                  "relative flex flex-col items-center gap-1 rounded-full px-3.5 py-1.5",
                 )}
               >
+                {active ? (
+                  <motion.span
+                    layoutId="tab-indicator"
+                    aria-hidden="true"
+                    transition={{ type: "spring", stiffness: 520, damping: 42 }}
+                    className="absolute inset-0 -z-10 rounded-full bg-accent"
+                  />
+                ) : null}
                 <Icon className="size-[18px]" strokeWidth={1.8} aria-hidden="true" />
                 <span className="text-[11px] leading-none font-semibold">{label}</span>
                 {href === "/messaggi" && unread ? (

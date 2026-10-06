@@ -2,7 +2,7 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 
-@custom-variant dark (@media (prefers-color-scheme: dark));
+@custom-variant dark (&:is(.dark *));
 
 @theme inline {
   --font-sans: var(--font-onest), system-ui, sans-serif;
@@ -35,7 +35,7 @@
 }
 
 :root {
-  color-scheme: light dark;
+  color-scheme: light;
   --radius: 1rem;
   --background: oklch(0.975 0 0);
   --foreground: oklch(0.18 0 0);
@@ -67,32 +67,31 @@
   --weave-hatch: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10'%3E%3Cpath d='M-2 12L12 -2M-2 7L7 -2M3 12L12 3' fill='none' stroke='black' stroke-width='.6'/%3E%3C/svg%3E");
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: oklch(0.14 0 0);
-    --foreground: oklch(0.97 0 0);
-    --card: oklch(0.17 0 0);
-    --card-foreground: oklch(0.97 0 0);
-    --popover: oklch(0.2 0 0);
-    --popover-foreground: oklch(0.97 0 0);
-    --primary: oklch(0.96 0 0);
-    --primary-foreground: oklch(0.16 0 0);
-    --secondary: oklch(0.23 0 0);
-    --secondary-foreground: oklch(0.97 0 0);
-    --muted: oklch(0.23 0 0);
-    --muted-foreground: oklch(0.72 0 0);
-    --accent: oklch(0.26 0 0);
-    --accent-foreground: oklch(0.97 0 0);
-    --destructive: oklch(0.7 0.18 22);
-    --success: oklch(0.75 0.14 155);
-    --warning: oklch(0.83 0.15 80);
-    --border: oklch(1 0 0 / 14%);
-    --input: oklch(1 0 0 / 18%);
-    --ring: oklch(0.97 0 0);
-    --selection: oklch(0.36 0 0);
-    --scrim: oklch(0 0 0 / 0.6);
-    --weave-opacity: 0.08;
-  }
+:root.dark {
+  color-scheme: dark;
+  --background: oklch(0.14 0 0);
+  --foreground: oklch(0.97 0 0);
+  --card: oklch(0.17 0 0);
+  --card-foreground: oklch(0.97 0 0);
+  --popover: oklch(0.2 0 0);
+  --popover-foreground: oklch(0.97 0 0);
+  --primary: oklch(0.96 0 0);
+  --primary-foreground: oklch(0.16 0 0);
+  --secondary: oklch(0.23 0 0);
+  --secondary-foreground: oklch(0.97 0 0);
+  --muted: oklch(0.23 0 0);
+  --muted-foreground: oklch(0.72 0 0);
+  --accent: oklch(0.26 0 0);
+  --accent-foreground: oklch(0.97 0 0);
+  --destructive: oklch(0.7 0.18 22);
+  --success: oklch(0.75 0.14 155);
+  --warning: oklch(0.83 0.15 80);
+  --border: oklch(1 0 0 / 14%);
+  --input: oklch(1 0 0 / 18%);
+  --ring: oklch(0.97 0 0);
+  --selection: oklch(0.36 0 0);
+  --scrim: oklch(0 0 0 / 0.6);
+  --weave-opacity: 0.08;
 }
 
 @layer base {
@@ -111,6 +110,7 @@
   }
 
   body {
+    overscroll-behavior-y: contain;
     @apply bg-background text-foreground;
     line-height: 1.5;
   }
@@ -174,30 +174,33 @@
     background: var(--foreground);
     opacity: var(--weave-opacity);
     mask-image: var(--w), var(--fade);
-    mask-position:
-      var(--wp, 0 0),
-      0 0;
     mask-composite: intersect;
+  }
+
+  .weave {
+    mask-position:
+      calc(var(--wx, 0px) + var(--pull-shift, 0px)) 0,
+      0 0;
   }
 
   .weave[data-weave="wave"] {
     --w: var(--weave-wave);
-    --wp: 13px 0, 0 0;
+    --wx: 13px;
   }
 
   .weave[data-weave="double"] {
     --w: var(--weave-double);
-    --wp: 9px 0, 0 0;
+    --wx: 9px;
   }
 
   .weave[data-weave="arch"] {
     --w: var(--weave-arch);
-    --wp: 5px 0, 0 0;
+    --wx: 5px;
   }
 
   .weave[data-weave="hatch"] {
     --w: var(--weave-hatch);
-    --wp: 0 0, 0 0;
+    --wx: 0px;
   }
 
   .weave[data-surface="head"] {
@@ -207,6 +210,12 @@
       opacity 0.7s var(--ease-out-expo),
       transform 0.9s var(--ease-out-expo);
     transform-origin: top;
+    transform: scaleY(var(--pull-stretch, 1));
+    opacity: calc(var(--weave-opacity) + var(--pull-glow, 0));
+  }
+
+  [data-pulling] .weave[data-surface="head"] {
+    transition: none;
   }
 
   .weave[data-surface="head"][data-active="false"] {
@@ -221,6 +230,15 @@
     height: 0.75rem;
     --fade: linear-gradient(90deg, transparent, #000 30%, #000 70%, transparent);
   }
+}
+
+.media-gray :is(img, video) {
+  filter: grayscale(1);
+}
+
+img,
+video {
+  transition: filter 0.45s var(--ease-out-expo);
 }
 
 @media (prefers-reduced-motion: reduce) {
