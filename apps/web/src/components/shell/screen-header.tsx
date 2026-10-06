@@ -13,7 +13,7 @@ type ScreenHeaderProps = {
 
 export function ScreenHeader({ title, variant = "wave", back, children }: ScreenHeaderProps) {
   return (
-    <header className="relative isolate mb-4">
+    <header className="relative isolate mb-4 overflow-x-clip">
       <Weave variant={variant} surface="head" active />
       <div className="column px-5 pt-8 pb-6">
         {back ? (

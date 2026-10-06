@@ -147,7 +147,9 @@ export function ProfiloView({
             </ItemMedia>
             <ItemContent>
               <ItemTitle>Invio messaggi</ItemTitle>
-              <ItemDescription id="dm-send-warning">{DM_SEND_WARNING}</ItemDescription>
+              <ItemDescription id="dm-send-warning" className="line-clamp-none">
+                {DM_SEND_WARNING}
+              </ItemDescription>
             </ItemContent>
             <ItemActions>
               <Switch

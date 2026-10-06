@@ -12,7 +12,7 @@ type PostaHeaderProps = {
 
 export function PostaHeader({ mode, modesOpen, onOpenModes, children }: PostaHeaderProps) {
   return (
-    <header className="relative isolate mb-4">
+    <header className="relative isolate mb-4 overflow-x-clip">
       {MODES.map((definition) => (
         <Weave
           key={definition.mode}

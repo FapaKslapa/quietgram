@@ -26,7 +26,7 @@ export function ThreadRow({ thread, now }: ThreadRowProps) {
         avatarUrl={null}
         className="size-11 flex-none text-sm"
       />
-      <div className="min-w-0 flex-1">
+      <div className="relative min-w-0 flex-1">
         <strong
           className={cn(
             "block truncate leading-tight",
@@ -34,8 +34,8 @@ export function ThreadRow({ thread, now }: ThreadRowProps) {
           )}
         >
           {thread.title}
-          {thread.unread ? <span className="sr-only">, messaggi non letti</span> : null}
         </strong>
+        {thread.unread ? <span className="sr-only">Messaggi non letti</span> : null}
         <p
           className={cn(
             "truncate text-sm",

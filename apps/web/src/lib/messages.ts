@@ -130,6 +130,15 @@ export const sendFailureMessage = (error: unknown): string => {
   return "Non sono riuscito a inviare il messaggio. Il testo è rimasto qui: riprova.";
 };
 
+export const readFailureMessage = (error: unknown, fallback: string): string => {
+  const reason = (error as { data?: { failure?: { reason?: string } | null } | null })?.data
+    ?.failure?.reason;
+  const message = (error as { message?: unknown } | null)?.message;
+  return reason === "instagram_error" && typeof message === "string" && message.length > 0
+    ? message
+    : fallback;
+};
+
 export const threadLabel = (title: string, unread: boolean): string =>
   unread ? `${title}, messaggi non letti` : title;
 

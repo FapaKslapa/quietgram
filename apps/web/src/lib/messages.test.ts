@@ -14,6 +14,7 @@ import {
   isOverLimit,
   isPending,
   mergeThread,
+  readFailureMessage,
   sendFailureMessage,
   settlePending,
   showCounter,
@@ -314,5 +315,17 @@ describe("stable keys across sending", () => {
     expect(settled[0]?.id).toBe("local-1");
     const items = buildConversation(settled, "me", 6);
     expect(items.some((item) => item.kind === "message" && item.key === pending.id)).toBe(true);
+  });
+});
+
+describe("readFailureMessage", () => {
+  it("shows the short reason of an instagram error and falls back otherwise", () => {
+    const failure = {
+      message: "Non riesco a leggere i messaggi: Instagram ha risposto 502",
+      data: { failure: { reason: "instagram_error" } },
+    };
+    expect(readFailureMessage(failure, "x")).toBe(failure.message);
+    expect(readFailureMessage(new Error("boom"), "x")).toBe("x");
+    expect(readFailureMessage(null, "x")).toBe("x");
   });
 });
