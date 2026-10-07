@@ -126,12 +126,14 @@ export const listFeed = async (
   }
 
   const page = items.slice(0, limit);
-  const avatars = await loadAvatars(db, ownerId, [...new Set(page.map((item) => item.authorId))]);
-  const states = await loadPostStates(
-    db,
-    ownerId,
-    page.map((item) => item.id),
-  );
+  const [avatars, states] = await Promise.all([
+    loadAvatars(db, ownerId, [...new Set(page.map((item) => item.authorId))]),
+    loadPostStates(
+      db,
+      ownerId,
+      page.map((item) => item.id),
+    ),
+  ]);
   for (const item of page) {
     item.authorAvatarUrl = avatars.get(item.authorId) ?? null;
     item.liked = states.get(item.id)?.liked ?? false;

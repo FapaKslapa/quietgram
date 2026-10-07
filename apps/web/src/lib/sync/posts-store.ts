@@ -10,15 +10,15 @@ const findStoredIds = async (
   ownerId: string,
   ids: string[],
 ): Promise<Set<string>> => {
-  const stored = new Set<string>();
-  for (const group of chunk(ids, 90)) {
-    const rows = await deps.db
-      .select({ id: posts.id })
-      .from(posts)
-      .where(and(eq(posts.ownerId, ownerId), inArray(posts.id, group)));
-    for (const row of rows) stored.add(row.id);
-  }
-  return stored;
+  const groups = await Promise.all(
+    chunk(ids, 90).map((group) =>
+      deps.db
+        .select({ id: posts.id })
+        .from(posts)
+        .where(and(eq(posts.ownerId, ownerId), inArray(posts.id, group))),
+    ),
+  );
+  return new Set(groups.flat().map((row) => row.id));
 };
 
 export const storePosts = async (

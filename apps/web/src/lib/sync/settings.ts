@@ -41,8 +41,8 @@ export const loadBudgetState = async (db: Db, ownerId: string): Promise<BudgetSt
 };
 
 export const loadAllowedAuthors = async (db: Db, ownerId: string): Promise<Set<string>> => {
-  const settings = await loadSettings(db, ownerId);
-  const [followingRows, mutualRows, exceptionRows] = await Promise.all([
+  const [settings, followingRows, mutualRows, exceptionRows] = await Promise.all([
+    loadSettings(db, ownerId),
     db.select().from(following).where(eq(following.ownerId, ownerId)),
     db.select({ id: mutuals.igUserId }).from(mutuals).where(eq(mutuals.ownerId, ownerId)),
     db

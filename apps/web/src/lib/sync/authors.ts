@@ -10,6 +10,7 @@ import {
   POSTS_PER_AUTHOR,
   type RunState,
 } from "@/lib/sync/run-state";
+import { sequentially } from "@/lib/sync/sequentially";
 import { DAY_MS, loadAllowedAuthors, loadSettings, recencyCutoff } from "@/lib/sync/settings";
 import type { InstagramSource } from "@/lib/sync/source";
 
@@ -64,17 +65,19 @@ const allowedPopulation = async (
   candidates: AuthorCandidate[];
   windowStart: (since: number) => number;
 }> => {
-  const allowed = await loadAllowedAuthors(deps.db, ownerId);
-  const { recencyDays } = await loadSettings(deps.db, ownerId);
-  const rows = await deps.db
-    .select({
-      id: following.igUserId,
-      checkedAt: following.postsCheckedAt,
-      lastPostAt: following.lastPostAt,
-      latestReelMedia: following.latestReelMedia,
-    })
-    .from(following)
-    .where(eq(following.ownerId, ownerId));
+  const [allowed, { recencyDays }, rows] = await Promise.all([
+    loadAllowedAuthors(deps.db, ownerId),
+    loadSettings(deps.db, ownerId),
+    deps.db
+      .select({
+        id: following.igUserId,
+        checkedAt: following.postsCheckedAt,
+        lastPostAt: following.lastPostAt,
+        latestReelMedia: following.latestReelMedia,
+      })
+      .from(following)
+      .where(eq(following.ownerId, ownerId)),
+  ]);
   const candidates = rows
     .filter((row) => allowed.has(row.id))
     .map((row) => ({
@@ -130,7 +133,7 @@ export const stepAuthors = async (
   if (fetchPosts === null) throw new Error("Source cannot fetch posts per author");
   const due = await dueAuthors(deps, ownerId, state.since);
   const batch = due.slice(0, Math.min(AUTHORS_PER_STEP, state.remaining));
-  for (const authorId of batch) {
+  await sequentially(batch, async (authorId) => {
     const fetched = await fetchPosts(authorId, POSTS_PER_AUTHOR);
     const newest = fetched.reduce<number | null>(
       (latest, post) => (latest === null || post.takenAt > latest ? post.takenAt : latest),
@@ -146,7 +149,7 @@ export const stepAuthors = async (
         )
         .where(and(eq(following.ownerId, ownerId), eq(following.igUserId, authorId))),
     ]);
-  }
+  });
   const remaining = Math.min(state.remaining - batch.length, due.length - batch.length);
   return remaining > 0 ? { ...state, remaining } : afterAuthors(mode);
 };

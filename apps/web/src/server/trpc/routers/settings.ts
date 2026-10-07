@@ -72,16 +72,18 @@ const exceptionInput = z.compile(z.object({ igUserId: z.string().regex(/^\d{1,20
 export const settingsRouter = createTRPCRouter({
   get: protectedProcedure.output(settingsOutput).query(async ({ ctx }) => {
     const ownerId = ctx.session.user.id;
-    const [settings, budget, dmSendEnabled, interactionsEnabled] = await Promise.all([
-      loadSettings(ctx.db, ownerId),
-      loadBudgetState(ctx.db, ownerId),
-      loadDmSendEnabled(ctx.db, ownerId),
-      loadInteractionsEnabled(ctx.db, ownerId),
-    ]);
-    const exceptionRows = await ctx.db
-      .select({ igUserId: feedExceptions.igUserId })
-      .from(feedExceptions)
-      .where(eq(feedExceptions.ownerId, ownerId));
+    const [settings, budget, dmSendEnabled, interactionsEnabled, exceptionRows] = await Promise.all(
+      [
+        loadSettings(ctx.db, ownerId),
+        loadBudgetState(ctx.db, ownerId),
+        loadDmSendEnabled(ctx.db, ownerId),
+        loadInteractionsEnabled(ctx.db, ownerId),
+        ctx.db
+          .select({ igUserId: feedExceptions.igUserId })
+          .from(feedExceptions)
+          .where(eq(feedExceptions.ownerId, ownerId)),
+      ],
+    );
     const names = exceptionRows.length
       ? await ctx.db
           .select({ igUserId: following.igUserId, username: following.username })
