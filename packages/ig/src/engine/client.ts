@@ -41,7 +41,11 @@ export type UserPostsPage = { posts: IgPost[]; nextCursor: string | null };
 
 export type EngineSessionStatus = { active: boolean; username: string | null };
 
-export type EngineCredentials = { username: string; password: string; totpSecret?: string | undefined };
+export type EngineCredentials = {
+  username: string;
+  password: string;
+  totpSecret?: string | undefined;
+};
 
 export type EngineLoginResult = {
   sessionId: string;
