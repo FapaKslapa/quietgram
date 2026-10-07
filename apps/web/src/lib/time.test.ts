@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   dayKey,
+  floorToMinute,
   formatClock,
   formatDayLabel,
   formatRelativeTime,
@@ -71,5 +72,15 @@ describe("formatThreadTime", () => {
 describe("dayKey", () => {
   it("uses the Rome calendar day", () => {
     expect(dayKey(at("2026-10-03T22:30:00Z"))).toBe("2026-10-04");
+  });
+});
+
+describe("floorToMinute", () => {
+  it("drops seconds and milliseconds", () => {
+    expect(floorToMinute(at("2026-10-04T10:00:59.999Z"))).toBe(at("2026-10-04T10:00:00Z"));
+  });
+
+  it("keeps exact minutes", () => {
+    expect(floorToMinute(NOW)).toBe(NOW);
   });
 });

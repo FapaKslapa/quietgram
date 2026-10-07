@@ -58,12 +58,21 @@ export function usePullToRefresh({ enabled, cooling, busy, onTrigger }: PullOpti
     settleTo(busy ? PULL_HOLD : 0);
   }, [busy, settleTo]);
 
+  const noticeShown = override?.phase === "blocked" && !override.dragging;
+
   useEffect(() => {
-    if (!enabled) return;
+    if (!noticeShown) return;
+    const timer = setTimeout(() => {
+      settleTo(0);
+      setOverride(null);
+    }, BLOCKED_NOTICE_MS);
+    return () => clearTimeout(timer);
+  }, [noticeShown, settleTo]);
+
+  useEffect(() => {
     let gesture: PullGesture = "none";
     let origin: TouchPoint = { x: 0, y: 0 };
     let anchorY = 0;
-    let noticeTimer: ReturnType<typeof setTimeout> | undefined;
 
     const onStart = (event: TouchEvent) => {
       const touch = event.touches[0];
@@ -72,7 +81,6 @@ export function usePullToRefresh({ enabled, cooling, busy, onTrigger }: PullOpti
         gesture = "ignore";
         return;
       }
-      clearTimeout(noticeTimer);
       origin = { x: touch.clientX, y: touch.clientY };
       gesture = "undecided";
     };
@@ -121,27 +129,23 @@ export function usePullToRefresh({ enabled, cooling, busy, onTrigger }: PullOpti
       }
       if (decision === "blocked" && !isBusy) {
         settleTo(BLOCKED_HOLD);
-        setOverride((current) => (current ? { ...current, dragging: false } : current));
-        noticeTimer = setTimeout(() => {
-          settleTo(0);
-          setOverride(null);
-        }, BLOCKED_NOTICE_MS);
+        setOverride({ phase: "blocked", busy: false, dragging: false });
         return;
       }
       settleTo(isBusy ? PULL_HOLD : 0);
       setOverride(null);
     };
 
-    window.addEventListener("touchstart", onStart, { passive: true });
-    window.addEventListener("touchmove", onMove, { passive: false });
-    window.addEventListener("touchend", onEnd);
-    window.addEventListener("touchcancel", onEnd);
+    const controller = new AbortController();
+    const { signal } = controller;
+    if (enabled) {
+      window.addEventListener("touchstart", onStart, { passive: true, signal });
+      window.addEventListener("touchmove", onMove, { passive: false, signal });
+      window.addEventListener("touchend", onEnd, { signal });
+      window.addEventListener("touchcancel", onEnd, { signal });
+    }
     return () => {
-      window.removeEventListener("touchstart", onStart);
-      window.removeEventListener("touchmove", onMove);
-      window.removeEventListener("touchend", onEnd);
-      window.removeEventListener("touchcancel", onEnd);
-      clearTimeout(noticeTimer);
+      controller.abort();
     };
   }, [enabled, pull, settleTo]);
 

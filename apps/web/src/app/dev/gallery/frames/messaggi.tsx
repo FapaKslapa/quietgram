@@ -4,7 +4,7 @@ import type { ReactNode } from "react";
 import { CONVERSATION, PENDING_KEYS } from "@/app/dev/gallery/fixtures/conversation";
 import { LONG_THREADS, LONG_TITLE, THREADS } from "@/app/dev/gallery/fixtures/threads";
 import { NOW } from "@/app/dev/gallery/fixtures/time";
-import { noop, sendNothing } from "@/app/dev/gallery/frames/shared";
+import { noop, sendNothing } from "@/app/dev/gallery/frames/helpers";
 import type { ViewMap } from "@/app/dev/gallery/frames/view-map";
 import { ConversationView } from "@/components/messaggi/conversation-view";
 import type { ThreadSummary } from "@/components/messaggi/thread-row";

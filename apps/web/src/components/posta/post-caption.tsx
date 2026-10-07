@@ -1,50 +1,50 @@
 "use client";
-import * as m from "motion/react-m";
 
 import { useLayoutEffect, useRef, useState } from "react";
 
 type PostCaptionProps = { username: string; caption: string };
 
+type Measure = { collapsed: number; full: number };
+
 const COLLAPSED_LINES = 3;
+const OVERFLOW_TOLERANCE_PX = 2;
 
 export function PostCaption({ username, caption }: PostCaptionProps) {
   const body = useRef<HTMLParagraphElement>(null);
   const [expanded, setExpanded] = useState(false);
-  const [collapsedHeight, setCollapsedHeight] = useState<number | null>(null);
-  const [overflowing, setOverflowing] = useState(false);
+  const [measure, setMeasure] = useState<Measure | null>(null);
 
   useLayoutEffect(() => {
     const node = body.current;
     if (!node) return;
-    const measure = () => {
+    const update = () => {
       const lineHeight = Number.parseFloat(getComputedStyle(node).lineHeight);
-      const limit = Math.round(lineHeight * COLLAPSED_LINES);
-      setCollapsedHeight(limit);
-      setOverflowing(node.scrollHeight > limit + 2);
+      setMeasure({
+        collapsed: Math.round(lineHeight * COLLAPSED_LINES),
+        full: node.scrollHeight,
+      });
     };
-    measure();
-    const observer = new ResizeObserver(measure);
+    update();
+    const observer = new ResizeObserver(update);
     observer.observe(node);
     return () => observer.disconnect();
   }, []);
 
-  const clamped = overflowing && collapsedHeight !== null;
+  const clamped = measure !== null && measure.full > measure.collapsed + OVERFLOW_TOLERANCE_PX;
+  const height = clamped ? (expanded ? measure.full : measure.collapsed) : undefined;
 
   return (
     <div className="max-w-[65ch] px-4 pt-3 pb-4 text-[0.9375rem] leading-normal">
-      <m.div
-        initial={false}
-        animate={{ height: clamped && !expanded ? collapsedHeight : "auto" }}
-        transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
-        className="overflow-hidden"
+      <div
+        className="overflow-hidden transition-[height] duration-[350ms] ease-out-expo"
         style={
-          collapsedHeight === null ? { maxHeight: `${COLLAPSED_LINES * 1.5 * 0.9375}rem` } : {}
+          measure === null ? { maxHeight: `${COLLAPSED_LINES * 1.5 * 0.9375}rem` } : { height }
         }
       >
         <p ref={body} className="whitespace-pre-line">
           <b className="font-semibold">{username}</b> {caption}
         </p>
-      </m.div>
+      </div>
       {clamped ? (
         <button
           type="button"

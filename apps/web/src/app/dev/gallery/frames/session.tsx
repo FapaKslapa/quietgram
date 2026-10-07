@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { noop } from "@/app/dev/gallery/frames/shared";
+import { noop } from "@/app/dev/gallery/frames/helpers";
 import type { ViewMap } from "@/app/dev/gallery/frames/view-map";
 import { LoginForm } from "@/components/login-form";
 import { PairingToken } from "@/components/pairing-token";

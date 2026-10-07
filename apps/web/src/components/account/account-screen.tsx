@@ -47,7 +47,7 @@ export function AccountScreen({ userId }: { userId: string }) {
     viewer.open({
       groupId: item.id,
       items: item.media,
-      index: 0,
+      initialIndex: 0,
       username: item.authorUsername,
       caption: item.caption,
       instagramUrl: instagramUrl(item.shortcode, item.productType),

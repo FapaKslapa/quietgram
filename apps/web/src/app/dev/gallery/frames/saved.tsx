@@ -6,7 +6,7 @@ import {
   noop,
   useOpenViewer,
   viewerRequest,
-} from "@/app/dev/gallery/frames/shared";
+} from "@/app/dev/gallery/frames/helpers";
 import type { ViewMap } from "@/app/dev/gallery/frames/view-map";
 import { useViewer } from "@/components/media/viewer-provider";
 import { SavedSkeleton } from "@/components/salvati/saved-skeleton";

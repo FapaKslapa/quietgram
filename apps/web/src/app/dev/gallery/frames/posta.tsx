@@ -5,12 +5,9 @@ import { POSTS } from "@/app/dev/gallery/fixtures/posts";
 import { SETTINGS } from "@/app/dev/gallery/fixtures/settings";
 import { TRAY } from "@/app/dev/gallery/fixtures/stories";
 import { NOW } from "@/app/dev/gallery/fixtures/time";
-import {
-  InteractiveCard,
-  noop,
-  ReadOnlyCard,
-  RefreshHeader,
-} from "@/app/dev/gallery/frames/shared";
+import { InteractiveCard, ReadOnlyCard } from "@/app/dev/gallery/frames/cards";
+import { noop } from "@/app/dev/gallery/frames/helpers";
+import { RefreshHeader } from "@/app/dev/gallery/frames/refresh-header";
 import type { ViewMap } from "@/app/dev/gallery/frames/view-map";
 import { BudgetLockView } from "@/components/posta/budget-lock-view";
 import { FeedEmpty, FeedEnd, PostList } from "@/components/posta/feed-states";

@@ -98,3 +98,6 @@ export const formatThreadTime = (timestamp: number, now: number): string => {
   const month = (MONTHS[then.month - 1] ?? "").toLowerCase();
   return then.year === current.year ? `${then.day} ${month}` : `${then.day} ${month} ${then.year}`;
 };
+
+export const floorToMinute = (timestamp: number): number =>
+  Math.floor(timestamp / MINUTE_MS) * MINUTE_MS;

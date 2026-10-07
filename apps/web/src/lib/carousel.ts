@@ -1,3 +1,5 @@
+import type { PostMediaItem } from "@/lib/media";
+
 export const clampIndex = (index: number, count: number): number =>
   count <= 0 ? 0 : Math.min(Math.max(Math.round(index), 0), count - 1);
 
@@ -24,3 +26,6 @@ export const snapIndex = (
 };
 
 export const trackOffset = (index: number, width: number): number => 0 - index * width;
+
+export const feedRatio = (item: PostMediaItem | undefined): number =>
+  item ? mediaAspectRatio(item.width, item.height) : 1;

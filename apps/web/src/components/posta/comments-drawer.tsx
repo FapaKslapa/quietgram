@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { CommentsSheet } from "@/components/posta/comments-sheet";
+import { useNow } from "@/hooks/use-now";
 import { authClient } from "@/lib/auth/client";
 import {
   appendComment,
@@ -31,6 +32,7 @@ export function CommentsDrawer({
   composerEnabled,
 }: CommentsDrawerProps) {
   const trpc = useTRPC();
+  const now = useNow();
   const queryClient = useQueryClient();
   const { data: session } = authClient.useSession();
   const counter = useRef(0);
@@ -72,7 +74,7 @@ export function CommentsDrawer({
       onOpenChange={onOpenChange}
       state={state}
       rows={rows}
-      now={Date.now()}
+      now={now}
       composerEnabled={composerEnabled}
       onSubmit={(text) => post.mutate({ mediaId, text })}
       onRetry={() => void list.refetch()}

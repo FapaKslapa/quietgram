@@ -7,6 +7,7 @@ import {
   type Ref,
   useCallback,
   useEffect,
+  useEffectEvent,
   useImperativeHandle,
   useLayoutEffect,
   useRef,
@@ -99,8 +100,7 @@ export function SwipeTrack({
     commit(snapIndex(committed.current, count, info.offset.x, info.velocity.x, width));
   };
 
-  const keys = useRef<(event: KeyboardEvent) => void>(() => undefined);
-  keys.current = (event) => {
+  const onKeyDown = useEffectEvent((event: KeyboardEvent) => {
     if (event.key === "Enter" && onActivate && event.target === event.currentTarget) {
       event.preventDefault();
       onActivate(committed.current);
@@ -113,12 +113,12 @@ export function SwipeTrack({
     else if (event.key === "End") commit(count - 1);
     else return;
     event.preventDefault();
-  };
+  });
 
   useEffect(() => {
     const node = frame.current;
     if (!node) return;
-    const listener = (event: KeyboardEvent) => keys.current(event);
+    const listener = (event: KeyboardEvent) => onKeyDown(event);
     node.addEventListener("keydown", listener);
     return () => node.removeEventListener("keydown", listener);
   }, []);

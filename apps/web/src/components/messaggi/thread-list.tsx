@@ -8,6 +8,7 @@ import { PullSurface } from "@/components/posta/pull-surface";
 import { ScreenHeader } from "@/components/shell/screen-header";
 import { useCooldown } from "@/hooks/use-cooldown";
 import { useInboxSync } from "@/hooks/use-inbox-sync";
+import { useNow } from "@/hooks/use-now";
 import { usePullToRefresh } from "@/hooks/use-pull-to-refresh";
 import { useSyncGuard } from "@/hooks/use-sync-guard";
 import { useTRPC } from "@/trpc/client";
@@ -16,6 +17,7 @@ const INBOX_VIEW = "inbox";
 const FRESH_LABEL = "Aggiornato poco fa";
 
 export function ThreadList() {
+  const now = useNow();
   const trpc = useTRPC();
   const { data: threads } = useSuspenseQuery(trpc.messages.threads.queryOptions());
   const sync = useInboxSync();
@@ -52,7 +54,7 @@ export function ThreadList() {
       if (sync.isError) return <ThreadsError onRetry={start} />;
       return <ThreadsEmpty />;
     }
-    return <ThreadRows threads={threads} now={Date.now()} />;
+    return <ThreadRows threads={threads} now={now} />;
   })();
 
   return (

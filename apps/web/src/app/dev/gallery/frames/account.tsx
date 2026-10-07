@@ -1,7 +1,7 @@
 "use client";
 
 import { ACCOUNT, ACCOUNT_POSTS } from "@/app/dev/gallery/fixtures/account";
-import { useOpenViewer, viewerRequest } from "@/app/dev/gallery/frames/shared";
+import { useOpenViewer, viewerRequest } from "@/app/dev/gallery/frames/helpers";
 import type { ViewMap } from "@/app/dev/gallery/frames/view-map";
 import { AccountHeader } from "@/components/account/account-header";
 import {

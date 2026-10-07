@@ -2,7 +2,8 @@
 
 import { CAROUSEL_POST, POSTS } from "@/app/dev/gallery/fixtures/posts";
 import { NOW } from "@/app/dev/gallery/fixtures/time";
-import { linkedViewerRequest, ReadOnlyCard, useOpenViewer } from "@/app/dev/gallery/frames/shared";
+import { ReadOnlyCard } from "@/app/dev/gallery/frames/cards";
+import { linkedViewerRequest, useOpenViewer } from "@/app/dev/gallery/frames/helpers";
 import type { ViewMap } from "@/app/dev/gallery/frames/view-map";
 import { PostList } from "@/components/posta/feed-states";
 

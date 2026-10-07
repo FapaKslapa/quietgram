@@ -4,9 +4,10 @@ import { Heart } from "lucide-react";
 import { AnimatePresence } from "motion/react";
 import * as m from "motion/react-m";
 import { useEffect, useRef, useState } from "react";
-import { feedRatio, MediaSlide } from "@/components/media/media-slide";
+import { MediaSlide } from "@/components/media/media-slide";
 import { SwipeTrack, type SwipeTrackHandle } from "@/components/media/swipe-track";
 import { useViewer } from "@/components/media/viewer-provider";
+import { feedRatio } from "@/lib/carousel";
 import { DOUBLE_TAP_MS, registerTap } from "@/lib/double-tap";
 import type { PostMediaItem } from "@/lib/media";
 import { cn } from "@/lib/utils";
@@ -52,7 +53,7 @@ export function PostMedia({
     viewer.open({
       groupId,
       items: media,
-      index: position,
+      initialIndex: position,
       username,
       caption,
       instagramUrl,

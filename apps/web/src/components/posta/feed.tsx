@@ -7,6 +7,7 @@ import { FeedEmpty, FeedEnd, FeedMoreError, PostList } from "@/components/posta/
 import type { FeedPost } from "@/components/posta/post-card";
 import { PostSkeleton } from "@/components/posta/post-skeleton";
 import { useInView } from "@/hooks/use-in-view";
+import { useNow } from "@/hooks/use-now";
 import type { ModeDefinition } from "@/lib/feed-modes";
 import { nextCursorOf } from "@/lib/feed-query";
 import { useTRPC } from "@/trpc/client";
@@ -14,6 +15,7 @@ import { useTRPC } from "@/trpc/client";
 type FeedProps = { mode: ModeDefinition; onOpenModes: () => void };
 
 export function Feed({ mode, onOpenModes }: FeedProps) {
+  const now = useNow();
   const trpc = useTRPC();
   const query = useSuspenseInfiniteQuery(
     trpc.feed.list.infiniteQueryOptions({}, { getNextPageParam: nextCursorOf }),
@@ -39,7 +41,7 @@ export function Feed({ mode, onOpenModes }: FeedProps) {
 
   return (
     <>
-      <PostList posts={posts} now={Date.now()} />
+      <PostList posts={posts} now={now} />
       {hasNextPage ? (
         <div key={data.pages.length} ref={sentinel} className="column px-4 pb-4">
           {isFetchNextPageError ? (

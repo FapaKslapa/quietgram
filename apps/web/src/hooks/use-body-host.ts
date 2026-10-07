@@ -1,9 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useSyncExternalStore } from "react";
+
+const subscribe = () => () => undefined;
+const getBody = (): HTMLElement => document.body;
+const getServerBody = (): null => null;
 
 export function useBodyHost(): HTMLElement | null {
-  const [host, setHost] = useState<HTMLElement | null>(null);
-  useEffect(() => setHost(document.body), []);
-  return host;
+  return useSyncExternalStore(subscribe, getBody, getServerBody);
 }

@@ -3,7 +3,7 @@
 import { ExternalLink, X } from "lucide-react";
 import { animate, type PanInfo, useMotionValue, useTransform } from "motion/react";
 import * as m from "motion/react-m";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useEffectEvent, useRef, useState, useSyncExternalStore } from "react";
 import { MediaSlide } from "@/components/media/media-slide";
 import { SwipeTrack, type SwipeTrackHandle } from "@/components/media/swipe-track";
 import type { PostMediaItem } from "@/lib/media";
@@ -13,7 +13,7 @@ import { backdropOpacity, shouldDismiss } from "@/lib/viewer";
 export type ViewerRequest = {
   groupId: string;
   items: PostMediaItem[];
-  index: number;
+  initialIndex: number;
   username: string;
   caption: string | null;
   instagramUrl?: string | null | undefined;
@@ -24,19 +24,19 @@ type ViewerLayerProps = { request: ViewerRequest; onRequestClose: () => void };
 
 const RETURN_SPRING = { type: "spring", stiffness: 380, damping: 40 } as const;
 
-const useViewportWidth = (): number => {
-  const [width, setWidth] = useState(() => window.innerWidth);
-  useEffect(() => {
-    const onResize = () => setWidth(window.innerWidth);
-    window.addEventListener("resize", onResize);
-    return () => window.removeEventListener("resize", onResize);
-  }, []);
-  return width;
+const subscribeToResize = (listener: () => void) => {
+  window.addEventListener("resize", listener);
+  return () => window.removeEventListener("resize", listener);
 };
+const getViewportWidth = (): number => window.innerWidth;
+const getServerViewportWidth = (): number => 0;
+
+const useViewportWidth = (): number =>
+  useSyncExternalStore(subscribeToResize, getViewportWidth, getServerViewportWidth);
 
 export function ViewerLayer({ request, onRequestClose }: ViewerLayerProps) {
   const { groupId, items, username, caption, instagramUrl, onIndexChange } = request;
-  const [index, setIndex] = useState(request.index);
+  const [index, setIndex] = useState(request.initialIndex);
   const [swipedOut, setSwipedOut] = useState(false);
   const width = useViewportWidth();
   const y = useMotionValue(0);
@@ -57,15 +57,17 @@ export function ViewerLayer({ request, onRequestClose }: ViewerLayerProps) {
     };
   }, []);
 
+  const onKey = useEffectEvent((event: KeyboardEvent) => {
+    if (event.key === "Escape") onRequestClose();
+    else if (event.key === "ArrowRight") track.current?.goTo(index + 1);
+    else if (event.key === "ArrowLeft") track.current?.goTo(index - 1);
+  });
+
   useEffect(() => {
-    const onKey = (event: KeyboardEvent) => {
-      if (event.key === "Escape") onRequestClose();
-      else if (event.key === "ArrowRight") track.current?.goTo(index + 1);
-      else if (event.key === "ArrowLeft") track.current?.goTo(index - 1);
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [index, onRequestClose]);
+    const listener = (event: KeyboardEvent) => onKey(event);
+    window.addEventListener("keydown", listener);
+    return () => window.removeEventListener("keydown", listener);
+  }, []);
 
   const changeIndex = (next: number) => {
     setIndex(next);

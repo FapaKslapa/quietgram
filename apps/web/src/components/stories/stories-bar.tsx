@@ -20,6 +20,39 @@ const HISTORY_MARKER = "story-viewer";
 
 type Session = { entries: TrayEntry[]; group: number };
 
+type StoryOverlayProps = {
+  host: HTMLElement;
+  dialog: (node: HTMLDivElement | null) => void;
+  session: Session;
+  onClose: () => void;
+  onSeen: (entry: TrayEntry) => void;
+};
+
+function StoryOverlay({ host, dialog, session, onClose, onSeen }: StoryOverlayProps) {
+  return createPortal(
+    <m.div
+      ref={dialog}
+      tabIndex={-1}
+      role="dialog"
+      aria-modal="true"
+      aria-label="Storie"
+      initial={{ opacity: 0, scale: 0.94 }}
+      animate={{ opacity: 1, scale: 1 }}
+      exit={{ opacity: 0, scale: 0.96 }}
+      transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
+      className="fixed inset-0 z-[70] overflow-hidden bg-black text-white outline-none"
+    >
+      <StoryViewer
+        entries={session.entries}
+        startGroup={session.group}
+        onClose={onClose}
+        onSeen={onSeen}
+      />
+    </m.div>,
+    host,
+  );
+}
+
 export function StoriesBar() {
   const trpc = useTRPC();
   const host = useBodyHost();
@@ -85,35 +118,18 @@ export function StoriesBar() {
           retrying={tray.isFetching}
         />
       )}
-      {host
-        ? createPortal(
-            <AnimatePresence>
-              {session ? (
-                <m.div
-                  key="story-viewer"
-                  ref={dialog}
-                  tabIndex={-1}
-                  role="dialog"
-                  aria-modal="true"
-                  aria-label="Storie"
-                  initial={{ opacity: 0, scale: 0.94 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.96 }}
-                  transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
-                  className="fixed inset-0 z-[70] overflow-hidden bg-black text-white outline-none"
-                >
-                  <StoryViewer
-                    entries={session.entries}
-                    startGroup={session.group}
-                    onClose={requestClose}
-                    onSeen={markSeen}
-                  />
-                </m.div>
-              ) : null}
-            </AnimatePresence>,
-            host,
-          )
-        : null}
+      <AnimatePresence>
+        {session && host ? (
+          <StoryOverlay
+            key="story-viewer"
+            host={host}
+            dialog={dialog}
+            session={session}
+            onClose={requestClose}
+            onSeen={markSeen}
+          />
+        ) : null}
+      </AnimatePresence>
     </>
   );
 }
