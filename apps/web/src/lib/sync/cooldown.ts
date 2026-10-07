@@ -15,3 +15,7 @@ export const MESSAGES_COOLDOWN_MS = 60_000;
 
 export const isWithinWindow = (lastAt: Date | null, now: Date, windowMs: number): boolean =>
   remainingCooldownMs(lastAt, now, windowMs) > 0;
+
+export const STORIES_COOLDOWN_MS = 30_000;
+export const PROFILE_COOLDOWN_MS = 60_000;
+export const AVATAR_MAX_AGE_MS = 3 * 86_400_000;

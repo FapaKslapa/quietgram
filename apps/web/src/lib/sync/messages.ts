@@ -1,4 +1,4 @@
-import { type Db, dmMessages, dmSyncMarks, dmThreads } from "@nodistraction/db";
+import { type Db, dmMessages, dmThreads } from "@nodistraction/db";
 import {
   type IgMessage,
   IgRejectedError,
@@ -9,9 +9,10 @@ import {
 } from "@nodistraction/ig";
 import { and, asc, desc, eq, like, sql } from "drizzle-orm";
 import { chunkRows } from "@/lib/sync/chunk";
-import { isWithinWindow, MESSAGES_COOLDOWN_MS } from "@/lib/sync/cooldown";
+import { MESSAGES_COOLDOWN_MS } from "@/lib/sync/cooldown";
 import type { SyncDeps } from "@/lib/sync/deps";
 import { MessageSendError } from "@/lib/sync/errors";
+import { isFresh, markSynced } from "@/lib/sync/marks";
 import { withIgSession } from "@/lib/sync/session";
 
 const LOCAL_ID_PREFIX = "local-";
@@ -25,24 +26,8 @@ export type StoredThread = IgThread & {
 };
 export type StoredMessage = Omit<IgMessage, "type">;
 
-const isFresh = async (deps: SyncDeps, ownerId: string, scope: string): Promise<boolean> => {
-  const [mark] = await deps.db
-    .select({ syncedAt: dmSyncMarks.syncedAt })
-    .from(dmSyncMarks)
-    .where(and(eq(dmSyncMarks.ownerId, ownerId), eq(dmSyncMarks.scope, scope)));
-  return isWithinWindow(mark?.syncedAt ?? null, deps.now(), MESSAGES_COOLDOWN_MS);
-};
-
-const markSynced = async (deps: SyncDeps, ownerId: string, scope: string): Promise<void> => {
-  const syncedAt = deps.now();
-  await deps.db
-    .insert(dmSyncMarks)
-    .values({ ownerId, scope, syncedAt })
-    .onConflictDoUpdate({ target: [dmSyncMarks.ownerId, dmSyncMarks.scope], set: { syncedAt } });
-};
-
 export const syncInbox = async (deps: SyncDeps, ownerId: string): Promise<void> => {
-  if (await isFresh(deps, ownerId, INBOX_SCOPE)) return;
+  if (await isFresh(deps, ownerId, INBOX_SCOPE, MESSAGES_COOLDOWN_MS)) return;
   const threads = await withIgSession(deps, ownerId, ({ source }) => source.inbox());
   for (const group of chunkRows(threads, 5)) {
     await deps.db
@@ -71,7 +56,7 @@ export const syncThread = async (
   ownerId: string,
   threadId: string,
 ): Promise<void> => {
-  if (await isFresh(deps, ownerId, threadScope(threadId))) return;
+  if (await isFresh(deps, ownerId, threadScope(threadId), MESSAGES_COOLDOWN_MS)) return;
   const messages = await withIgSession(deps, ownerId, ({ source }) => source.thread(threadId));
   await deps.db
     .delete(dmMessages)

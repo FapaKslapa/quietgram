@@ -42,6 +42,7 @@ const upsertFollowing = async (deps: SyncDeps, ownerId: string, users: IgUser[])
           igUserId: entry.id,
           username: entry.username,
           avatarUrl: entry.avatarUrl,
+          avatarRefreshedAt: deps.now(),
           isVerified: entry.isVerified,
           latestReelMedia: entry.latestReelMedia,
         })),
@@ -51,6 +52,7 @@ const upsertFollowing = async (deps: SyncDeps, ownerId: string, users: IgUser[])
         set: {
           username: sql`excluded.username`,
           avatarUrl: sql`excluded.avatar_url`,
+          avatarRefreshedAt: sql`excluded.avatar_refreshed_at`,
           isVerified: sql`excluded.is_verified`,
           latestReelMedia: sql`excluded.latest_reel_media`,
         },

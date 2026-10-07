@@ -66,3 +66,11 @@ export const loadDmSendEnabled = async (db: Db, ownerId: string): Promise<boolea
     .where(eq(userSettings.ownerId, ownerId));
   return row?.enabled ?? false;
 };
+
+export const loadInteractionsEnabled = async (db: Db, ownerId: string): Promise<boolean> => {
+  const [row] = await db
+    .select({ enabled: userSettings.interactionsEnabled })
+    .from(userSettings)
+    .where(eq(userSettings.ownerId, ownerId));
+  return row?.enabled ?? false;
+};
