@@ -1,5 +1,6 @@
 import { ChevronLeft } from "lucide-react";
-import { type MotionValue, motion, useReducedMotion } from "motion/react";
+import { type MotionValue, useReducedMotion } from "motion/react";
+import * as m from "motion/react-m";
 import type { ReactNode, Ref } from "react";
 import { Bubbles } from "@/components/messaggi/bubbles";
 import { Composer } from "@/components/messaggi/composer";
@@ -90,7 +91,7 @@ export function ConversationView({
   const reduced = useReducedMotion();
 
   return (
-    <motion.div
+    <m.div
       initial={reduced ? false : { x: 40, opacity: 0 }}
       animate={{ x: 0, opacity: 1 }}
       transition={ENTER_SLIDE}
@@ -133,6 +134,6 @@ export function ConversationView({
         </div>
       </div>
       <Composer onSend={onSend} enabled={sendEnabled} />
-    </motion.div>
+    </m.div>
   );
 }

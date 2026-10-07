@@ -1,7 +1,7 @@
 "use client";
 
 import { Mail, MessageSquare, User } from "lucide-react";
-import { motion } from "motion/react";
+import * as m from "motion/react-m";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 
@@ -42,7 +42,7 @@ export function TabBarView({ pathname, unread }: TabBarViewProps) {
                 )}
               >
                 {active ? (
-                  <motion.span
+                  <m.span
                     layoutId="tab-indicator"
                     aria-hidden="true"
                     transition={{ type: "spring", stiffness: 520, damping: 42 }}

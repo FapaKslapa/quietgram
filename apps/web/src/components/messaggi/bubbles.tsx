@@ -1,6 +1,7 @@
 "use client";
 
-import { motion, useReducedMotion } from "motion/react";
+import { useReducedMotion } from "motion/react";
+import * as m from "motion/react-m";
 import type { ConversationItem } from "@/lib/messages";
 import { cn } from "@/lib/utils";
 
@@ -30,7 +31,7 @@ export function Bubbles({ items, pendingKeys, enterKeys }: BubblesProps) {
         }
         const animated = !reduced && enterKeys?.has(item.key) === true;
         return (
-          <motion.li
+          <m.li
             key={item.key}
             initial={animated ? { opacity: 0, y: 8, scale: 0.98 } : false}
             animate={{ opacity: pendingKeys.has(item.key) ? 0.7 : 1, y: 0, scale: 1 }}
@@ -57,7 +58,7 @@ export function Bubbles({ items, pendingKeys, enterKeys }: BubblesProps) {
                 {item.time}
               </small>
             ) : null}
-          </motion.li>
+          </m.li>
         );
       })}
     </ol>

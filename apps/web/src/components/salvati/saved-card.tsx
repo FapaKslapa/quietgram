@@ -1,5 +1,5 @@
 import { Images, Play } from "lucide-react";
-import { motion } from "motion/react";
+import * as m from "motion/react-m";
 import { LazyImage } from "@/components/media/lazy-image";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import type { PostMediaItem } from "@/lib/media";
@@ -27,14 +27,14 @@ function Cover({
     );
   }
   return (
-    <motion.div layoutId={layoutId} className="size-full">
+    <m.div layoutId={layoutId} className="size-full">
       <LazyImage
         src={media.url}
         alt={`Foto di ${username}`}
         width={media.width}
         height={media.height}
       />
-    </motion.div>
+    </m.div>
   );
 }
 

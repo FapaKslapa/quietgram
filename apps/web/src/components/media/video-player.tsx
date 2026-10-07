@@ -1,7 +1,7 @@
 "use client";
 
 import { Maximize2, Pause, Play, Volume2, VolumeX } from "lucide-react";
-import { motion } from "motion/react";
+import * as m from "motion/react-m";
 import { type KeyboardEvent, useEffect, useRef, useState } from "react";
 import { mediaSrc } from "@/lib/media-proxy";
 import { cn } from "@/lib/utils";
@@ -75,7 +75,7 @@ export function VideoPlayer({
         onPause={() => setPlaying(false)}
         className={cn("size-full", fit === "cover" ? "object-cover" : "object-contain")}
       />
-      <motion.div
+      <m.div
         role="button"
         tabIndex={0}
         aria-label={playing ? "Metti in pausa" : "Riproduci"}
@@ -96,7 +96,7 @@ export function VideoPlayer({
             <Play className="size-5 translate-x-px fill-current" strokeWidth={0} />
           )}
         </span>
-      </motion.div>
+      </m.div>
       <button
         type="button"
         onClick={() => setMuted((current) => !current)}

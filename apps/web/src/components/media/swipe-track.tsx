@@ -1,6 +1,7 @@
 "use client";
 
-import { animate, type MotionValue, motion, type PanInfo, useMotionValue } from "motion/react";
+import { animate, type MotionValue, type PanInfo, useMotionValue } from "motion/react";
+import * as m from "motion/react-m";
 import {
   type ReactNode,
   type Ref,
@@ -130,7 +131,7 @@ export function SwipeTrack({
       tabIndex={multiple || onActivate ? 0 : undefined}
       className={cn("relative size-full overflow-hidden outline-offset-[-2px]", className)}
     >
-      <motion.ul
+      <m.ul
         drag={multiple || vertical ? (vertical ? true : "x") : false}
         dragDirectionLock={vertical}
         dragMomentum={false}
@@ -154,7 +155,7 @@ export function SwipeTrack({
         className="flex size-full"
       >
         {children}
-      </motion.ul>
+      </m.ul>
     </section>
   );
 }

@@ -1,7 +1,8 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { AnimatePresence, motion } from "motion/react";
+import { AnimatePresence } from "motion/react";
+import * as m from "motion/react-m";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import {
@@ -88,7 +89,7 @@ export function StoriesBar() {
         ? createPortal(
             <AnimatePresence>
               {session ? (
-                <motion.div
+                <m.div
                   key="story-viewer"
                   ref={dialog}
                   tabIndex={-1}
@@ -107,7 +108,7 @@ export function StoriesBar() {
                     onClose={requestClose}
                     onSeen={markSeen}
                   />
-                </motion.div>
+                </m.div>
               ) : null}
             </AnimatePresence>,
             host,

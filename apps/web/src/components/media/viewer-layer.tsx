@@ -1,7 +1,8 @@
 "use client";
 
 import { ExternalLink, X } from "lucide-react";
-import { animate, motion, type PanInfo, useMotionValue, useTransform } from "motion/react";
+import { animate, type PanInfo, useMotionValue, useTransform } from "motion/react";
+import * as m from "motion/react-m";
 import { useEffect, useRef, useState } from "react";
 import { MediaSlide } from "@/components/media/media-slide";
 import { SwipeTrack, type SwipeTrackHandle } from "@/components/media/swipe-track";
@@ -89,7 +90,7 @@ export function ViewerLayer({ request, onRequestClose }: ViewerLayerProps) {
   };
 
   return (
-    <motion.div
+    <m.div
       role="dialog"
       aria-modal="true"
       aria-label={`Post di ${username}`}
@@ -98,7 +99,7 @@ export function ViewerLayer({ request, onRequestClose }: ViewerLayerProps) {
       tabIndex={-1}
       className="fixed inset-0 z-[70] overflow-hidden text-white outline-none"
     >
-      <motion.div
+      <m.div
         aria-hidden="true"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
@@ -106,17 +107,17 @@ export function ViewerLayer({ request, onRequestClose }: ViewerLayerProps) {
         transition={{ duration: 0.25 }}
         className="absolute inset-0"
       >
-        <motion.div style={{ opacity: fade }} className="size-full bg-black" />
-      </motion.div>
+        <m.div style={{ opacity: fade }} className="size-full bg-black" />
+      </m.div>
 
-      <motion.div
+      <m.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
         transition={{ duration: 0.2 }}
         className="pointer-events-none absolute inset-x-0 top-0 z-10"
       >
-        <motion.div
+        <m.div
           style={{ opacity: fade }}
           className="flex items-center justify-between px-3 pt-[max(0.75rem,env(safe-area-inset-top))]"
         >
@@ -141,8 +142,8 @@ export function ViewerLayer({ request, onRequestClose }: ViewerLayerProps) {
           ) : (
             <span className="size-11" />
           )}
-        </motion.div>
-      </motion.div>
+        </m.div>
+      </m.div>
 
       <div className="absolute inset-0">
         <SwipeTrack
@@ -169,7 +170,7 @@ export function ViewerLayer({ request, onRequestClose }: ViewerLayerProps) {
         </SwipeTrack>
       </div>
 
-      <motion.div
+      <m.div
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0 }}
@@ -211,7 +212,7 @@ export function ViewerLayer({ request, onRequestClose }: ViewerLayerProps) {
             ))}
           </div>
         ) : null}
-      </motion.div>
-    </motion.div>
+      </m.div>
+    </m.div>
   );
 }

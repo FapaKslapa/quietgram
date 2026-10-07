@@ -2,11 +2,11 @@
 
 import {
   type MotionValue,
-  motion,
   useMotionValueEvent,
   useReducedMotion,
   useTransform,
 } from "motion/react";
+import * as m from "motion/react-m";
 import { type ReactNode, useCallback, useEffect, useRef } from "react";
 import type { RefreshProgress } from "@/hooks/use-refresh";
 import { PULL_MAX, PULL_THRESHOLD, type PullPhase, pullLabel, pullProgress } from "@/lib/pull";
@@ -33,7 +33,7 @@ function PullIndicator({ pull, phase, nextLabel, progress }: Omit<PullSurfacePro
       : pullLabel(phase, nextLabel);
 
   return (
-    <motion.div
+    <m.div
       aria-hidden="true"
       style={{ height: pull, opacity: reveal }}
       className="pointer-events-none absolute inset-x-0 top-0 grid items-end overflow-hidden"
@@ -41,7 +41,7 @@ function PullIndicator({ pull, phase, nextLabel, progress }: Omit<PullSurfacePro
       <div className="column grid justify-items-center gap-2 px-5 pb-3">
         <p className="num-display text-xs font-medium text-muted-foreground">{label}</p>
         <div className="h-px w-16 overflow-hidden rounded-full bg-border">
-          <motion.div
+          <m.div
             style={{ scaleX: phase === "refreshing" ? 1 : line }}
             className={
               phase === "refreshing"
@@ -51,7 +51,7 @@ function PullIndicator({ pull, phase, nextLabel, progress }: Omit<PullSurfacePro
           />
         </div>
       </div>
-    </motion.div>
+    </m.div>
   );
 }
 
@@ -78,9 +78,9 @@ export function PullSurface({ pull, phase, nextLabel, progress, children }: Pull
   return (
     <div className="relative" data-pulling={phase === "idle" ? undefined : ""}>
       <PullIndicator pull={pull} phase={phase} nextLabel={nextLabel} progress={progress} />
-      <motion.div ref={band} style={{ y: pull }}>
+      <m.div ref={band} style={{ y: pull }}>
         {children}
-      </motion.div>
+      </m.div>
     </div>
   );
 }

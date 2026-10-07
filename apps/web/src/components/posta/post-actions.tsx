@@ -1,7 +1,7 @@
 "use client";
 
 import { Bookmark, Heart, MessageCircle } from "lucide-react";
-import { motion } from "motion/react";
+import * as m from "motion/react-m";
 import type { PostFlags } from "@/lib/interactions";
 import { cn } from "@/lib/utils";
 
@@ -20,7 +20,7 @@ export function PostActions({ flags, enabled, onLike, onSave, onComments }: Post
   return (
     <div className="flex items-center gap-0.5 px-2 pt-1.5">
       {enabled ? (
-        <motion.button
+        <m.button
           type="button"
           onClick={onLike}
           whileTap={{ scale: 0.82 }}
@@ -33,7 +33,7 @@ export function PostActions({ flags, enabled, onLike, onSave, onComments }: Post
             strokeWidth={1.8}
             aria-hidden="true"
           />
-        </motion.button>
+        </m.button>
       ) : flags.liked ? (
         <span role="img" aria-label="Ti piace" className={BUTTON}>
           <Heart className="size-6 fill-current" strokeWidth={1.8} aria-hidden="true" />
@@ -44,7 +44,7 @@ export function PostActions({ flags, enabled, onLike, onSave, onComments }: Post
       </button>
       <span className="flex-1" />
       {enabled ? (
-        <motion.button
+        <m.button
           type="button"
           onClick={onSave}
           whileTap={{ scale: 0.82 }}
@@ -57,7 +57,7 @@ export function PostActions({ flags, enabled, onLike, onSave, onComments }: Post
             strokeWidth={1.8}
             aria-hidden="true"
           />
-        </motion.button>
+        </m.button>
       ) : flags.saved ? (
         <span role="img" aria-label="Salvato" className={BUTTON}>
           <Bookmark className="size-6 fill-current" strokeWidth={1.8} aria-hidden="true" />

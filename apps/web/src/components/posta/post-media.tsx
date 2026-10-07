@@ -1,7 +1,8 @@
 "use client";
 
 import { Heart } from "lucide-react";
-import { AnimatePresence, motion } from "motion/react";
+import { AnimatePresence } from "motion/react";
+import * as m from "motion/react-m";
 import { useEffect, useRef, useState } from "react";
 import { feedRatio, MediaSlide } from "@/components/media/media-slide";
 import { SwipeTrack, type SwipeTrackHandle } from "@/components/media/swipe-track";
@@ -100,7 +101,7 @@ export function PostMedia({
       </SwipeTrack>
       <AnimatePresence>
         {burst > 0 ? (
-          <motion.span
+          <m.span
             key={burst}
             aria-hidden="true"
             initial={{ opacity: 1, scale: 0.4 }}
@@ -114,7 +115,7 @@ export function PostMedia({
               className="size-24 fill-current drop-shadow-[0_2px_14px_rgb(0_0_0/0.4)]"
               strokeWidth={0}
             />
-          </motion.span>
+          </m.span>
         ) : null}
       </AnimatePresence>
       {count > 1 ? (
@@ -133,7 +134,7 @@ export function PostMedia({
                   aria-current={position === index ? "true" : undefined}
                   className="grid size-6 place-items-center"
                 >
-                  <motion.span
+                  <m.span
                     animate={{ scale: position === index ? 1.25 : 1 }}
                     className={cn(
                       "block size-1.5 rounded-full transition-colors duration-300",

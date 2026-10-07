@@ -1,7 +1,8 @@
 "use client";
 
 import { Loader2 } from "lucide-react";
-import { animate, motion, type PanInfo, useMotionValue, useTransform } from "motion/react";
+import { animate, type PanInfo, useMotionValue, useTransform } from "motion/react";
+import * as m from "motion/react-m";
 import { type PointerEvent, useCallback, useEffect, useRef, useState } from "react";
 import { LazyImage } from "@/components/media/lazy-image";
 import { STORY_TOP_INSET, StoryErrorView, StoryHeader } from "@/components/stories/story-states";
@@ -153,7 +154,7 @@ export function StoryFrame({
   };
 
   return (
-    <motion.div
+    <m.div
       drag="y"
       dragConstraints={{ top: 0 }}
       dragElastic={{ top: 0.1 }}
@@ -242,6 +243,6 @@ export function StoryFrame({
           }
         />
       </div>
-    </motion.div>
+    </m.div>
   );
 }

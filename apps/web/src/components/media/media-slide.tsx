@@ -1,6 +1,6 @@
 "use client";
+import * as m from "motion/react-m";
 
-import { motion } from "motion/react";
 import { LazyImage } from "@/components/media/lazy-image";
 import { VideoPlayer } from "@/components/media/video-player";
 import { mediaAspectRatio } from "@/lib/carousel";
@@ -54,7 +54,7 @@ export function MediaSlide({
           />
         </div>
       ) : (
-        <motion.div
+        <m.div
           {...(layoutId ? { layoutId } : {})}
           transition={SHARED_SPRING}
           {...(onOpen ? { onTap: onOpen } : {})}
@@ -69,7 +69,7 @@ export function MediaSlide({
             fit={viewer ? "contain" : "cover"}
             eager={eager ?? false}
           />
-        </motion.div>
+        </m.div>
       )}
     </li>
   );

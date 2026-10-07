@@ -1,7 +1,7 @@
 "use client";
 
 import { useSuspenseQuery } from "@tanstack/react-query";
-import { motion } from "motion/react";
+import * as m from "motion/react-m";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
 import { ViewerProvider } from "@/components/media/viewer-provider";
@@ -26,7 +26,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         children
       ) : (
         <>
-          <motion.div
+          <m.div
             key={pathname}
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
@@ -34,7 +34,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             className="w-full flex-1 pb-[calc(6rem+env(safe-area-inset-bottom))]"
           >
             {children}
-          </motion.div>
+          </m.div>
           <TabBar />
         </>
       )}

@@ -1,7 +1,8 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { AnimatePresence, motion } from "motion/react";
+import { AnimatePresence } from "motion/react";
+import * as m from "motion/react-m";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { StoryFrame } from "@/components/stories/story-frame";
 import { StoryErrorView, StoryLoadingView } from "@/components/stories/story-states";
@@ -131,7 +132,7 @@ export function StoryViewer({ entries, startGroup, onClose, onSeen }: StoryViewe
 
   return (
     <AnimatePresence initial={false}>
-      <motion.div
+      <m.div
         key={cursor.group}
         initial={{ opacity: 0, x: direction * SLIDE_OFFSET }}
         animate={{ opacity: 1, x: 0 }}
@@ -140,7 +141,7 @@ export function StoryViewer({ entries, startGroup, onClose, onSeen }: StoryViewe
         className="absolute inset-0"
       >
         {body}
-      </motion.div>
+      </m.div>
     </AnimatePresence>
   );
 }
