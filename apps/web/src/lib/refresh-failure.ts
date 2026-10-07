@@ -39,3 +39,14 @@ export const classifyRefreshError = (error: unknown): RefreshFailure => {
   }
   return { kind: "other" };
 };
+
+export const isNetworkFailure = (error: unknown): boolean => {
+  if (typeof error !== "object" || error === null) return false;
+  const data = (error as FailureShape).data;
+  return data === undefined || data === null || data.code === undefined;
+};
+
+export const isRunGone = (error: unknown): boolean => {
+  const data = typeof error === "object" && error !== null ? (error as FailureShape).data : null;
+  return data?.failure?.reason === "run_not_found";
+};

@@ -3,7 +3,11 @@ import { eq } from "drizzle-orm";
 import type { SyncDeps } from "@/lib/sync/deps";
 import { FAST_BACKOFF_MS, limitsFor, resolveProfile, type SyncLimits } from "@/lib/sync/limits";
 
-export type ProfileState = { limits: SyncLimits; backoffUntil: Date | null };
+export type ProfileState = {
+  limits: SyncLimits;
+  backoffUntil: Date | null;
+  source: "extension" | "credentials" | null;
+};
 
 export const loadBackoff = async (deps: SyncDeps, ownerId: string): Promise<Date | null> => {
   const [state] = await deps.db
@@ -22,7 +26,7 @@ export const loadProfileState = async (deps: SyncDeps, ownerId: string): Promise
     loadBackoff(deps, ownerId),
   ]);
   const profile = resolveProfile(session?.source ?? null, backoffUntil, deps.now());
-  return { limits: limitsFor(profile), backoffUntil };
+  return { limits: limitsFor(profile), backoffUntil, source: session?.source ?? null };
 };
 
 export const loadLimits = async (deps: SyncDeps, ownerId: string): Promise<SyncLimits> =>

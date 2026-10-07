@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { classifyRefreshError } from "@/lib/refresh-failure";
+import { classifyRefreshError, isNetworkFailure, isRunGone } from "@/lib/refresh-failure";
 
 describe("classifyRefreshError", () => {
   it("reads the cooldown with its remaining seconds", () => {
@@ -46,5 +46,21 @@ describe("classifyRefreshError", () => {
     expect(classifyRefreshError({ data: { failure: { reason: "instagram_error" } } })).toEqual({
       kind: "other",
     });
+  });
+});
+
+describe("run resilience helpers", () => {
+  it("treats a failure without a server answer as a network failure", () => {
+    expect(isNetworkFailure(new TypeError("Failed to fetch"))).toBe(true);
+    expect(isNetworkFailure({ data: null })).toBe(true);
+    expect(isNetworkFailure({ data: { code: "BAD_GATEWAY" } })).toBe(false);
+    expect(isNetworkFailure("boom")).toBe(false);
+  });
+
+  it("recognises a run that no longer exists", () => {
+    expect(isRunGone({ data: { code: "NOT_FOUND", failure: { reason: "run_not_found" } } })).toBe(
+      true,
+    );
+    expect(isRunGone({ data: { code: "NOT_FOUND" } })).toBe(false);
   });
 });

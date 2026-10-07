@@ -16,6 +16,7 @@ import { PostaFeedSkeleton } from "@/components/posta/posta-screen";
 import { MediaTone } from "@/components/shell/media-tone";
 import { TabBarView } from "@/components/shell/tab-bar-view";
 import { StoriesBarView } from "@/components/stories/stories-bar-view";
+import { BACKOFF_NOTE } from "@/lib/credentials/copy";
 import { modeDefinition } from "@/lib/feed-modes";
 
 const RUNNING_PROGRESS = { completed: 7, total: 18, authors: { checked: 24, total: 1000 } };
@@ -24,6 +25,7 @@ type PostaFrameProps = {
   settings?: ModeSettings;
   openModes?: boolean;
   running?: boolean;
+  backoff?: boolean;
   empty?: boolean;
   loading?: boolean;
   stories?: boolean;
@@ -34,6 +36,7 @@ function PostaFrame({
   settings: initial = SETTINGS,
   openModes = false,
   running = false,
+  backoff = false,
   empty = false,
   loading = false,
   stories = false,
@@ -50,6 +53,8 @@ function PostaFrame({
         modesOpen={open}
         onOpenModes={() => setOpen(true)}
         progress={running ? RUNNING_PROGRESS : null}
+        note={backoff ? BACKOFF_NOTE : null}
+        {...(backoff ? { hint: null, disabled: false } : {})}
       />
       {stories ? <StoriesBarView entries={TRAY} onOpen={noop} /> : null}
       {loading ? <PostaFeedSkeleton /> : null}
@@ -80,6 +85,7 @@ function PostaFrame({
 export const POSTA_VIEWS = {
   posta: () => <PostaFrame />,
   "posta-running": () => <PostaFrame running />,
+  "posta-backoff": () => <PostaFrame backoff running />,
   "posta-empty": () => <PostaFrame empty />,
   "posta-loading": () => <PostaFrame loading />,
   "posta-grayscale": () => (

@@ -6,6 +6,7 @@ import { type FeedMode, modeDefinition } from "@/lib/feed-modes";
 
 type RefreshHeaderProps = {
   hint?: string | null;
+  note?: string | null;
   disabled?: boolean;
   progress?: RefreshProgress | null;
   mode?: FeedMode;
@@ -16,6 +17,7 @@ type RefreshHeaderProps = {
 
 export function RefreshHeader({
   hint = NEXT_REFRESH_HINT,
+  note = null,
   disabled = true,
   progress = null,
   mode = "friends",
@@ -25,7 +27,13 @@ export function RefreshHeader({
 }: RefreshHeaderProps) {
   return (
     <PostaHeader mode={modeDefinition(mode)} modesOpen={modesOpen} onOpenModes={onOpenModes}>
-      <RefreshPanel hint={hint} disabled={disabled} progress={progress} onRefresh={onRefresh} />
+      <RefreshPanel
+        hint={hint}
+        note={note}
+        disabled={disabled}
+        progress={progress}
+        onRefresh={onRefresh}
+      />
     </PostaHeader>
   );
 }

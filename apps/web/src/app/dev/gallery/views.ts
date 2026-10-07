@@ -35,6 +35,7 @@ export const VIEWS = [
   "expired-error",
   "expired-challenge",
   "expired-rejected",
+  "posta-backoff",
   "messaggi",
   "messaggi-empty",
   "messaggi-long",

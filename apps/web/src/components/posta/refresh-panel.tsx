@@ -3,6 +3,7 @@ import type { RefreshProgress } from "@/hooks/use-refresh";
 
 type RefreshPanelProps = {
   hint: string | null;
+  note?: string | null;
   disabled: boolean;
   progress: RefreshProgress | null;
   onRefresh: () => void;
@@ -51,7 +52,13 @@ function ProgressStrip({ progress }: { progress: RefreshProgress }) {
   );
 }
 
-export function RefreshPanel({ hint, disabled, progress, onRefresh }: RefreshPanelProps) {
+export function RefreshPanel({
+  hint,
+  note = null,
+  disabled,
+  progress,
+  onRefresh,
+}: RefreshPanelProps) {
   return (
     <div>
       <div className="flex items-center gap-4">
@@ -71,6 +78,11 @@ export function RefreshPanel({ hint, disabled, progress, onRefresh }: RefreshPan
           Aggiorna
         </Button>
       </div>
+      {note ? (
+        <p role="status" className="mt-3 text-sm text-pretty text-muted-foreground">
+          {note}
+        </p>
+      ) : null}
       {progress ? <ProgressStrip progress={progress} /> : null}
     </div>
   );

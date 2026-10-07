@@ -24,3 +24,14 @@ export const autoLoginDescription = (
   if (state === "ready") return `Attivo per @${username ?? ""}.`;
   return "Rientra su Instagram da solo quando la sessione scade.";
 };
+
+export const LOGIN_SPEED_NOTE =
+  "Accedendo con le credenziali l'app diventa più veloce, ma Instagram può comunque limitare l'account se vede troppa attività.";
+
+export const LOGIN_REMEMBER_LABEL = "Salva le credenziali";
+
+export const LOGIN_REMEMBER_HINT =
+  "Cifrate e usate solo per rientrare da sole quando la sessione scade. Se disattivi, la password viene usata una volta e non resta salvata.";
+
+export const BACKOFF_NOTE =
+  "Instagram ha chiesto di rallentare: per 30 minuti l'app torna al ritmo prudente.";

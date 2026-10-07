@@ -48,7 +48,7 @@ export const refreshRouter = createTRPCRouter({
       ctx.db.select().from(syncState).where(eq(syncState.ownerId, ownerId)),
     ]);
     const marker = state?.lastRefreshAt?.getTime() ?? null;
-    const { limits, backoffUntil } = await loadProfileState(syncDepsOf(ctx), ownerId);
+    const { limits, backoffUntil, source } = await loadProfileState(syncDepsOf(ctx), ownerId);
     const backoffMs = backoffUntil?.getTime() ?? null;
     return {
       sessionStatus: session?.status ?? "none",
@@ -56,7 +56,10 @@ export const refreshRouter = createTRPCRouter({
       lastRefreshAt: marker === null ? null : Math.min(marker, ctx.sync.now().getTime()),
       nextRefreshAt: marker === null ? null : marker + limits.cooldownMs,
       profile: limits.profile,
-      backoffUntil: backoffMs !== null && backoffMs > ctx.sync.now().getTime() ? backoffMs : null,
+      backoffUntil:
+        source === "credentials" && backoffMs !== null && backoffMs > ctx.sync.now().getTime()
+          ? backoffMs
+          : null,
       dmSendEnabled: await loadDmSendEnabled(ctx.db, ownerId),
       interactionsEnabled: await loadInteractionsEnabled(ctx.db, ownerId),
     };
