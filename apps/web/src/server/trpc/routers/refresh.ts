@@ -4,7 +4,7 @@ import { z } from "zod";
 import { REFRESH_COOLDOWN_MS } from "@/lib/sync/cooldown";
 import { recheckSession } from "@/lib/sync/recheck";
 import { getRefreshStatus, runRefreshStep, startRefresh } from "@/lib/sync/refresh";
-import { loadDmSendEnabled } from "@/lib/sync/settings";
+import { loadDmSendEnabled, loadInteractionsEnabled } from "@/lib/sync/settings";
 import { guarded } from "@/server/trpc/errors";
 import { createTRPCRouter, protectedProcedure, syncDepsOf } from "@/server/trpc/init";
 
@@ -29,6 +29,7 @@ const overviewOutput = z.compile(
     lastRefreshAt: z.number().nullable(),
     nextRefreshAt: z.number().nullable(),
     dmSendEnabled: z.boolean(),
+    interactionsEnabled: z.boolean(),
   }),
 );
 
@@ -51,6 +52,7 @@ export const refreshRouter = createTRPCRouter({
       lastRefreshAt: marker === null ? null : Math.min(marker, ctx.sync.now().getTime()),
       nextRefreshAt: marker === null ? null : marker + REFRESH_COOLDOWN_MS,
       dmSendEnabled: await loadDmSendEnabled(ctx.db, ownerId),
+      interactionsEnabled: await loadInteractionsEnabled(ctx.db, ownerId),
     };
   }),
 

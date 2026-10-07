@@ -25,3 +25,10 @@ export class MessageSendError extends Error {
     this.name = "MessageSendError";
   }
 }
+
+export class InteractionsDisabledError extends Error {
+  constructor() {
+    super("Interactions are disabled for this account");
+    this.name = "InteractionsDisabledError";
+  }
+}

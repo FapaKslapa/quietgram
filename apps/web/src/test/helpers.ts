@@ -102,13 +102,22 @@ export const createTestEnv = async (
   respond: Responder = () => {
     throw new Error("unexpected request");
   },
-  options: { withSession?: boolean; engine?: EngineResponder; dmSendEnabled?: boolean } = {},
+  options: {
+    withSession?: boolean;
+    engine?: EngineResponder;
+    dmSendEnabled?: boolean;
+    interactionsEnabled?: boolean;
+  } = {},
 ): Promise<TestEnv> => {
   const db = createTestDb();
   await seedOwner(db);
   if (options.withSession ?? true) await seedSession(db);
-  if (options.dmSendEnabled) {
-    await db.insert(userSettings).values({ ownerId: OWNER, dmSendEnabled: true });
+  if (options.dmSendEnabled || options.interactionsEnabled) {
+    await db.insert(userSettings).values({
+      ownerId: OWNER,
+      dmSendEnabled: options.dmSendEnabled ?? false,
+      interactionsEnabled: options.interactionsEnabled ?? false,
+    });
   }
   const { requester, calls } = fakeRequester(respond);
   const delays = { count: 0 };

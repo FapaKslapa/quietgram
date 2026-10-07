@@ -6,6 +6,7 @@ import { BUDGET_CHOICES, isBudgetMinutes, lockExpiry } from "@/lib/budget";
 import {
   loadBudgetState,
   loadDmSendEnabled,
+  loadInteractionsEnabled,
   loadSettings,
   MAX_RECENCY_DAYS,
   MIN_RECENCY_DAYS,
@@ -25,6 +26,7 @@ const settingsOutput = z.compile(
     sessionBudgetMinutes: z.number().nullable(),
     budgetLockedUntil: z.number().nullable(),
     dmSendEnabled: z.boolean(),
+    interactionsEnabled: z.boolean(),
     exceptions: z.array(z.object({ igUserId: z.string(), username: z.string().nullable() })),
   }),
 );
@@ -54,6 +56,7 @@ const setRecencyDaysInput = z.compile(
 );
 const setGrayscaleInput = z.compile(z.object({ grayscaleMedia: z.boolean() }));
 const setDmSendInput = z.compile(z.object({ dmSendEnabled: z.boolean() }));
+const setInteractionsInput = z.compile(z.object({ interactionsEnabled: z.boolean() }));
 const setBudgetInput = z.compile(
   z.object({
     sessionBudgetMinutes: z
@@ -69,10 +72,11 @@ const exceptionInput = z.compile(z.object({ igUserId: z.string().regex(/^\d{1,20
 export const settingsRouter = createTRPCRouter({
   get: protectedProcedure.output(settingsOutput).query(async ({ ctx }) => {
     const ownerId = ctx.session.user.id;
-    const [settings, budget, dmSendEnabled] = await Promise.all([
+    const [settings, budget, dmSendEnabled, interactionsEnabled] = await Promise.all([
       loadSettings(ctx.db, ownerId),
       loadBudgetState(ctx.db, ownerId),
       loadDmSendEnabled(ctx.db, ownerId),
+      loadInteractionsEnabled(ctx.db, ownerId),
     ]);
     const exceptionRows = await ctx.db
       .select({ igUserId: feedExceptions.igUserId })
@@ -97,6 +101,7 @@ export const settingsRouter = createTRPCRouter({
       ...settings,
       ...budget,
       dmSendEnabled,
+      interactionsEnabled,
       exceptions: exceptionRows.map((row) => ({
         igUserId: row.igUserId,
         username: usernames.get(row.igUserId) ?? null,
@@ -178,6 +183,18 @@ export const settingsRouter = createTRPCRouter({
         set: { dmSendEnabled: input.dmSendEnabled },
       });
   }),
+
+  setInteractionsEnabled: protectedProcedure
+    .input(setInteractionsInput)
+    .mutation(async ({ ctx, input }) => {
+      await ctx.db
+        .insert(userSettings)
+        .values({ ownerId: ctx.session.user.id, interactionsEnabled: input.interactionsEnabled })
+        .onConflictDoUpdate({
+          target: userSettings.ownerId,
+          set: { interactionsEnabled: input.interactionsEnabled },
+        });
+    }),
 
   setSessionBudget: protectedProcedure.input(setBudgetInput).mutation(async ({ ctx, input }) => {
     await ctx.db

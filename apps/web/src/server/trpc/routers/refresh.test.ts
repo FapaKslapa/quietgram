@@ -61,6 +61,7 @@ describe("refresh.overview", () => {
       lastRefreshAt: null,
       nextRefreshAt: null,
       dmSendEnabled: false,
+      interactionsEnabled: false,
     });
   });
 
@@ -76,6 +77,7 @@ describe("refresh.overview", () => {
       lastRefreshAt: new Date("2026-10-04T11:58:00Z").getTime(),
       nextRefreshAt: new Date("2026-10-04T12:13:00Z").getTime(),
       dmSendEnabled: false,
+      interactionsEnabled: false,
     });
   });
 

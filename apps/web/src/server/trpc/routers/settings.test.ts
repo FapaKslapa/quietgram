@@ -19,6 +19,7 @@ describe("settings router", () => {
     const { caller } = await setup();
     expect(await caller.settings.get()).toEqual({
       dmSendEnabled: false,
+      interactionsEnabled: false,
       feedMode: "friends",
       creatorThreshold: 10000,
       recencyDays: 14,
@@ -136,5 +137,13 @@ describe("settings router", () => {
     const { budgetLockedUntil } = await caller.settings.lockBudget();
     expect(budgetLockedUntil).toBe(env.context.sync.now().getTime() + 3_600_000);
     expect((await caller.settings.get()).budgetLockedUntil).toBe(budgetLockedUntil);
+  });
+
+  it("stores the interactions switch", async () => {
+    const { caller } = await setup();
+    await caller.settings.setInteractionsEnabled({ interactionsEnabled: true });
+    expect((await caller.settings.get()).interactionsEnabled).toBe(true);
+    await caller.settings.setInteractionsEnabled({ interactionsEnabled: false });
+    expect((await caller.settings.get()).interactionsEnabled).toBe(false);
   });
 });
