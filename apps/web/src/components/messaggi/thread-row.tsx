@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { AuthorAvatar } from "@/components/posta/author-avatar";
+import { UserAvatar } from "@/components/ui/user-avatar";
 import { type MessageKind, threadPreview } from "@/lib/messages";
 import { formatThreadTime } from "@/lib/time";
 import { cn } from "@/lib/utils";
@@ -21,11 +21,7 @@ export function ThreadRow({ thread, now }: ThreadRowProps) {
       href={`/messaggi/${thread.id}`}
       className="flex min-w-0 items-center gap-3 rounded-md px-2 py-3 transition-colors hover:bg-accent active:bg-accent"
     >
-      <AuthorAvatar
-        username={thread.title}
-        avatarUrl={null}
-        className="size-11 flex-none text-sm"
-      />
+      <UserAvatar username={thread.title} avatarUrl={null} size="md" />
       <div className="relative min-w-0 flex-1">
         <strong
           className={cn(

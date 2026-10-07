@@ -25,14 +25,18 @@ export function SavedRefreshControl({ pending, onRefresh }: SavedRefreshControlP
   );
 }
 
-type SavedTilesProps = { items: SavedItem[]; onOpen: (item: SavedItem) => void };
+type SavedTilesProps = {
+  items: SavedItem[];
+  onOpen: (item: SavedItem) => void;
+  labelOf?: ((item: SavedItem) => string) | undefined;
+};
 
-export function SavedTiles({ items, onOpen }: SavedTilesProps) {
+export function SavedTiles({ items, onOpen, labelOf }: SavedTilesProps) {
   return (
     <ul className="column grid grid-cols-3 gap-1.5 px-4 pb-6">
       {items.map((item) => (
         <li key={item.id} className="min-w-0">
-          <SavedCard item={item} onOpen={onOpen} />
+          <SavedCard item={item} onOpen={onOpen} label={labelOf?.(item)} />
         </li>
       ))}
     </ul>

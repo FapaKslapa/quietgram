@@ -1,6 +1,7 @@
 import { Images, Play } from "lucide-react";
 import { motion } from "motion/react";
 import { LazyImage } from "@/components/media/lazy-image";
+import { UserAvatar } from "@/components/ui/user-avatar";
 import type { PostMediaItem } from "@/lib/media";
 import { badgeOf, coverOf, type SavedItem, savedLabel } from "@/lib/saved-grid";
 
@@ -28,7 +29,7 @@ function Cover({
     <motion.div layoutId={layoutId} className="size-full">
       <LazyImage
         src={media.url}
-        alt={`Foto salvata di ${username}`}
+        alt={`Foto di ${username}`}
         width={media.width}
         height={media.height}
       />
@@ -36,9 +37,13 @@ function Cover({
   );
 }
 
-type SavedCardProps = { item: SavedItem; onOpen: (item: SavedItem) => void };
+type SavedCardProps = {
+  item: SavedItem;
+  onOpen: (item: SavedItem) => void;
+  label?: string | undefined;
+};
 
-export function SavedCard({ item, onOpen }: SavedCardProps) {
+export function SavedCard({ item, onOpen, label }: SavedCardProps) {
   const cover = coverOf(item);
   const badge = badgeOf(item);
 
@@ -46,7 +51,7 @@ export function SavedCard({ item, onOpen }: SavedCardProps) {
     <button
       type="button"
       onClick={() => onOpen(item)}
-      aria-label={savedLabel(item)}
+      aria-label={label ?? savedLabel(item)}
       className="group relative block aspect-4/5 w-full overflow-hidden rounded-md bg-muted text-left [contain-intrinsic-size:auto_200px] [content-visibility:auto]"
     >
       {cover ? (
@@ -56,6 +61,13 @@ export function SavedCard({ item, onOpen }: SavedCardProps) {
         aria-hidden="true"
         className="absolute inset-0 bg-foreground/0 transition-colors group-hover:bg-foreground/10 group-active:bg-foreground/15"
       />
+      {item.authorAvatarUrl !== undefined ? (
+        <UserAvatar
+          username={item.authorUsername}
+          avatarUrl={item.authorAvatarUrl}
+          className="absolute bottom-1.5 left-1.5 size-6 ring-2 ring-background"
+        />
+      ) : null}
       {badge ? (
         <span
           aria-hidden="true"

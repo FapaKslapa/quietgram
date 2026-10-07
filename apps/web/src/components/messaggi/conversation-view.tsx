@@ -3,9 +3,9 @@ import { type MotionValue, motion, useReducedMotion } from "motion/react";
 import type { ReactNode, Ref } from "react";
 import { Bubbles } from "@/components/messaggi/bubbles";
 import { Composer } from "@/components/messaggi/composer";
-import { AuthorAvatar } from "@/components/posta/author-avatar";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { UserAvatar } from "@/components/ui/user-avatar";
 import type { ConversationItem } from "@/lib/messages";
 
 export type ConversationState = "failed" | "loading" | "empty" | "ready";
@@ -107,7 +107,7 @@ export function ConversationView({
           >
             <ChevronLeft className="size-6" strokeWidth={1.8} aria-hidden="true" />
           </button>
-          <AuthorAvatar username={title} avatarUrl={null} className="size-9 flex-none" />
+          <UserAvatar username={title} avatarUrl={null} className="size-9" />
           <div className="min-w-0 flex-1">
             <h1 className="truncate text-base font-semibold">{title}</h1>
             {stale ? (

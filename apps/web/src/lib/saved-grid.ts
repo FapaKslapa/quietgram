@@ -5,6 +5,7 @@ export type SavedItem = {
   shortcode?: string | null | undefined;
   productType?: string | null | undefined;
   authorUsername: string;
+  authorAvatarUrl?: string | null | undefined;
   caption: string | null;
   media: PostMediaItem[];
 };
