@@ -1,5 +1,16 @@
 export type SessionStatus = "valid" | "invalid" | "unknown";
 
+export type SessionReason =
+  | "network"
+  | "throttled"
+  | "unreadable-body"
+  | "no-user"
+  | `http-${number}`;
+
+export type SessionResult =
+  | { status: "valid" | "invalid"; reason: null }
+  | { status: "unknown"; reason: SessionReason };
+
 export type SessionObservation = {
   status: number;
   redirected: boolean;
@@ -34,25 +45,37 @@ const signalsInvalid = (body: unknown): boolean => {
   return body.require_login === true || typeof body.checkpoint_url === "string";
 };
 
-const hasUser = (body: unknown): boolean =>
-  isRecord(body) && isRecord(body.user) && typeof body.user.username === "string";
+const isPresent = (value: unknown): boolean =>
+  (typeof value === "string" && value !== "") || typeof value === "number";
 
-export const classifySession = (observation: SessionObservation): SessionStatus => {
-  if (isLoginRedirect(observation) || signalsInvalid(observation.body)) return "invalid";
-  if (observation.status === 401 || observation.status === 403) return "invalid";
-  if (observation.status === 200 && hasUser(observation.body)) return "valid";
-  return "unknown";
+const hasUser = (body: Record<string, unknown>): boolean =>
+  isRecord(body.user) &&
+  (typeof body.user.username === "string" || isPresent(body.user.pk) || isPresent(body.user.id));
+
+const verdict = (status: "valid" | "invalid"): SessionResult => ({ status, reason: null });
+
+const unknown = (reason: SessionReason): SessionResult => ({ status: "unknown", reason });
+
+export const classifySession = (observation: SessionObservation): SessionResult => {
+  const { status, body } = observation;
+  if (isLoginRedirect(observation) || signalsInvalid(body)) return verdict("invalid");
+  if (status === 401 || status === 403) return verdict("invalid");
+  if (status === 429) return unknown("throttled");
+  if (status !== 200) return unknown(`http-${status}`);
+  if (!isRecord(body)) return unknown("unreadable-body");
+  if (hasUser(body) || body.status === "ok") return verdict("valid");
+  return unknown("no-user");
 };
 
 const readBody = async (response: Response): Promise<unknown> => {
   try {
     return await response.json();
   } catch {
-    return null;
+    return undefined;
   }
 };
 
-export const checkSession = async (fetcher: SessionFetch): Promise<SessionStatus> => {
+export const checkSession = async (fetcher: SessionFetch): Promise<SessionResult> => {
   try {
     const response = await fetcher(SESSION_CHECK_URL, {
       credentials: "include",
@@ -65,6 +88,6 @@ export const checkSession = async (fetcher: SessionFetch): Promise<SessionStatus
       body: await readBody(response),
     });
   } catch {
-    return "unknown";
+    return unknown("network");
   }
 };

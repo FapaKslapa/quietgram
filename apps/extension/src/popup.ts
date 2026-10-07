@@ -41,7 +41,7 @@ const unpair = find("unpair", HTMLButtonElement);
 
 const verify = async (): Promise<SessionView> => {
   if ((await readInstagramCookies(chrome.cookies)) === null) return "none";
-  return checkSession(fetch);
+  return (await checkSession(fetch)).status;
 };
 
 const showError = (failure: PairFailure | null) => {
@@ -106,7 +106,7 @@ const attempt = async (code: string): Promise<Attempt> => {
   if (code === "") return { failure: "empty", session: "none" };
   const cookies = await readInstagramCookies(chrome.cookies);
   if (cookies === null) return { failure: "no_session", session: "none" };
-  const session = await checkSession(fetch);
+  const { status: session } = await checkSession(fetch);
   if (session === "invalid") return { failure: null, session };
   if (session === "unknown") return { failure: "session_unknown", session };
   const result = await pair(fetch, __APP_ORIGIN__, code, cookies);
