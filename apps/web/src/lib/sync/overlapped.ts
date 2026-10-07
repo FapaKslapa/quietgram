@@ -1,19 +1,30 @@
+import { sequentially } from "@/lib/sync/sequentially";
+
+type Outcome = { error: unknown } | null;
+
+const capture = (task: Promise<void>): Promise<Outcome> =>
+  task.then(
+    () => null,
+    (error: unknown) => ({ error }),
+  );
+
 export const overlapped = async <T>(
   items: readonly T[],
   fetchOne: (item: T) => Promise<() => Promise<void>>,
 ): Promise<void> => {
-  const writes: Promise<void>[] = [];
-  let failure: { error: unknown } | null = null;
-  for (const item of items) {
-    try {
-      writes.push((await fetchOne(item))());
-    } catch (error) {
-      failure = { error };
-      break;
-    }
-  }
-  const settled = await Promise.allSettled(writes);
+  let writing: Promise<Outcome> = Promise.resolve(null);
+  const fetching = capture(
+    sequentially(items, async (item) => {
+      const write = await fetchOne(item);
+      const previous = writing;
+      writing = Promise.all([previous, capture(write())]).then(
+        ([earlier, later]) => earlier ?? later,
+      );
+    }),
+  );
+  const failure = await fetching.then(async (fetched) => {
+    const written = await writing;
+    return fetched ?? written;
+  });
   if (failure) throw failure.error;
-  const rejected = settled.find((result) => result.status === "rejected");
-  if (rejected) throw rejected.reason;
 };
