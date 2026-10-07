@@ -3,6 +3,7 @@ import { following, posts } from "@nodistraction/db";
 import { and, desc, eq, gte, inArray, lt, or } from "drizzle-orm";
 import { z } from "zod";
 import { isLocked } from "@/lib/budget";
+import { loadPostStates } from "@/lib/sync/post-state";
 import {
   loadAllowedAuthors,
   loadBudgetState,
@@ -39,6 +40,8 @@ export type FeedPost = {
   caption: string | null;
   takenAt: number;
   seen: boolean;
+  liked: boolean;
+  saved: boolean;
   media: MediaList;
 };
 
@@ -114,6 +117,8 @@ export const listFeed = async (
           caption: row.caption,
           takenAt: row.takenAt.getTime(),
           seen: row.seen,
+          liked: false,
+          saved: false,
           media: parseMedia(row.mediaJson),
         });
       }
@@ -122,7 +127,16 @@ export const listFeed = async (
 
   const page = items.slice(0, limit);
   const avatars = await loadAvatars(db, ownerId, [...new Set(page.map((item) => item.authorId))]);
-  for (const item of page) item.authorAvatarUrl = avatars.get(item.authorId) ?? null;
+  const states = await loadPostStates(
+    db,
+    ownerId,
+    page.map((item) => item.id),
+  );
+  for (const item of page) {
+    item.authorAvatarUrl = avatars.get(item.authorId) ?? null;
+    item.liked = states.get(item.id)?.liked ?? false;
+    item.saved = states.get(item.id)?.saved ?? false;
+  }
   const hasMore = items.length > limit;
   const lastItem = page.at(-1);
   return {

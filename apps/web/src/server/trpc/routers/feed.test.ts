@@ -1,4 +1,11 @@
-import { feedExceptions, following, mutuals, posts, userSettings } from "@nodistraction/db";
+import {
+  feedExceptions,
+  following,
+  mutuals,
+  postState,
+  posts,
+  userSettings,
+} from "@nodistraction/db";
 import { eq } from "drizzle-orm";
 import { describe, expect, it } from "vitest";
 import { createCallerFactory } from "@/server/trpc/init";
@@ -38,6 +45,26 @@ const seedFeed = async () => {
 const ids = (items: { id: string }[]) => items.map((item) => item.id);
 
 describe("feed.list", () => {
+  it("exposes the stored like and save flags", async () => {
+    const { env, caller } = await seedFeed();
+    await env.db.insert(postState).values({
+      ownerId: "owner",
+      mediaId: "p-mutual",
+      liked: true,
+      saved: false,
+      updatedAt: new Date(0),
+    });
+    const items = (await caller.feed.list({})).items;
+    expect(items.find((item) => item.id === "p-mutual")).toMatchObject({
+      liked: true,
+      saved: false,
+    });
+    expect(items.find((item) => item.id === "p-friend")).toMatchObject({
+      liked: false,
+      saved: false,
+    });
+  });
+
   it("includes the author avatar when known", async () => {
     const { env, caller } = await seedFeed();
     await env.db

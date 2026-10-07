@@ -10,6 +10,9 @@ const listOutput = z.compile(
       shortcode: z.string().nullable(),
       productType: z.string().nullable(),
       authorUsername: z.string(),
+      authorAvatarUrl: z.string().nullable(),
+      liked: z.boolean(),
+      saved: z.boolean(),
       caption: z.string().nullable(),
       media: z.array(
         z.object({

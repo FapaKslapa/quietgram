@@ -31,6 +31,8 @@ const listOutput = z.compile(
         caption: z.string().nullable(),
         takenAt: z.number(),
         seen: z.boolean(),
+        liked: z.boolean(),
+        saved: z.boolean(),
         media: z.array(mediaSchema),
       }),
     ),
