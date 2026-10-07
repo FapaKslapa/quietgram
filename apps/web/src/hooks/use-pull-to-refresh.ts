@@ -25,6 +25,8 @@ type PullOptions = {
   onTrigger: () => void;
 };
 
+type PhaseOverride = { phase: PullPhase; busy: boolean; dragging: boolean };
+
 type PullGesture = "none" | "undecided" | "pull" | "ignore";
 
 export type PullState = { pull: MotionValue<number>; phase: PullPhase };
@@ -32,11 +34,16 @@ export type PullState = { pull: MotionValue<number>; phase: PullPhase };
 export function usePullToRefresh({ enabled, cooling, busy, onTrigger }: PullOptions): PullState {
   const pull = useMotionValue(0);
   const reduced = useReducedMotion();
-  const [phase, setPhase] = useState<PullPhase>("idle");
+  const [override, setOverride] = useState<PhaseOverride | null>(null);
   const latest = useRef({ cooling, busy, onTrigger, reduced });
-  latest.current = { cooling, busy, onTrigger, reduced };
-  const noticeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const dragging = useRef(false);
+
+  useEffect(() => {
+    latest.current = { cooling, busy, onTrigger, reduced };
+  }, [cooling, busy, onTrigger, reduced]);
+
+  const overridden = override !== null && (override.dragging || override.busy === busy);
+  const phase: PullPhase = overridden ? override.phase : busy ? "refreshing" : "idle";
 
   const settleTo = useCallback(
     (target: number) => {
@@ -48,13 +55,7 @@ export function usePullToRefresh({ enabled, cooling, busy, onTrigger }: PullOpti
 
   useEffect(() => {
     if (dragging.current) return;
-    if (busy) {
-      setPhase("refreshing");
-      settleTo(PULL_HOLD);
-    } else {
-      setPhase("idle");
-      settleTo(0);
-    }
+    settleTo(busy ? PULL_HOLD : 0);
   }, [busy, settleTo]);
 
   useEffect(() => {
@@ -62,6 +63,7 @@ export function usePullToRefresh({ enabled, cooling, busy, onTrigger }: PullOpti
     let gesture: PullGesture = "none";
     let origin: TouchPoint = { x: 0, y: 0 };
     let anchorY = 0;
+    let noticeTimer: ReturnType<typeof setTimeout> | undefined;
 
     const onStart = (event: TouchEvent) => {
       const touch = event.touches[0];
@@ -70,7 +72,7 @@ export function usePullToRefresh({ enabled, cooling, busy, onTrigger }: PullOpti
         gesture = "ignore";
         return;
       }
-      if (noticeTimer.current) clearTimeout(noticeTimer.current);
+      clearTimeout(noticeTimer);
       origin = { x: touch.clientX, y: touch.clientY };
       gesture = "undecided";
     };
@@ -93,7 +95,12 @@ export function usePullToRefresh({ enabled, cooling, busy, onTrigger }: PullOpti
       if (event.cancelable) event.preventDefault();
       const base = latest.current.busy ? PULL_HOLD : 0;
       pull.set(Math.max(0, base + pullResistance(point.y - anchorY)));
-      setPhase(pullPhase(pull.get(), latest.current.cooling, latest.current.busy));
+      const next = pullPhase(pull.get(), latest.current.cooling, latest.current.busy);
+      setOverride((current) =>
+        current?.dragging && current.phase === next
+          ? current
+          : { phase: next, busy: latest.current.busy, dragging: true },
+      );
     };
 
     const onEnd = () => {
@@ -107,21 +114,22 @@ export function usePullToRefresh({ enabled, cooling, busy, onTrigger }: PullOpti
       const decision = decidePull(pull.get(), isCooling, isBusy);
       if (decision === "trigger") {
         navigator.vibrate?.(HAPTIC_MS);
-        setPhase("refreshing");
+        setOverride({ phase: "refreshing", busy: isBusy, dragging: false });
         settleTo(PULL_HOLD);
         trigger();
         return;
       }
       if (decision === "blocked" && !isBusy) {
         settleTo(BLOCKED_HOLD);
-        noticeTimer.current = setTimeout(() => {
+        setOverride((current) => (current ? { ...current, dragging: false } : current));
+        noticeTimer = setTimeout(() => {
           settleTo(0);
-          setPhase("idle");
+          setOverride(null);
         }, BLOCKED_NOTICE_MS);
         return;
       }
       settleTo(isBusy ? PULL_HOLD : 0);
-      setPhase(isBusy ? "refreshing" : "idle");
+      setOverride(null);
     };
 
     window.addEventListener("touchstart", onStart, { passive: true });
@@ -133,7 +141,7 @@ export function usePullToRefresh({ enabled, cooling, busy, onTrigger }: PullOpti
       window.removeEventListener("touchmove", onMove);
       window.removeEventListener("touchend", onEnd);
       window.removeEventListener("touchcancel", onEnd);
-      if (noticeTimer.current) clearTimeout(noticeTimer.current);
+      clearTimeout(noticeTimer);
     };
   }, [enabled, pull, settleTo]);
 

@@ -17,7 +17,9 @@ export function useEdgeSwipeBack(onBack: () => void): {
   const x = useMotionValue(0);
   const reduced = useReducedMotion();
   const latest = useRef({ onBack, reduced });
-  latest.current = { onBack, reduced };
+  useEffect(() => {
+    latest.current = { onBack, reduced };
+  }, [onBack, reduced]);
 
   const goBack = useCallback(() => {
     if (latest.current.reduced) {

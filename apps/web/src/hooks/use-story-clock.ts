@@ -9,7 +9,9 @@ export function useStoryClock({ durationMs, running, onComplete }: StoryClockOpt
   const [elapsed, setElapsed] = useState(0);
   const elapsedRef = useRef(0);
   const completed = useRef(onComplete);
-  completed.current = onComplete;
+  useEffect(() => {
+    completed.current = onComplete;
+  }, [onComplete]);
 
   useEffect(() => {
     if (!running || durationMs <= 0) return;

@@ -27,7 +27,9 @@ type BudgetClockOptions = { minutes: number | null; paused: boolean; onReached: 
 
 export function useBudgetClock({ minutes, paused, onReached }: BudgetClockOptions): void {
   const reached = useRef(onReached);
-  reached.current = onReached;
+  useEffect(() => {
+    reached.current = onReached;
+  }, [onReached]);
 
   useEffect(() => {
     if (minutes === null || paused) return;
