@@ -1,4 +1,4 @@
-import { type Db, dmMessages, dmThreads } from "@nodistraction/db";
+import { type Db, dmMessages, dmThreads, runBatch } from "@nodistraction/db";
 import {
   type IgMessage,
   IgRejectedError,
@@ -29,25 +29,28 @@ export type StoredMessage = Omit<IgMessage, "type">;
 export const syncInbox = async (deps: SyncDeps, ownerId: string): Promise<void> => {
   if (await isFresh(deps, ownerId, INBOX_SCOPE, MESSAGES_COOLDOWN_MS)) return;
   const threads = await withIgSession(deps, ownerId, ({ source }) => source.inbox());
-  for (const group of chunkRows(threads, 5)) {
-    await deps.db
-      .insert(dmThreads)
-      .values(
-        group.map((thread) => ({
-          ...thread,
-          ownerId,
-          lastActivityAt: new Date(thread.lastActivityAt),
-        })),
-      )
-      .onConflictDoUpdate({
-        target: [dmThreads.ownerId, dmThreads.id],
-        set: {
-          title: sql`excluded.title`,
-          lastActivityAt: sql`excluded.last_activity_at`,
-          unread: sql`excluded.unread`,
-        },
-      });
-  }
+  await runBatch(
+    deps.db,
+    chunkRows(threads, 5).map((group) =>
+      deps.db
+        .insert(dmThreads)
+        .values(
+          group.map((thread) => ({
+            ...thread,
+            ownerId,
+            lastActivityAt: new Date(thread.lastActivityAt),
+          })),
+        )
+        .onConflictDoUpdate({
+          target: [dmThreads.ownerId, dmThreads.id],
+          set: {
+            title: sql`excluded.title`,
+            lastActivityAt: sql`excluded.last_activity_at`,
+            unread: sql`excluded.unread`,
+          },
+        }),
+    ),
+  );
   await markSynced(deps, ownerId, INBOX_SCOPE);
 };
 
@@ -58,31 +61,33 @@ export const syncThread = async (
 ): Promise<void> => {
   if (await isFresh(deps, ownerId, threadScope(threadId), MESSAGES_COOLDOWN_MS)) return;
   const messages = await withIgSession(deps, ownerId, ({ source }) => source.thread(threadId));
-  await deps.db
-    .delete(dmMessages)
-    .where(
-      and(
-        eq(dmMessages.ownerId, ownerId),
-        eq(dmMessages.threadId, threadId),
-        like(dmMessages.id, `${LOCAL_ID_PREFIX}%`),
+  await runBatch(deps.db, [
+    deps.db
+      .delete(dmMessages)
+      .where(
+        and(
+          eq(dmMessages.ownerId, ownerId),
+          eq(dmMessages.threadId, threadId),
+          like(dmMessages.id, `${LOCAL_ID_PREFIX}%`),
+        ),
       ),
-    );
-  for (const group of chunkRows(messages, 7)) {
-    await deps.db
-      .insert(dmMessages)
-      .values(
-        group.map((message) => ({
-          id: message.id,
-          ownerId,
-          threadId,
-          senderId: message.senderId,
-          text: message.text,
-          kind: message.kind,
-          sentAt: new Date(message.sentAt),
-        })),
-      )
-      .onConflictDoNothing();
-  }
+    ...chunkRows(messages, 7).map((group) =>
+      deps.db
+        .insert(dmMessages)
+        .values(
+          group.map((message) => ({
+            id: message.id,
+            ownerId,
+            threadId,
+            senderId: message.senderId,
+            text: message.text,
+            kind: message.kind,
+            sentAt: new Date(message.sentAt),
+          })),
+        )
+        .onConflictDoNothing(),
+    ),
+  ]);
   await markSynced(deps, ownerId, threadScope(threadId));
 };
 
@@ -163,12 +168,12 @@ export const sendMessage = async (
     kind: "text" as const,
     sentAt: sentAt.getTime(),
   };
-  await deps.db
-    .insert(dmMessages)
-    .values({ ...message, ownerId, threadId: input.threadId, sentAt });
-  await deps.db
-    .update(dmThreads)
-    .set({ lastActivityAt: sentAt })
-    .where(and(eq(dmThreads.ownerId, ownerId), eq(dmThreads.id, input.threadId)));
+  await runBatch(deps.db, [
+    deps.db.insert(dmMessages).values({ ...message, ownerId, threadId: input.threadId, sentAt }),
+    deps.db
+      .update(dmThreads)
+      .set({ lastActivityAt: sentAt })
+      .where(and(eq(dmThreads.ownerId, ownerId), eq(dmThreads.id, input.threadId))),
+  ]);
   return message;
 };

@@ -1,4 +1,4 @@
-import { following, mutuals, syncState } from "@nodistraction/db";
+import { following, mutuals, runBatch, syncState } from "@nodistraction/db";
 import type { IgUser } from "@nodistraction/ig";
 import { and, eq, inArray, sql } from "drizzle-orm";
 import { startAuthorsPhase } from "@/lib/sync/authors";
@@ -33,31 +33,34 @@ export const hasStoredFollowing = async (deps: SyncDeps, ownerId: string): Promi
 };
 
 const upsertFollowing = async (deps: SyncDeps, ownerId: string, users: IgUser[]): Promise<void> => {
-  for (const rows of chunkRows(users, 8)) {
-    await deps.db
-      .insert(following)
-      .values(
-        rows.map((entry) => ({
-          ownerId,
-          igUserId: entry.id,
-          username: entry.username,
-          avatarUrl: entry.avatarUrl,
-          avatarRefreshedAt: deps.now(),
-          isVerified: entry.isVerified,
-          latestReelMedia: entry.latestReelMedia,
-        })),
-      )
-      .onConflictDoUpdate({
-        target: [following.ownerId, following.igUserId],
-        set: {
-          username: sql`excluded.username`,
-          avatarUrl: sql`excluded.avatar_url`,
-          avatarRefreshedAt: sql`excluded.avatar_refreshed_at`,
-          isVerified: sql`excluded.is_verified`,
-          latestReelMedia: sql`excluded.latest_reel_media`,
-        },
-      });
-  }
+  await runBatch(
+    deps.db,
+    chunkRows(users, 8).map((rows) =>
+      deps.db
+        .insert(following)
+        .values(
+          rows.map((entry) => ({
+            ownerId,
+            igUserId: entry.id,
+            username: entry.username,
+            avatarUrl: entry.avatarUrl,
+            avatarRefreshedAt: deps.now(),
+            isVerified: entry.isVerified,
+            latestReelMedia: entry.latestReelMedia,
+          })),
+        )
+        .onConflictDoUpdate({
+          target: [following.ownerId, following.igUserId],
+          set: {
+            username: sql`excluded.username`,
+            avatarUrl: sql`excluded.avatar_url`,
+            avatarRefreshedAt: sql`excluded.avatar_refreshed_at`,
+            isVerified: sql`excluded.is_verified`,
+            latestReelMedia: sql`excluded.latest_reel_media`,
+          },
+        }),
+    ),
+  );
 };
 
 const removeUnfollowed = async (
@@ -70,11 +73,14 @@ const removeUnfollowed = async (
     .from(following)
     .where(eq(following.ownerId, ownerId));
   const stale = stored.map((row) => row.id).filter((id) => !currentIds.has(id));
-  for (const ids of chunk(stale, 90)) {
-    await deps.db
-      .delete(following)
-      .where(and(eq(following.ownerId, ownerId), inArray(following.igUserId, ids)));
-  }
+  await runBatch(
+    deps.db,
+    chunk(stale, 90).map((ids) =>
+      deps.db
+        .delete(following)
+        .where(and(eq(following.ownerId, ownerId), inArray(following.igUserId, ids))),
+    ),
+  );
 };
 
 export const stepFollowing = async (
@@ -99,22 +105,25 @@ export const stepFollowing = async (
 };
 
 const upsertMutuals = async (deps: SyncDeps, ownerId: string, users: IgUser[]): Promise<void> => {
-  for (const rows of chunkRows(users, 4)) {
-    await deps.db
-      .insert(mutuals)
-      .values(
-        rows.map((entry) => ({
-          ownerId,
-          igUserId: entry.id,
-          username: entry.username,
-          avatarUrl: entry.avatarUrl,
-        })),
-      )
-      .onConflictDoUpdate({
-        target: [mutuals.ownerId, mutuals.igUserId],
-        set: { username: sql`excluded.username`, avatarUrl: sql`excluded.avatar_url` },
-      });
-  }
+  await runBatch(
+    deps.db,
+    chunkRows(users, 4).map((rows) =>
+      deps.db
+        .insert(mutuals)
+        .values(
+          rows.map((entry) => ({
+            ownerId,
+            igUserId: entry.id,
+            username: entry.username,
+            avatarUrl: entry.avatarUrl,
+          })),
+        )
+        .onConflictDoUpdate({
+          target: [mutuals.ownerId, mutuals.igUserId],
+          set: { username: sql`excluded.username`, avatarUrl: sql`excluded.avatar_url` },
+        }),
+    ),
+  );
 };
 
 export const stepFollowers = async (

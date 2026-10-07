@@ -1,4 +1,4 @@
-import { type Db, following } from "@nodistraction/db";
+import { type Db, following, runBatch } from "@nodistraction/db";
 import { and, eq, inArray, sql } from "drizzle-orm";
 import { chunkRows } from "@/lib/sync/chunk";
 import { AVATAR_MAX_AGE_MS } from "@/lib/sync/cooldown";
@@ -34,24 +34,27 @@ export const refreshStaleAvatars = async (
       .map((row) => row.igUserId),
   );
   const stale = fresh.filter((sample) => staleIds.has(sample.userId));
-  for (const group of chunkRows(stale, 5)) {
-    await db
-      .insert(following)
-      .values(
-        group.map((sample) => ({
-          ownerId,
-          igUserId: sample.userId,
-          username: sample.username,
-          avatarUrl: sample.avatarUrl,
-          avatarRefreshedAt: now,
-        })),
-      )
-      .onConflictDoUpdate({
-        target: [following.ownerId, following.igUserId],
-        set: {
-          avatarUrl: sql`excluded.avatar_url`,
-          avatarRefreshedAt: sql`excluded.avatar_refreshed_at`,
-        },
-      });
-  }
+  await runBatch(
+    db,
+    chunkRows(stale, 5).map((group) =>
+      db
+        .insert(following)
+        .values(
+          group.map((sample) => ({
+            ownerId,
+            igUserId: sample.userId,
+            username: sample.username,
+            avatarUrl: sample.avatarUrl,
+            avatarRefreshedAt: now,
+          })),
+        )
+        .onConflictDoUpdate({
+          target: [following.ownerId, following.igUserId],
+          set: {
+            avatarUrl: sql`excluded.avatar_url`,
+            avatarRefreshedAt: sql`excluded.avatar_refreshed_at`,
+          },
+        }),
+    ),
+  );
 };

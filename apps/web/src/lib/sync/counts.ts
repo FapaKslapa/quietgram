@@ -1,4 +1,4 @@
-import { following } from "@nodistraction/db";
+import { type BatchStatement, following, runBatch } from "@nodistraction/db";
 import { IgHttpError, SessionExpiredError } from "@nodistraction/ig";
 import { and, asc, eq, isNull, lt, or } from "drizzle-orm";
 import { ZodError } from "zod";
@@ -27,23 +27,29 @@ export const refreshCounts = async (
     .orderBy(asc(following.countsRefreshedAt))
     .limit(COUNTS_PER_STEP);
 
-  for (const entry of due) {
-    try {
+  const updates: BatchStatement[] = [];
+  try {
+    for (const entry of due) {
       const counts = await source.userCounts(entry.igUserId);
-      if (counts === null) return;
-      await deps.db
-        .update(following)
-        .set({ ...counts, countsRefreshedAt: deps.now() })
-        .where(and(eq(following.ownerId, ownerId), eq(following.igUserId, entry.igUserId)));
-    } catch (error) {
-      if (
+      if (counts === null) break;
+      updates.push(
+        deps.db
+          .update(following)
+          .set({ ...counts, countsRefreshedAt: deps.now() })
+          .where(and(eq(following.ownerId, ownerId), eq(following.igUserId, entry.igUserId))),
+      );
+    }
+  } catch (error) {
+    if (
+      !(
         error instanceof IgHttpError ||
         error instanceof SessionExpiredError ||
         error instanceof ZodError
-      ) {
-        return;
-      }
+      )
+    ) {
       throw error;
     }
+  } finally {
+    await runBatch(deps.db, updates);
   }
 };

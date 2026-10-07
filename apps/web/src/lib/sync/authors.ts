@@ -132,19 +132,20 @@ export const stepAuthors = async (
   const batch = due.slice(0, Math.min(AUTHORS_PER_STEP, state.remaining));
   for (const authorId of batch) {
     const fetched = await fetchPosts(authorId, POSTS_PER_AUTHOR);
-    await storePosts(deps, ownerId, fetched);
     const newest = fetched.reduce<number | null>(
       (latest, post) => (latest === null || post.takenAt > latest ? post.takenAt : latest),
       null,
     );
-    await deps.db
-      .update(following)
-      .set(
-        newest === null
-          ? { postsCheckedAt: deps.now() }
-          : { postsCheckedAt: deps.now(), lastPostAt: new Date(newest) },
-      )
-      .where(and(eq(following.ownerId, ownerId), eq(following.igUserId, authorId)));
+    await storePosts(deps, ownerId, fetched, [
+      deps.db
+        .update(following)
+        .set(
+          newest === null
+            ? { postsCheckedAt: deps.now() }
+            : { postsCheckedAt: deps.now(), lastPostAt: new Date(newest) },
+        )
+        .where(and(eq(following.ownerId, ownerId), eq(following.igUserId, authorId))),
+    ]);
   }
   const remaining = Math.min(state.remaining - batch.length, due.length - batch.length);
   return remaining > 0 ? { ...state, remaining } : afterAuthors(mode);
