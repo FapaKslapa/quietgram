@@ -78,6 +78,13 @@
       "when": 1791360986713,
       "tag": "0010_feed_cursor_index",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "6",
+      "when": 1791365871758,
+      "tag": "0011_ig_credentials",
+      "breakpoints": true
     }
   ]
 }

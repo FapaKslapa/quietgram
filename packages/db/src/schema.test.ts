@@ -26,6 +26,7 @@ describe("schema migration", () => {
       "dm_threads",
       "feed_exceptions",
       "following",
+      "ig_credentials",
       "ig_sessions",
       "mutuals",
       "pairing_tokens",

@@ -84,3 +84,19 @@ export const pairingTokens = sqliteTable("pairing_tokens", {
   expiresAt: integer("expires_at", { mode: "timestamp_ms" }).notNull(),
   usedAt: integer("used_at", { mode: "timestamp_ms" }),
 });
+
+export const credentialStatuses = ["ready", "challenge", "rejected"] as const;
+
+export const igCredentials = sqliteTable("ig_credentials", {
+  ownerId: text("owner_id")
+    .primaryKey()
+    .references(() => user.id, { onDelete: "cascade" }),
+  username: text("username").notNull(),
+  cipher: text("cipher").notNull(),
+  iv: text("iv").notNull(),
+  status: text("status", { enum: credentialStatuses }).notNull().default("ready"),
+  lastAttemptAt: integer("last_attempt_at", { mode: "timestamp_ms" }),
+  windowStartedAt: integer("window_started_at", { mode: "timestamp_ms" }),
+  windowAttempts: integer("window_attempts").notNull().default(0),
+  updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull(),
+});
