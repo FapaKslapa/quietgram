@@ -341,7 +341,7 @@ function PullStatic({ distance, phase }: { distance: number; phase: PullPhase })
       <PostaHeader mode={mode} modesOpen={false} onOpenModes={noop}>
         <RefreshPanel hint={null} disabled={false} progress={null} onRefresh={noop} />
       </PostaHeader>
-      <PostList posts={POSTS.slice(0, 1)} now={NOW} />
+      <PostList posts={POSTS.slice(0, 1)} now={NOW} Card={ReadOnlyCard} />
     </PullSurface>
   );
 }
@@ -379,7 +379,7 @@ function PullLive() {
       <p data-testid="pull-count" className="sr-only">
         {count}
       </p>
-      <PostList posts={POSTS} now={NOW} />
+      <PostList posts={POSTS} now={NOW} Card={ReadOnlyCard} />
     </PullSurface>
   );
 }
@@ -399,7 +399,7 @@ function ViewerFrame() {
     });
   }, [viewer]);
 
-  return <PostList posts={POSTS.slice(1, 2)} now={NOW} />;
+  return <PostList posts={POSTS.slice(1, 2)} now={NOW} Card={ReadOnlyCard} />;
 }
 
 function ProfiloFrame({ sheet }: { sheet?: "budget" | "theme" | "dm" | "interactions" }) {
@@ -546,7 +546,7 @@ const render = (view: GalleryViewName): ReactNode => {
     case "pull-live":
       return <PullLive />;
     case "carousel":
-      return <PostList posts={POSTS.slice(1, 2)} now={NOW} />;
+      return <PostList posts={POSTS.slice(1, 2)} now={NOW} Card={ReadOnlyCard} />;
     case "viewer":
       return <ViewerFrame />;
     case "budget-lock":
