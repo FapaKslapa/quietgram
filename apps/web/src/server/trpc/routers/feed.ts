@@ -3,6 +3,7 @@ import { FEED_PAGE_SIZE, listFeed } from "@/lib/sync/feed";
 import { createTRPCRouter, protectedProcedure } from "@/server/trpc/init";
 
 const MAX_PAGE_SIZE = 50;
+const MAX_TIMESTAMP_MS = 8_640_000_000_000_000;
 
 const mediaSchema = z.object({
   kind: z.enum(["image", "video"]),
@@ -13,7 +14,12 @@ const mediaSchema = z.object({
 
 const listInput = z.compile(
   z.object({
-    cursor: z.object({ takenAt: z.number().int(), id: z.string().min(1).max(128) }).optional(),
+    cursor: z
+      .object({
+        takenAt: z.number().int().min(0).max(MAX_TIMESTAMP_MS),
+        id: z.string().min(1).max(128),
+      })
+      .optional(),
     limit: z.number().int().min(1).max(MAX_PAGE_SIZE).default(FEED_PAGE_SIZE),
   }),
 );

@@ -182,7 +182,10 @@ export const posts = sqliteTable(
     mediaJson: text("media_json").notNull(),
     seen: integer("seen", { mode: "boolean" }).notNull().default(false),
   },
-  (t) => [primaryKey({ columns: [t.ownerId, t.id] }), index("posts_feed").on(t.ownerId, t.takenAt)],
+  (t) => [
+    primaryKey({ columns: [t.ownerId, t.id] }),
+    index("posts_feed").on(t.ownerId, t.takenAt, t.id),
+  ],
 );
 
 export const saved = sqliteTable(

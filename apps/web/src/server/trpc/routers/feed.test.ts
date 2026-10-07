@@ -175,6 +175,47 @@ describe("feed.list", () => {
     ]);
   });
 
+  it("walks ties that span several scan batches without gaps or repeats", async () => {
+    const { env, caller } = await seedFeed();
+    await env.db.insert(userSettings).values({ ownerId: "owner", feedMode: "following" });
+    const takenAt = new Date(1_790_000_500_000);
+    const rows = Array.from({ length: 250 }, (_, index) => ({
+      id: `bulk-${String(index).padStart(3, "0")}`,
+      ownerId: "owner",
+      authorId: index % 3 === 0 ? "stranger" : "mutual",
+      authorUsername: "x",
+      caption: null,
+      takenAt,
+      mediaJson: media,
+    }));
+    for (let start = 0; start < rows.length; start += 8) {
+      await env.db.insert(posts).values(rows.slice(start, start + 8));
+    }
+    const seen: string[] = [];
+    let cursor: { takenAt: number; id: string } | undefined;
+    do {
+      const page = await caller.feed.list({ limit: 30, cursor });
+      seen.push(...ids(page.items));
+      cursor = page.nextCursor ?? undefined;
+    } while (cursor);
+    const expected = rows
+      .filter((row) => row.authorId === "mutual")
+      .map((row) => row.id)
+      .reverse();
+    expect(seen.slice(0, expected.length)).toEqual(expected);
+    expect(new Set(seen).size).toBe(seen.length);
+  });
+
+  it("rejects cursors outside the date range", async () => {
+    const { caller } = await seedFeed();
+    await expect(caller.feed.list({ cursor: { takenAt: 9e15, id: "x" } })).rejects.toMatchObject({
+      code: "BAD_REQUEST",
+    });
+    await expect(caller.feed.list({ cursor: { takenAt: -1, id: "x" } })).rejects.toMatchObject({
+      code: "BAD_REQUEST",
+    });
+  });
+
   it("hides posts older than the recency window and follows the setting", async () => {
     const { env, caller } = await seedFeed();
     await env.db.insert(userSettings).values({ ownerId: "owner", feedMode: "following" });
