@@ -6,7 +6,7 @@ import Link from "next/link";
 import { cn } from "@/lib/utils";
 
 const TABS = [
-  { href: "/posta", label: "Posta", Icon: Mail, also: [] },
+  { href: "/posta", label: "Posta", Icon: Mail, also: ["/account"] },
   { href: "/messaggi", label: "Messaggi", Icon: MessageSquare, also: [] },
   { href: "/profilo", label: "Profilo", Icon: User, also: ["/salvati"] },
 ] as const;
