@@ -99,3 +99,65 @@ export const liveItems = <T extends Pick<StoryItem, "expiresAt">>(
 
 export const ringState = (entry: Pick<TrayEntry, "seen">): "unseen" | "seen" =>
   entry.seen ? "seen" : "unseen";
+
+export type MediaPhase = "loading" | "ready" | "failed";
+
+export type SeenMap = Record<string, number>;
+
+export const SEEN_STORAGE_KEY = "stories-seen";
+export const MAX_SEEN_ENTRIES = 200;
+export const USER_STORIES_STALE_MS = 60_000;
+
+export const clockRunning = (phase: MediaPhase, held: boolean): boolean =>
+  phase === "ready" && !held;
+
+export const isSeenLocally = (
+  entry: Pick<TrayEntry, "userId" | "latestReelMedia">,
+  seen: SeenMap,
+): boolean => {
+  const stored = seen[entry.userId];
+  return stored !== undefined && stored >= (entry.latestReelMedia ?? 0);
+};
+
+export const applySeen = <T extends Pick<TrayEntry, "userId" | "latestReelMedia" | "seen">>(
+  entries: readonly T[],
+  seen: SeenMap,
+): T[] =>
+  entries.map((entry) =>
+    entry.seen || !isSeenLocally(entry, seen) ? entry : { ...entry, seen: true },
+  );
+
+export const markSeenLocal = (
+  seen: SeenMap,
+  entry: Pick<TrayEntry, "userId" | "latestReelMedia">,
+): SeenMap => {
+  if (isSeenLocally(entry, seen)) return seen;
+  const kept = Object.entries(seen).filter(([key]) => key !== entry.userId);
+  const next = [...kept, [entry.userId, entry.latestReelMedia ?? 0] as const];
+  return Object.fromEntries(next.slice(-MAX_SEEN_ENTRIES));
+};
+
+export const parseSeenMap = (raw: string | null): SeenMap => {
+  if (!raw) return {};
+  try {
+    const parsed: unknown = JSON.parse(raw);
+    if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) return {};
+    const result: SeenMap = {};
+    for (const [key, value] of Object.entries(parsed)) {
+      if (typeof value === "number" && Number.isFinite(value)) result[key] = value;
+    }
+    return result;
+  } catch {
+    return {};
+  }
+};
+
+export const backTarget = (cursor: StoryCursor): StoryCursor | "restart" => {
+  const target = previousCursor(cursor);
+  return target === cursor ? "restart" : target;
+};
+
+export const upcomingItem = <T>(items: readonly T[], index: number): T | null =>
+  items[index + 1] ?? null;
+
+export const slideDirection = (from: number, to: number): 1 | -1 => (to >= from ? 1 : -1);

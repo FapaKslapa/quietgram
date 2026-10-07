@@ -1,20 +1,30 @@
 import { describe, expect, it } from "vitest";
 import {
   advanceElapsed,
+  applySeen,
+  backTarget,
   classifyRelease,
+  clockRunning,
   IMAGE_DURATION_MS,
   isComplete,
   isExpired,
+  isSeenLocally,
   itemDuration,
   liveItems,
+  MAX_SEEN_ENTRIES,
   MAX_VIDEO_DURATION_MS,
+  markSeenLocal,
   nextCursor,
   orderTray,
+  parseSeenMap,
   previousCursor,
   ringState,
+  type SeenMap,
   segmentFill,
+  slideDirection,
   storyProgress,
   tapZone,
+  upcomingItem,
 } from "@/lib/stories";
 
 describe("itemDuration", () => {
@@ -124,5 +134,77 @@ describe("expiry", () => {
     expect(liveItems([{ expiresAt: 500 }, { expiresAt: 2_000 }], now)).toEqual([
       { expiresAt: 2_000 },
     ]);
+  });
+});
+
+describe("local seen state", () => {
+  const entry = { userId: "1", latestReelMedia: 100 };
+
+  it("marks an entry seen until a newer story appears", () => {
+    const seen = markSeenLocal({}, entry);
+    expect(isSeenLocally(entry, seen)).toBe(true);
+    expect(isSeenLocally({ ...entry, latestReelMedia: 101 }, seen)).toBe(false);
+  });
+
+  it("returns the same map when nothing changes", () => {
+    const seen = markSeenLocal({}, entry);
+    expect(markSeenLocal(seen, entry)).toBe(seen);
+  });
+
+  it("treats a missing reel timestamp as zero", () => {
+    const seen = markSeenLocal({}, { userId: "2", latestReelMedia: null });
+    expect(isSeenLocally({ userId: "2", latestReelMedia: null }, seen)).toBe(true);
+  });
+
+  it("caps the number of stored entries keeping the latest", () => {
+    let seen: SeenMap = {};
+    for (let index = 0; index < MAX_SEEN_ENTRIES + 5; index += 1) {
+      seen = markSeenLocal(seen, { userId: `u${index}`, latestReelMedia: 1 });
+    }
+    expect(Object.keys(seen)).toHaveLength(MAX_SEEN_ENTRIES);
+    expect(seen.u0).toBeUndefined();
+    expect(seen[`u${MAX_SEEN_ENTRIES + 4}`]).toBe(1);
+  });
+
+  it("applies the local map onto tray entries", () => {
+    const entries = [
+      { userId: "1", latestReelMedia: 100, seen: false },
+      { userId: "2", latestReelMedia: 100, seen: false },
+    ];
+    const result = applySeen(entries, { "1": 100 });
+    expect(result.map((item) => item.seen)).toEqual([true, false]);
+    expect(result[1]).toBe(entries[1]);
+  });
+
+  it("parses stored json defensively", () => {
+    expect(parseSeenMap(null)).toEqual({});
+    expect(parseSeenMap("nope")).toEqual({});
+    expect(parseSeenMap("[1]")).toEqual({});
+    expect(parseSeenMap('{"a":1,"b":"x","c":null}')).toEqual({ a: 1 });
+  });
+});
+
+describe("viewer helpers", () => {
+  it("runs the clock only when the media is ready and not held", () => {
+    expect(clockRunning("ready", false)).toBe(true);
+    expect(clockRunning("ready", true)).toBe(false);
+    expect(clockRunning("loading", false)).toBe(false);
+    expect(clockRunning("failed", false)).toBe(false);
+  });
+
+  it("restarts the first item instead of staying silent", () => {
+    expect(backTarget({ group: 0, item: 0 })).toBe("restart");
+    expect(backTarget({ group: 0, item: 2 })).toEqual({ group: 0, item: 1 });
+    expect(backTarget({ group: 2, item: 0 })).toEqual({ group: 1, item: 0 });
+  });
+
+  it("finds the upcoming item", () => {
+    expect(upcomingItem(["a", "b"], 0)).toBe("b");
+    expect(upcomingItem(["a", "b"], 1)).toBeNull();
+  });
+
+  it("picks the slide direction", () => {
+    expect(slideDirection(0, 1)).toBe(1);
+    expect(slideDirection(2, 1)).toBe(-1);
   });
 });
