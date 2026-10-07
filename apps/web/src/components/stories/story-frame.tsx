@@ -1,19 +1,22 @@
 "use client";
 
-import { X } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { animate, motion, type PanInfo, useMotionValue, useTransform } from "motion/react";
-import { type PointerEvent, useEffect, useRef, useState } from "react";
+import { type PointerEvent, useCallback, useEffect, useRef, useState } from "react";
 import { LazyImage } from "@/components/media/lazy-image";
-import { UserAvatar } from "@/components/ui/user-avatar";
+import { STORY_TOP_INSET, StoryErrorView, StoryHeader } from "@/components/stories/story-states";
 import { useStoryClock } from "@/hooks/use-story-clock";
 import { mediaSrc } from "@/lib/media-proxy";
 import {
   classifyRelease,
+  clockRunning,
   itemDuration,
+  type MediaPhase,
   type StoryItem,
   segmentFill,
   storyProgress,
   tapZone,
+  upcomingItem,
 } from "@/lib/stories";
 import { formatRelativeTime } from "@/lib/time";
 import { backdropOpacity, shouldDismiss } from "@/lib/viewer";
@@ -29,9 +32,16 @@ type StoryFrameProps = {
   onClose: () => void;
 };
 
-type Press = { at: number; x: number; y: number };
+type Press = { at: number; x: number; y: number; id: number };
 
 const RETURN_SPRING = { type: "spring", stiffness: 380, damping: 40 } as const;
+
+const preloadImage = (item: StoryItem | null) => {
+  if (item?.media.kind !== "image") return;
+  const image = new Image();
+  image.referrerPolicy = "no-referrer";
+  image.src = mediaSrc(item.media.url) ?? item.media.url;
+};
 
 export function StoryFrame({
   username,
@@ -45,6 +55,8 @@ export function StoryFrame({
 }: StoryFrameProps) {
   const item = items[index];
   const [held, setHeld] = useState(false);
+  const [phase, setPhase] = useState<MediaPhase>("loading");
+  const [attempt, setAttempt] = useState(0);
   const [videoSeconds, setVideoSeconds] = useState<number | null>(null);
   const video = useRef<HTMLVideoElement>(null);
   const press = useRef<Press | null>(null);
@@ -52,19 +64,17 @@ export function StoryFrame({
   const fade = useTransform(y, backdropOpacity);
   const kind = item?.media.kind ?? "image";
   const durationMs = itemDuration(kind, videoSeconds);
-  const ready = kind === "image" || videoSeconds !== null;
-  const elapsed = useStoryClock({ durationMs, running: ready && !held, onComplete: onNext });
+  const elapsed = useStoryClock({
+    durationMs,
+    running: clockRunning(phase, held),
+    onComplete: onNext,
+  });
   const progress = storyProgress(elapsed, durationMs);
+  const upcoming = upcomingItem(items, index);
 
   useEffect(() => {
-    const onKey = (event: KeyboardEvent) => {
-      if (event.key === "Escape") onClose();
-      else if (event.key === "ArrowRight") onNext();
-      else if (event.key === "ArrowLeft") onPrevious();
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [onClose, onNext, onPrevious]);
+    preloadImage(upcoming);
+  }, [upcoming]);
 
   useEffect(() => {
     const element = video.current;
@@ -73,18 +83,46 @@ export function StoryFrame({
     else void element.play().catch(() => undefined);
   }, [held]);
 
+  const markReady = useCallback(() => setPhase("ready"), []);
+  const markFailed = useCallback(() => setPhase("failed"), []);
+
+  const retry = () => {
+    setPhase("loading");
+    setVideoSeconds(null);
+    setAttempt((current) => current + 1);
+  };
+
   if (!item) return null;
 
+  if (phase === "failed") {
+    return (
+      <StoryErrorView
+        username={username}
+        avatarUrl={avatarUrl}
+        message="Non riesco a caricare questa storia."
+        onRetry={retry}
+        onSkip={onNext}
+        onClose={onClose}
+      />
+    );
+  }
+
   const onPointerDown = (event: PointerEvent<HTMLDivElement>) => {
-    press.current = { at: performance.now(), x: event.clientX, y: event.clientY };
+    if (!event.isPrimary || press.current) return;
+    press.current = {
+      at: performance.now(),
+      x: event.clientX,
+      y: event.clientY,
+      id: event.pointerId,
+    };
     setHeld(true);
   };
 
   const onPointerUp = (event: PointerEvent<HTMLDivElement>) => {
     const start = press.current;
+    if (!start || start.id !== event.pointerId) return;
     press.current = null;
     setHeld(false);
-    if (!start) return;
     const distance = Math.hypot(event.clientX - start.x, event.clientY - start.y);
     if (classifyRelease(performance.now() - start.at, distance) !== "tap") return;
     const bounds = event.currentTarget.getBoundingClientRect();
@@ -127,6 +165,7 @@ export function StoryFrame({
       <div className="absolute inset-0 grid place-items-center">
         {item.media.kind === "video" ? (
           <video
+            key={attempt}
             ref={video}
             src={mediaSrc(item.media.url)}
             autoPlay
@@ -135,19 +174,36 @@ export function StoryFrame({
             preload="auto"
             aria-label={`Storia di ${username}`}
             onLoadedMetadata={(event) => setVideoSeconds(event.currentTarget.duration)}
-            onError={() => setVideoSeconds(Number.NaN)}
+            onCanPlay={markReady}
+            onPlaying={markReady}
+            onWaiting={() => setPhase((current) => (current === "ready" ? "loading" : current))}
+            onError={markFailed}
             className="size-full object-contain"
           />
         ) : (
           <LazyImage
+            key={attempt}
             src={item.media.url}
             alt={`Storia di ${username}`}
             width={item.media.width}
             height={item.media.height}
             fit="contain"
             eager
+            onLoaded={markReady}
+            onFailed={markFailed}
           />
         )}
+      </div>
+
+      <div
+        aria-hidden={phase === "ready"}
+        className={`pointer-events-none absolute inset-0 grid place-items-center transition-opacity duration-300 ${phase === "loading" ? "opacity-100" : "opacity-0"}`}
+      >
+        <Loader2
+          className="size-7 text-white/70 motion-safe:animate-spin"
+          strokeWidth={1.6}
+          aria-hidden="true"
+        />
       </div>
 
       <div
@@ -158,7 +214,9 @@ export function StoryFrame({
         className="absolute inset-0 touch-none"
       />
 
-      <div className="pointer-events-none absolute inset-x-0 top-0 z-10 grid gap-3 bg-linear-to-b from-black/60 to-transparent px-3 pt-[max(0.75rem,env(safe-area-inset-top))] pb-8">
+      <div
+        className={`pointer-events-none absolute inset-x-0 top-0 z-10 grid gap-3 bg-linear-to-b from-black/60 to-transparent pb-8 ${STORY_TOP_INSET}`}
+      >
         <ol className="flex gap-1" aria-label={`Storia ${index + 1} di ${items.length}`}>
           {items.map((entry, segment) => (
             <li key={entry.id} className="h-0.5 flex-1 overflow-hidden rounded-full bg-white/30">
@@ -169,25 +227,20 @@ export function StoryFrame({
             </li>
           ))}
         </ol>
-        <div className="flex items-center gap-2.5 text-white">
-          <UserAvatar username={username} avatarUrl={avatarUrl} />
-          <p className="min-w-0 flex-1 truncate text-sm font-semibold">{username}</p>
-          <time
-            dateTime={new Date(item.takenAt).toISOString()}
-            className="num-display text-xs text-white/75"
-            suppressHydrationWarning
-          >
-            {formatRelativeTime(item.takenAt, now)}
-          </time>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Chiudi"
-            className="pointer-events-auto grid size-11 place-items-center rounded-full bg-white/12 backdrop-blur-sm"
-          >
-            <X className="size-5" strokeWidth={1.8} aria-hidden="true" />
-          </button>
-        </div>
+        <StoryHeader
+          username={username}
+          avatarUrl={avatarUrl}
+          onClose={onClose}
+          trailing={
+            <time
+              dateTime={new Date(item.takenAt).toISOString()}
+              className="num-display text-xs text-white/75"
+              suppressHydrationWarning
+            >
+              {formatRelativeTime(item.takenAt, now)}
+            </time>
+          }
+        />
       </div>
     </motion.div>
   );

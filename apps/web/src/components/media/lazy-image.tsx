@@ -12,6 +12,8 @@ type LazyImageProps = {
   fit?: "cover" | "contain" | undefined;
   eager?: boolean | undefined;
   className?: string | undefined;
+  onLoaded?: (() => void) | undefined;
+  onFailed?: (() => void) | undefined;
 };
 
 export function LazyImage({
@@ -22,11 +24,19 @@ export function LazyImage({
   fit = "cover",
   eager = false,
   className,
+  onLoaded,
+  onFailed,
 }: LazyImageProps) {
   const [loaded, setLoaded] = useState(false);
-  const attach = useCallback((node: HTMLImageElement | null) => {
-    if (node?.complete && node.naturalWidth > 0) setLoaded(true);
-  }, []);
+  const attach = useCallback(
+    (node: HTMLImageElement | null) => {
+      if (node?.complete && node.naturalWidth > 0) {
+        setLoaded(true);
+        onLoaded?.();
+      }
+    },
+    [onLoaded],
+  );
 
   return (
     <img
@@ -39,7 +49,11 @@ export function LazyImage({
       decoding="async"
       referrerPolicy="no-referrer"
       draggable={false}
-      onLoad={() => setLoaded(true)}
+      onLoad={() => {
+        setLoaded(true);
+        onLoaded?.();
+      }}
+      onError={onFailed}
       className={cn(
         "size-full transition-opacity duration-500 ease-out-expo select-none",
         fit === "cover" ? "object-cover" : "object-contain",

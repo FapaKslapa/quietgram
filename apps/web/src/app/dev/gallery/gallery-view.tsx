@@ -50,8 +50,13 @@ import { ScreenError } from "@/components/shell/screen-error";
 import { ScreenHeader } from "@/components/shell/screen-header";
 import { SessionExpiredView } from "@/components/shell/session-expired-view";
 import { TabBarView } from "@/components/shell/tab-bar-view";
-import { StoriesBarView } from "@/components/stories/stories-bar-view";
+import {
+  StoriesBarMessage,
+  StoriesBarSkeleton,
+  StoriesBarView,
+} from "@/components/stories/stories-bar-view";
 import { StoryFrame } from "@/components/stories/story-frame";
+import { StoryErrorView, StoryLoadingView } from "@/components/stories/story-states";
 import { usePullToRefresh } from "@/hooks/use-pull-to-refresh";
 import { mergeTiles, tileLabel } from "@/lib/account";
 import { BUDGET_CHOICES } from "@/lib/budget";
@@ -152,6 +157,48 @@ function StoryDemo({ video }: { video?: boolean }) {
         onPrevious={() => setIndex((current) => Math.max(current - 1, 0))}
         onClose={noop}
       />
+    </div>
+  );
+}
+
+function StoriesBarFrame({ variant }: { variant: "loading" | "empty" }) {
+  return (
+    <>
+      <PostaHeader mode={modeDefinition("friends")} modesOpen={false} onOpenModes={noop}>
+        <RefreshPanel
+          hint="Prossimo aggiornamento dalle 14:51"
+          disabled
+          progress={null}
+          onRefresh={noop}
+        />
+      </PostaHeader>
+      {variant === "loading" ? (
+        <StoriesBarSkeleton />
+      ) : (
+        <StoriesBarMessage message="Nessuna storia per ora" onRetry={noop} retrying={false} />
+      )}
+      <PostList posts={POSTS.slice(0, 1)} now={NOW} Card={ReadOnlyCard} />
+      <TabBarView pathname="/posta" unread />
+    </>
+  );
+}
+
+function StoryStateFrame({ error }: { error?: boolean }) {
+  const avatarUrl = TRAY[0]?.avatarUrl ?? null;
+  return (
+    <div className="fixed inset-0 z-[70] bg-black text-white">
+      {error ? (
+        <StoryErrorView
+          username="giulia.r"
+          avatarUrl={avatarUrl}
+          message="Non riesco a leggere le storie di giulia.r."
+          onRetry={noop}
+          onSkip={noop}
+          onClose={noop}
+        />
+      ) : (
+        <StoryLoadingView username="giulia.r" avatarUrl={avatarUrl} onClose={noop} />
+      )}
     </div>
   );
 }
@@ -508,6 +555,14 @@ const render = (view: GalleryViewName): ReactNode => {
       return <PostaFrame settings={SETTINGS} openModes={false} stories />;
     case "posta-interactive":
       return <PostaFrame settings={SETTINGS} openModes={false} stories interactive />;
+    case "stories-loading":
+      return <StoriesBarFrame variant="loading" />;
+    case "stories-empty":
+      return <StoriesBarFrame variant="empty" />;
+    case "story-viewer-loading":
+      return <StoryStateFrame />;
+    case "story-viewer-error":
+      return <StoryStateFrame error />;
     case "story-viewer":
       return <StoryDemo />;
     case "story-viewer-gray":
