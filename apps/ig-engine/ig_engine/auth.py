@@ -11,6 +11,20 @@ from ig_engine.dependencies import get_settings
 from ig_engine.errors import unauthorized
 
 MAX_SKEW_SECONDS = 60
+SAFE_METHODS = frozenset({"GET", "HEAD", "OPTIONS"})
+
+
+class ReplayGuard:
+    def __init__(self, ttl_seconds: float = 2 * MAX_SKEW_SECONDS) -> None:
+        self._ttl = ttl_seconds
+        self._seen: dict[str, float] = {}
+
+    def accept(self, signature: str, now: float) -> bool:
+        self._seen = {key: expiry for key, expiry in self._seen.items() if expiry > now}
+        if signature in self._seen:
+            return False
+        self._seen[signature] = now + self._ttl
+        return True
 
 
 def sign(secret: str, timestamp: str, method: str, path: str, body: bytes) -> str:
@@ -45,5 +59,9 @@ async def verify_request(
         signed_target(request.url.path, request.query_params.multi_items()),
         await request.body(),
     )
-    if not hmac.compare_digest(expected, signature):
+    if not hmac.compare_digest(expected.encode(), signature.encode()):
         raise unauthorized()
+    if request.method not in SAFE_METHODS:
+        replay_guard: ReplayGuard = request.app.state.replay_guard
+        if not replay_guard.accept(signature, time.time()):
+            raise unauthorized()

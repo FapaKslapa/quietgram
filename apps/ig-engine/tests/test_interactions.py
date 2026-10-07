@@ -81,6 +81,31 @@ def test_hourly_cap_returns_429_with_retry_after(tmp_path: Path) -> None:
     assert harness.calls == ["like:1", "like:2"]
 
 
+def test_failed_attempts_do_not_count_toward_the_cap(tmp_path: Path) -> None:
+    harness = Harness(tmp_path, interactions_enabled=True, max_per_hour=2)
+    harness.login()
+    harness.behavior.failure = ClientError("boom")
+    for media in ("1", "2", "3"):
+        assert harness.request("POST", f"/v1/posts/{media}/like").status_code == 502
+    harness.behavior.failure = None
+    assert harness.request("POST", "/v1/posts/4/like").status_code == 200
+    assert harness.request("POST", "/v1/posts/5/like").status_code == 200
+    assert harness.request("POST", "/v1/posts/6/like").status_code == 429
+
+
+def test_release_returns_only_the_given_attempt() -> None:
+    now = [0.0]
+    limiter = InteractionLimiter(2, clock=lambda: now[0])
+    first = limiter.acquire("a")
+    now[0] = 1
+    limiter.acquire("a")
+    limiter.release("a", first)
+    limiter.release("a", first)
+    limiter.acquire("a")
+    with pytest.raises(ApiError):
+        limiter.acquire("a")
+
+
 def test_limiter_is_a_sliding_window_per_account() -> None:
     now = [0.0]
     limiter = InteractionLimiter(2, clock=lambda: now[0])

@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
-from ig_engine.auth import verify_request
+from ig_engine.auth import ReplayGuard, verify_request
 from ig_engine.client_pool import ClientFactory, ClientPool
 from ig_engine.config import Settings
 from ig_engine.errors import ApiError, handle_api_error
@@ -25,6 +25,7 @@ def create_app(
     resolved = settings or Settings()
     app = FastAPI(docs_url=None, redoc_url=None, openapi_url=None)
     app.state.settings = resolved
+    app.state.replay_guard = ReplayGuard()
     app.state.limiter = InteractionLimiter(resolved.interactions_max_per_hour)
     app.state.pool = ClientPool(
         data_dir=resolved.data_dir,

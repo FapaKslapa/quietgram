@@ -1,7 +1,7 @@
 import json
 import time
 
-from ig_engine.auth import sign, signed_target
+from ig_engine.auth import ReplayGuard, sign, signed_target
 from tests.conftest import SECRET, Harness
 
 
@@ -39,6 +39,45 @@ def test_non_numeric_timestamp_is_rejected(harness: Harness) -> None:
         "x-ig-account-id": "acc1",
     }
     assert harness.http.get("/v1/session", headers=headers).status_code == 401
+
+
+def test_non_ascii_signature_is_rejected_cleanly(harness: Harness) -> None:
+    headers = {
+        "x-engine-timestamp": str(int(time.time())),
+        "x-engine-signature": b"caf\xe9",
+        "x-ig-account-id": "acc1",
+    }
+    assert harness.http.get("/v1/session", headers=headers).status_code == 401
+
+
+def test_replayed_write_is_rejected(interactive: Harness) -> None:
+    timestamp = str(int(time.time()))
+    headers = {
+        "x-engine-timestamp": timestamp,
+        "x-engine-signature": sign(SECRET, timestamp, "POST", "/v1/posts/1/like", b""),
+        "x-ig-account-id": "acc1",
+    }
+    assert interactive.http.post("/v1/posts/1/like", headers=headers).status_code == 200
+    assert interactive.http.post("/v1/posts/1/like", headers=headers).status_code == 401
+    assert interactive.calls == ["like:1"]
+
+
+def test_identical_reads_are_not_treated_as_replays(harness: Harness) -> None:
+    timestamp = str(int(time.time()))
+    headers = {
+        "x-engine-timestamp": timestamp,
+        "x-engine-signature": sign(SECRET, timestamp, "GET", "/v1/session", b""),
+        "x-ig-account-id": "acc1",
+    }
+    assert harness.http.get("/v1/session", headers=headers).status_code == 200
+    assert harness.http.get("/v1/session", headers=headers).status_code == 200
+
+
+def test_replay_guard_forgets_signatures_after_the_window() -> None:
+    guard = ReplayGuard(ttl_seconds=10)
+    assert guard.accept("s", 0)
+    assert not guard.accept("s", 5)
+    assert guard.accept("s", 11)
 
 
 def test_tampered_body_is_rejected(harness: Harness) -> None:

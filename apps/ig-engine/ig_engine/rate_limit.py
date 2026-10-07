@@ -13,7 +13,7 @@ class InteractionLimiter:
         self._clock = clock
         self._events: defaultdict[str, deque[float]] = defaultdict(deque)
 
-    def acquire(self, account_id: str) -> None:
+    def acquire(self, account_id: str) -> float:
         now = self._clock()
         events = self._events[account_id]
         while events and now - events[0] >= WINDOW_SECONDS:
@@ -22,3 +22,9 @@ class InteractionLimiter:
             retry_after = max(1, int(WINDOW_SECONDS - (now - events[0])) + 1)
             raise ApiError(429, "throttled", retry_after_seconds=retry_after)
         events.append(now)
+        return now
+
+    def release(self, account_id: str, ticket: float) -> None:
+        events = self._events.get(account_id)
+        if events is not None and ticket in events:
+            events.remove(ticket)
