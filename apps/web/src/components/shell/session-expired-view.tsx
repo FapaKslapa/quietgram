@@ -1,4 +1,5 @@
 import Link from "next/link";
+import type { ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { AUTO_LOGIN_CHALLENGE, AUTO_LOGIN_REJECTED } from "@/lib/credentials/copy";
 
@@ -17,6 +18,8 @@ type SessionExpiredViewProps = {
   checking: boolean;
   failure: Failure | null;
   onRecheck: () => void;
+  onLogin: () => void;
+  children?: ReactNode;
 };
 
 function AttentionNote({ attention }: { attention: SessionAttention | null }) {
@@ -71,6 +74,8 @@ export function SessionExpiredView({
   checking,
   failure,
   onRecheck,
+  onLogin,
+  children,
 }: SessionExpiredViewProps) {
   return (
     <main className="column grid min-h-dvh content-center gap-5 px-8 py-10">
@@ -79,10 +84,14 @@ export function SessionExpiredView({
           La sessione con Instagram è scaduta
         </h1>
         <p className="max-w-[34ch] text-balance text-muted-foreground">
-          Riapri l&apos;estensione dal browser dove sei collegato per rinnovarla.
+          Accedi di nuovo con le credenziali oppure rinnovala con l&apos;estensione.
         </p>
       </div>
       <AttentionNote attention={attention} />
+      <Button type="button" size="lg" onClick={onLogin} className="justify-self-start">
+        Accedi con le credenziali
+      </Button>
+      <p className="text-sm text-muted-foreground">Oppure con l&apos;estensione:</p>
       <ol className="grid gap-3 [counter-reset:step]">
         {STEPS.map((step) => (
           <li
@@ -104,6 +113,7 @@ export function SessionExpiredView({
         {recheckLabel(checking, attention)}
       </Button>
       <FailureNote failure={failure} />
+      {children}
     </main>
   );
 }

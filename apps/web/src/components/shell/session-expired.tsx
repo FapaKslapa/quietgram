@@ -1,12 +1,15 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { CredentialsLoginDrawer } from "@/components/shell/credentials-login-drawer";
 import { SessionExpiredView } from "@/components/shell/session-expired-view";
+import { useCredentialsLogin } from "@/hooks/use-credentials-login";
 import { classifyRefreshError } from "@/lib/refresh-failure";
 import { useTRPC } from "@/trpc/client";
 
 export function SessionExpired() {
   const trpc = useTRPC();
+  const login = useCredentialsLogin();
   const queryClient = useQueryClient();
 
   const credentials = useQuery(trpc.credentials.status.queryOptions());
@@ -37,6 +40,16 @@ export function SessionExpired() {
       checking={recheck.isPending || resume.isPending}
       failure={failure}
       onRecheck={() => void retry()}
-    />
+      onLogin={() => login.onOpenChange(true)}
+    >
+      <CredentialsLoginDrawer
+        open={login.open}
+        onOpenChange={login.onOpenChange}
+        pending={login.pending}
+        error={login.error}
+        initialUsername={credentials.data?.username ?? ""}
+        onSubmit={login.onSubmit}
+      />
+    </SessionExpiredView>
   );
 }
