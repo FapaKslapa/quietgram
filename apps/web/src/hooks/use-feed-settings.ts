@@ -117,6 +117,15 @@ export function useFeedSettings() {
     }),
   );
 
+  const setInteractions = useMutation(
+    trpc.settings.setInteractionsEnabled.mutationOptions(
+      optimistic<{ interactionsEnabled: boolean }>(
+        (current, { interactionsEnabled }) => ({ ...current, interactionsEnabled }),
+        "Non sono riuscito a salvare la scelta. Riprova.",
+      ),
+    ),
+  );
+
   const setBudget = useMutation(
     trpc.settings.setSessionBudget.mutationOptions(
       optimistic<{ sessionBudgetMinutes: number | null }>(
@@ -142,6 +151,7 @@ export function useFeedSettings() {
     setMode,
     setGrayscale,
     setDmSend,
+    setInteractions,
     setBudget,
     lockBudget,
     setThreshold,

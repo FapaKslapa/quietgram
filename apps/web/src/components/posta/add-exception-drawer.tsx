@@ -3,7 +3,6 @@
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { Check, Plus } from "lucide-react";
 import { useDeferredValue, useState } from "react";
-import { AuthorAvatar } from "@/components/posta/author-avatar";
 import { Button } from "@/components/ui/button";
 import {
   Drawer,
@@ -15,6 +14,7 @@ import {
 } from "@/components/ui/drawer";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
+import { UserAvatar } from "@/components/ui/user-avatar";
 import { useTRPC } from "@/trpc/client";
 
 type AddExceptionDrawerProps = {
@@ -74,7 +74,7 @@ function ResultRows({ search, excludedIds, onAdd }: AddExceptionDrawerProps & { 
               onClick={() => onAdd(account.igUserId)}
               className="flex min-h-14 w-full items-center gap-3 rounded-md px-2 text-left transition-colors hover:bg-accent disabled:cursor-default disabled:hover:bg-transparent"
             >
-              <AuthorAvatar username={account.username} avatarUrl={account.avatarUrl} />
+              <UserAvatar username={account.username} avatarUrl={account.avatarUrl} />
               <span className="min-w-0 flex-1 truncate font-medium">{account.username}</span>
               <span className="flex items-center gap-1.5 text-sm text-muted-foreground">
                 {added ? (

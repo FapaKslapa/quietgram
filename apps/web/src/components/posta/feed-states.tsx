@@ -1,13 +1,18 @@
+import type { ComponentType } from "react";
 import { Weave } from "@/components/brand/weave";
 import { type FeedPost, PostCard } from "@/components/posta/post-card";
 import { Button } from "@/components/ui/button";
 import type { WeaveVariant } from "@/lib/weave";
 
-export function PostList({ posts, now }: { posts: FeedPost[]; now: number }) {
+type PostCardComponent = ComponentType<{ post: FeedPost; now: number }>;
+
+type PostListProps = { posts: FeedPost[]; now: number; Card?: PostCardComponent };
+
+export function PostList({ posts, now, Card = PostCard }: PostListProps) {
   return (
     <div className="column px-4">
       {posts.map((post) => (
-        <PostCard key={post.id} post={post} now={now} />
+        <Card key={post.id} post={post} now={now} />
       ))}
     </div>
   );

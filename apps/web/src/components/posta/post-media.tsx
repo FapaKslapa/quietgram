@@ -1,10 +1,12 @@
 "use client";
 
-import { motion } from "motion/react";
-import { useRef, useState } from "react";
+import { Heart } from "lucide-react";
+import { AnimatePresence, motion } from "motion/react";
+import { useEffect, useRef, useState } from "react";
 import { feedRatio, MediaSlide } from "@/components/media/media-slide";
 import { SwipeTrack, type SwipeTrackHandle } from "@/components/media/swipe-track";
 import { useViewer } from "@/components/media/viewer-provider";
+import { DOUBLE_TAP_MS, registerTap } from "@/lib/double-tap";
 import type { PostMediaItem } from "@/lib/media";
 import { cn } from "@/lib/utils";
 
@@ -15,6 +17,7 @@ type PostMediaProps = {
   caption?: string | null;
   instagramUrl?: string | null;
   priority?: boolean;
+  onDoubleTap?: (() => void) | undefined;
 };
 
 export function PostMedia({
@@ -24,12 +27,23 @@ export function PostMedia({
   caption = null,
   instagramUrl = null,
   priority,
+  onDoubleTap,
 }: PostMediaProps) {
   const viewer = useViewer();
   const [index, setIndex] = useState(0);
   const track = useRef<SwipeTrackHandle>(null);
+  const [burst, setBurst] = useState(0);
+  const lastTap = useRef<number | null>(null);
+  const pendingOpen = useRef<ReturnType<typeof setTimeout> | null>(null);
   const first = media[0];
   const count = media.length;
+
+  useEffect(
+    () => () => {
+      if (pendingOpen.current !== null) clearTimeout(pendingOpen.current);
+    },
+    [],
+  );
 
   if (!first) return null;
 
@@ -43,6 +57,23 @@ export function PostMedia({
       instagramUrl,
       onIndexChange: setIndex,
     });
+
+  const activate = (position: number) => {
+    if (!onDoubleTap) {
+      open(position);
+      return;
+    }
+    if (pendingOpen.current !== null) clearTimeout(pendingOpen.current);
+    const outcome = registerTap(lastTap.current, Date.now());
+    lastTap.current = outcome.lastTap;
+    if (outcome.double) {
+      pendingOpen.current = null;
+      setBurst((current) => current + 1);
+      onDoubleTap();
+      return;
+    }
+    pendingOpen.current = setTimeout(() => open(position), DOUBLE_TAP_MS);
+  };
 
   return (
     <div className="relative overflow-hidden bg-muted" style={{ aspectRatio: feedRatio(first) }}>
@@ -63,10 +94,29 @@ export function PostMedia({
             active={position === index}
             eager={priority && position === 0}
             layoutId={`${groupId}-${position}`}
-            onOpen={() => open(position)}
+            onOpen={() => activate(position)}
           />
         ))}
       </SwipeTrack>
+      <AnimatePresence>
+        {burst > 0 ? (
+          <motion.span
+            key={burst}
+            aria-hidden="true"
+            initial={{ opacity: 1, scale: 0.4 }}
+            animate={{ opacity: [1, 1, 0], scale: [0.4, 1.2, 1] }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+            onAnimationComplete={() => setBurst(0)}
+            className="pointer-events-none absolute inset-0 grid place-items-center text-white"
+          >
+            <Heart
+              className="size-24 fill-current drop-shadow-[0_2px_14px_rgb(0_0_0/0.4)]"
+              strokeWidth={0}
+            />
+          </motion.span>
+        ) : null}
+      </AnimatePresence>
       {count > 1 ? (
         <>
           <p className="num-display pointer-events-none absolute top-3 right-3 rounded-full bg-black/50 px-2.5 py-1 text-xs font-semibold text-white">
