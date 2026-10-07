@@ -16,6 +16,7 @@ import {
   CooldownError,
   InteractionsDisabledError,
   LoginAttentionError,
+  ManualLoginError,
   MessageSendError,
   NoSessionError,
   RunNotFoundError,
@@ -32,7 +33,10 @@ export type FailureReason =
   | "invalid_message"
   | "interactions_disabled"
   | "login_challenge"
-  | "login_rejected";
+  | "login_rejected"
+  | "login_bad_password"
+  | "login_wrong_account"
+  | "login_unavailable";
 
 export type FailureData = { reason: FailureReason; retryAfterSeconds?: number };
 
@@ -63,6 +67,9 @@ export const describeFailure = (cause: unknown): FailureData | null => {
   ) {
     return { reason: "instagram_error" };
   }
+  if (cause instanceof ManualLoginError) {
+    return { reason: `login_${cause.kind}` };
+  }
   if (cause instanceof RangeError) return { reason: "invalid_message" };
   return null;
 };
@@ -77,6 +84,9 @@ const codeFor = (reason: FailureReason | undefined): TRPCError["code"] => {
     case "interactions_disabled":
     case "login_challenge":
     case "login_rejected":
+    case "login_bad_password":
+    case "login_wrong_account":
+    case "login_unavailable":
       return "PRECONDITION_FAILED";
     case "run_not_found":
       return "NOT_FOUND";
@@ -98,6 +108,12 @@ export const LOGIN_CHALLENGE_MESSAGE =
 export const LOGIN_REJECTED_MESSAGE =
   "Instagram non accetta le credenziali salvate: aggiornale in Profilo.";
 
+export const MANUAL_LOGIN_MESSAGES = {
+  bad_password: "Instagram non accetta nome utente o password. Controlla i dati e riprova.",
+  wrong_account: "Questo account è diverso da quello collegato all'app.",
+  unavailable: "L'accesso con le credenziali non è disponibile su questo server.",
+} as const;
+
 const THROTTLE_MESSAGE = "Instagram ti chiede di aspettare qualche minuto. Riprova tra un po'.";
 
 export const shortReason = (error: unknown): string | null => {
@@ -118,6 +134,7 @@ const messageFor = (error: unknown, context?: string): string => {
   if (error instanceof LoginAttentionError) {
     return error.kind === "challenge" ? LOGIN_CHALLENGE_MESSAGE : LOGIN_REJECTED_MESSAGE;
   }
+  if (error instanceof ManualLoginError) return MANUAL_LOGIN_MESSAGES[error.kind];
   const reason = shortReason(error);
   if (reason !== null) return context ? `${context}: ${reason}` : reason;
   if (error instanceof IgThrottledError) return THROTTLE_MESSAGE;

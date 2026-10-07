@@ -6,6 +6,7 @@ import {
   TOTP_SECRET_PATTERN,
   USERNAME_PATTERN,
 } from "@/lib/credentials/form";
+import { manualLogin } from "@/lib/credentials/manual-login";
 import {
   type CredentialStatus,
   loadCredentialStatus,
@@ -13,7 +14,8 @@ import {
   saveCredentials,
   setCredentialState,
 } from "@/lib/credentials/vault";
-import { createTRPCRouter, protectedProcedure } from "@/server/trpc/init";
+import { guarded } from "@/server/trpc/errors";
+import { createTRPCRouter, protectedProcedure, syncDepsOf } from "@/server/trpc/init";
 
 const statusOutput = z.compile(
   z.object({
@@ -31,6 +33,17 @@ const saveInput = z.compile(
   }),
 );
 
+const loginInput = z.compile(
+  z.object({
+    username: z.string().transform(normalizeUsername).pipe(z.string().regex(USERNAME_PATTERN)),
+    password: z.string().min(1).max(MAX_PASSWORD_LENGTH),
+    totpSecret: z.string().trim().regex(TOTP_SECRET_PATTERN).optional(),
+    remember: z.boolean(),
+  }),
+);
+
+const loginOutput = z.compile(z.object({ sessionStatus: z.literal("active"), saved: z.boolean() }));
+
 export const credentialsRouter = createTRPCRouter({
   status: protectedProcedure
     .output(statusOutput)
@@ -44,6 +57,17 @@ export const credentialsRouter = createTRPCRouter({
       await saveCredentials(ctx.db, ctx.sync.getCookieKey(), ownerId, input, ctx.sync.now());
       return loadCredentialStatus(ctx.db, ownerId);
     }),
+
+  login: protectedProcedure
+    .input(loginInput)
+    .output(loginOutput)
+    .mutation(({ ctx, input }) =>
+      guarded(async () => {
+        const { remember, ...credentials } = input;
+        await manualLogin(syncDepsOf(ctx), ctx.session.user.id, credentials, remember);
+        return { sessionStatus: "active" as const, saved: remember };
+      }),
+    ),
 
   resume: protectedProcedure.output(statusOutput).mutation(async ({ ctx }) => {
     const ownerId = ctx.session.user.id;

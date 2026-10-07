@@ -43,3 +43,10 @@ export class LoginAttentionError extends Error {
     this.name = "LoginAttentionError";
   }
 }
+
+export class ManualLoginError extends Error {
+  constructor(readonly kind: "bad_password" | "wrong_account" | "unavailable") {
+    super(`Manual login failed: ${kind}`);
+    this.name = "ManualLoginError";
+  }
+}
