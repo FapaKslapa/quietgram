@@ -1,8 +1,11 @@
-import { type Db, following, saved } from "@nodistraction/db";
-import { and, asc, eq, inArray } from "drizzle-orm";
+import { type Db, following, postState, runBatch, saved } from "@nodistraction/db";
+import type { IgPost } from "@nodistraction/ig";
+import { and, asc, eq, inArray, notInArray } from "drizzle-orm";
 import { chunkRows } from "@/lib/sync/chunk";
+import { SAVED_COOLDOWN_MS } from "@/lib/sync/cooldown";
 import type { SyncDeps } from "@/lib/sync/deps";
 import { type MediaList, parseMedia } from "@/lib/sync/feed";
+import { claimSync } from "@/lib/sync/marks";
 import { loadPostStates } from "@/lib/sync/post-state";
 import { withIgSession } from "@/lib/sync/session";
 
@@ -18,9 +21,19 @@ export type SavedPost = {
   media: MediaList;
 };
 
+export const SAVED_SCOPE = "saved";
+
 export const syncSaved = async (deps: SyncDeps, ownerId: string): Promise<void> => {
-  const items = await withIgSession(deps, ownerId, ({ source }) => source.saved());
-  await deps.db.delete(saved).where(eq(saved.ownerId, ownerId));
+  const release = await claimSync(deps, ownerId, SAVED_SCOPE, SAVED_COOLDOWN_MS);
+  if (release === null) return;
+  let items: IgPost[];
+  try {
+    items = await withIgSession(deps, ownerId, ({ source }) => source.saved());
+  } catch (error) {
+    await release();
+    throw error;
+  }
+  const updatedAt = deps.now();
   const rows = items.map((post, position) => ({
     id: post.id,
     shortcode: post.code,
@@ -31,8 +44,44 @@ export const syncSaved = async (deps: SyncDeps, ownerId: string): Promise<void> 
     mediaJson: JSON.stringify(post.media),
     position,
   }));
-  for (const group of chunkRows(rows, 8)) {
-    await deps.db.insert(saved).values(group).onConflictDoNothing();
+  const states = items.map((post) => ({
+    ownerId,
+    mediaId: post.id,
+    saved: true,
+    updatedAt,
+  }));
+  try {
+    await runBatch(deps.db, [
+      deps.db.delete(saved).where(eq(saved.ownerId, ownerId)),
+      ...chunkRows(rows, 8).map((group) =>
+        deps.db.insert(saved).values(group).onConflictDoNothing(),
+      ),
+      ...chunkRows(states, 4).map((group) =>
+        deps.db
+          .insert(postState)
+          .values(group)
+          .onConflictDoUpdate({
+            target: [postState.ownerId, postState.mediaId],
+            set: { saved: true, updatedAt },
+          }),
+      ),
+      deps.db
+        .update(postState)
+        .set({ saved: false, updatedAt })
+        .where(
+          and(
+            eq(postState.ownerId, ownerId),
+            eq(postState.saved, true),
+            notInArray(
+              postState.mediaId,
+              deps.db.select({ id: saved.id }).from(saved).where(eq(saved.ownerId, ownerId)),
+            ),
+          ),
+        ),
+    ]);
+  } catch (error) {
+    await release();
+    throw error;
   }
 };
 

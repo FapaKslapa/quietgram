@@ -3,6 +3,8 @@ import { validateCommentText } from "@nodistraction/ig";
 import { and, eq } from "drizzle-orm";
 import type { SyncDeps } from "@/lib/sync/deps";
 import { InteractionsDisabledError } from "@/lib/sync/errors";
+import { clearMark } from "@/lib/sync/marks";
+import { SAVED_SCOPE } from "@/lib/sync/saved";
 import { withIgSession } from "@/lib/sync/session";
 import { loadInteractionsEnabled } from "@/lib/sync/settings";
 import type { InstagramSource } from "@/lib/sync/source";
@@ -79,6 +81,7 @@ export const toggle = async (
   if (action === "unsave") {
     await deps.db.delete(saved).where(and(eq(saved.ownerId, ownerId), eq(saved.id, mediaId)));
   }
+  if (action === "save" || action === "unsave") await clearMark(deps, ownerId, SAVED_SCOPE);
   return next;
 };
 
