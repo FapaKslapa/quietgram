@@ -11,15 +11,21 @@ describe("fast profile", () => {
     const overview = await caller.refresh.overview();
     expect(overview).toMatchObject({ profile: "fast", backoffUntil: null });
     expect(overview.nextRefreshAt).toBe(env.clock.current.getTime() + 120_000);
-    await caller.refresh.recheck();
-    expect(env.engineCalls.some((call) => call.pacing === "fast")).toBe(true);
+    await env.db.delete(syncState);
+    const { runId } = await caller.refresh.start();
+    await caller.refresh.step({ runId });
+    const paced = env.engineCalls.filter((call) => call.path === "/v1/following");
+    expect(paced.length).toBeGreaterThan(0);
+    expect(paced.every((call) => call.pacing === "fast")).toBe(true);
   });
 
   it("keeps extension sessions on the normal profile and headers", async () => {
     const env = await createTestEnv(undefined, { engine: world() });
     const caller = createCaller(env.context);
     expect(await caller.refresh.overview()).toMatchObject({ profile: "normal" });
-    await caller.refresh.recheck();
+    const { runId } = await caller.refresh.start();
+    await caller.refresh.step({ runId });
+    expect(env.engineCalls.length).toBeGreaterThan(0);
     expect(env.engineCalls.every((call) => call.pacing === null)).toBe(true);
   });
 
