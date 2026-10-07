@@ -15,6 +15,7 @@ import { THROTTLE_COOLDOWN_MS } from "@/lib/sync/cooldown";
 import {
   CooldownError,
   InteractionsDisabledError,
+  LoginAttentionError,
   MessageSendError,
   NoSessionError,
   RunNotFoundError,
@@ -29,7 +30,9 @@ export type FailureReason =
   | "rejected"
   | "throttled"
   | "invalid_message"
-  | "interactions_disabled";
+  | "interactions_disabled"
+  | "login_challenge"
+  | "login_rejected";
 
 export type FailureData = { reason: FailureReason; retryAfterSeconds?: number };
 
@@ -45,6 +48,9 @@ export const describeFailure = (cause: unknown): FailureData | null => {
   if (cause instanceof NoSessionError) return { reason: "no_session" };
   if (cause instanceof RunNotFoundError) return { reason: "run_not_found" };
   if (cause instanceof InteractionsDisabledError) return { reason: "interactions_disabled" };
+  if (cause instanceof LoginAttentionError) {
+    return { reason: cause.kind === "challenge" ? "login_challenge" : "login_rejected" };
+  }
   if (
     cause instanceof IgHttpError ||
     cause instanceof EngineResponseError ||
@@ -69,6 +75,8 @@ const codeFor = (reason: FailureReason | undefined): TRPCError["code"] => {
     case "session_expired":
     case "no_session":
     case "interactions_disabled":
+    case "login_challenge":
+    case "login_rejected":
       return "PRECONDITION_FAILED";
     case "run_not_found":
       return "NOT_FOUND";
@@ -83,6 +91,12 @@ const codeFor = (reason: FailureReason | undefined): TRPCError["code"] => {
 };
 
 const INTERACTIONS_DISABLED_MESSAGE = "Le interazioni sono disattivate: attivale in Profilo.";
+
+export const LOGIN_CHALLENGE_MESSAGE =
+  "Instagram chiede una verifica: aprila su instagram.com e conferma, poi riprova.";
+
+export const LOGIN_REJECTED_MESSAGE =
+  "Instagram non accetta le credenziali salvate: aggiornale in Profilo.";
 
 const THROTTLE_MESSAGE = "Instagram ti chiede di aspettare qualche minuto. Riprova tra un po'.";
 
@@ -101,6 +115,9 @@ export const shortReason = (error: unknown): string | null => {
 
 const messageFor = (error: unknown, context?: string): string => {
   if (error instanceof InteractionsDisabledError) return INTERACTIONS_DISABLED_MESSAGE;
+  if (error instanceof LoginAttentionError) {
+    return error.kind === "challenge" ? LOGIN_CHALLENGE_MESSAGE : LOGIN_REJECTED_MESSAGE;
+  }
   const reason = shortReason(error);
   if (reason !== null) return context ? `${context}: ${reason}` : reason;
   if (error instanceof IgThrottledError) return THROTTLE_MESSAGE;

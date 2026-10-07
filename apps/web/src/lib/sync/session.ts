@@ -3,6 +3,7 @@ import { type IgCookies, IgThrottledError, SessionExpiredError } from "@nodistra
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { decrypt } from "@/lib/auth/crypto";
+import { recoverSession } from "@/lib/credentials/recover";
 import { throttleMarker } from "@/lib/sync/cooldown";
 import type { SyncDeps } from "@/lib/sync/deps";
 import { NoSessionError } from "@/lib/sync/errors";
@@ -41,7 +42,25 @@ export const buildSource = (
       ),
   });
 
-export const withIgSession = async <T>(
+export const withRecovery = async <T>(
+  deps: SyncDeps,
+  ownerId: string,
+  run: () => Promise<T>,
+): Promise<T> => {
+  try {
+    return await run();
+  } catch (error) {
+    if (!(error instanceof SessionExpiredError)) throw error;
+    const renewed = await recoverSession(deps, ownerId).catch(async (failure: unknown) => {
+      if (failure instanceof IgThrottledError) await recordThrottle(deps, ownerId);
+      throw failure;
+    });
+    if (!renewed) throw error;
+    return run();
+  }
+};
+
+const runWithSession = async <T>(
   deps: SyncDeps,
   ownerId: string,
   task: (context: IgSessionContext) => Promise<T>,
@@ -58,3 +77,9 @@ export const withIgSession = async <T>(
     throw error;
   }
 };
+
+export const withIgSession = <T>(
+  deps: SyncDeps,
+  ownerId: string,
+  task: (context: IgSessionContext) => Promise<T>,
+): Promise<T> => withRecovery(deps, ownerId, () => runWithSession(deps, ownerId, task));

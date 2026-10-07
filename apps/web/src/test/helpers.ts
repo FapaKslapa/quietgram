@@ -3,6 +3,7 @@ import { createTestDb } from "@nodistraction/db/testing";
 import { createEngineClient, type IgCookies, type Requester } from "@nodistraction/ig";
 import { encrypt } from "@/lib/auth/crypto";
 import type { SyncDeps } from "@/lib/sync/deps";
+import { createEngineLogin } from "@/lib/sync/engine-login";
 import { createDirectSource, createEngineSource, type SourceFactory } from "@/lib/sync/source";
 import { throttle } from "@/lib/sync/throttle";
 import type { TRPCContext } from "@/server/trpc/init";
@@ -129,6 +130,10 @@ export const createTestEnv = async (
   const source: SourceFactory = engine
     ? {
         kind: "engine",
+        login: createEngineLogin(
+          { IG_ENGINE_URL: "https://engine.test", IG_ENGINE_SECRET: ENGINE_SECRET },
+          engine.fetcher,
+        ),
         create: (account) =>
           createEngineSource(
             createEngineClient({
@@ -140,7 +145,7 @@ export const createTestEnv = async (
             account.loadCookies,
           ),
       }
-    : { kind: "direct", create: () => createDirectSource(throttle(requester, delay)) };
+    : { kind: "direct", login: null, create: () => createDirectSource(throttle(requester, delay)) };
   const runtime = { getCookieKey: () => COOKIE_KEY, now: () => clock.current, source, delay };
   return {
     db,

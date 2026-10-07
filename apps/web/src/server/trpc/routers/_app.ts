@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { createTRPCRouter, publicProcedure } from "@/server/trpc/init";
 import { commentsRouter } from "@/server/trpc/routers/comments";
+import { credentialsRouter } from "@/server/trpc/routers/credentials";
 import { feedRouter } from "@/server/trpc/routers/feed";
 import { interactionsRouter } from "@/server/trpc/routers/interactions";
 import { messagesRouter } from "@/server/trpc/routers/messages";
@@ -15,6 +16,7 @@ const healthOutput = z.compile(z.object({ ok: z.literal(true) }));
 
 export const appRouter = createTRPCRouter({
   comments: commentsRouter,
+  credentials: credentialsRouter,
   feed: feedRouter,
   interactions: interactionsRouter,
   messages: messagesRouter,

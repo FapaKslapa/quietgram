@@ -32,3 +32,14 @@ export class InteractionsDisabledError extends Error {
     this.name = "InteractionsDisabledError";
   }
 }
+
+export class LoginAttentionError extends Error {
+  constructor(readonly kind: "challenge" | "credentials") {
+    super(
+      kind === "challenge"
+        ? "Instagram asked for a verification during automatic login"
+        : "Instagram rejected the stored credentials",
+    );
+    this.name = "LoginAttentionError";
+  }
+}

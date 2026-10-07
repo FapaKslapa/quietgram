@@ -27,6 +27,7 @@ import {
   type UsersPage,
 } from "@nodistraction/ig";
 import type { AppEnv } from "@/lib/env";
+import { type CredentialLogin, createEngineLogin } from "@/lib/sync/engine-login";
 import { throttle } from "@/lib/sync/throttle";
 
 export type SourceKind = "engine" | "direct";
@@ -67,6 +68,7 @@ export type SourceAccount = {
 
 export type SourceFactory = {
   kind: SourceKind;
+  login: CredentialLogin | null;
   create: (account: SourceAccount) => InstagramSource;
 };
 
@@ -198,6 +200,7 @@ export const createSourceFactory = (
   if (baseUrl && secret) {
     return {
       kind: "engine",
+      login: createEngineLogin(env),
       create: (account) =>
         createEngineSource(
           createEngineClient({ baseUrl, secret, accountId: account.igUserId }),
@@ -207,6 +210,7 @@ export const createSourceFactory = (
   }
   return {
     kind: "direct",
+    login: null,
     create: (account) => createDirectSource(throttle(lazyRequester(account.loadCookies), delay)),
   };
 };

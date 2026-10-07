@@ -29,6 +29,13 @@ export const classifyRefreshError = (error: unknown): RefreshFailure => {
       seconds: data?.failure?.retryAfterSeconds ?? DEFAULT_COOLDOWN_SECONDS,
     };
   }
-  if (reason === "session_expired" || reason === "no_session") return { kind: "expired" };
+  if (
+    reason === "session_expired" ||
+    reason === "no_session" ||
+    reason === "login_challenge" ||
+    reason === "login_rejected"
+  ) {
+    return { kind: "expired" };
+  }
   return { kind: "other" };
 };

@@ -2,7 +2,7 @@ import { getCloudflareContext } from "@opennextjs/cloudflare";
 import { fetchRequestHandler } from "@trpc/server/adapters/fetch";
 import { isTrustedRequestOrigin } from "@/lib/auth/origin";
 import { parseEnv } from "@/lib/env";
-import { logError } from "@/server/log";
+import { logError, loggableMessage } from "@/server/log";
 import { createTRPCContext } from "@/server/trpc/context";
 import { appRouter } from "@/server/trpc/routers/_app";
 
@@ -20,7 +20,7 @@ async function handler(req: Request) {
       logError({
         path,
         code: error.code,
-        message: error.message,
+        message: loggableMessage(path, error.message),
         cause: error.cause?.name,
       });
     },
