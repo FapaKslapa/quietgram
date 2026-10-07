@@ -171,3 +171,6 @@ export const dropMessage = (messages: ThreadMessage[], id: string): ThreadMessag
 const CONVERSATION_PATH = /^\/messaggi\/[^/]+\/?$/;
 
 export const isConversationPath = (pathname: string): boolean => CONVERSATION_PATH.test(pathname);
+
+export const DM_SEND_WARNING =
+  "Instagram può limitare l'account se rifiuta i messaggi. Attivalo solo se vuoi scrivere da qui.";

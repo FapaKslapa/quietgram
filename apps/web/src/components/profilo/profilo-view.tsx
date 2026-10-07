@@ -12,7 +12,6 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { DM_SEND_WARNING } from "@/components/profilo/dm-send-drawer";
 import { ScreenHeader } from "@/components/shell/screen-header";
 import {
   Item,
@@ -25,6 +24,7 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import { INTERACTIONS_WARNING } from "@/lib/interactions";
+import { DM_SEND_WARNING } from "@/lib/messages";
 import { type SessionStatus, sessionAction, sessionLabel } from "@/lib/profile";
 import { cn } from "@/lib/utils";
 

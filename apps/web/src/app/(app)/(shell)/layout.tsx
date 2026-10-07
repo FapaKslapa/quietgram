@@ -5,7 +5,8 @@ import { connection } from "next/server";
 import { type ReactNode, Suspense } from "react";
 import { AppShell } from "@/components/shell/app-shell";
 import { createServices } from "@/lib/auth/server";
-import { HydrateClient, prefetch, trpc } from "@/trpc/server";
+import { HydrateClient } from "@/trpc/hydrate-client";
+import { prefetch, trpc } from "@/trpc/server";
 
 export default async function ShellLayout({ children }: { children: ReactNode }) {
   await connection();

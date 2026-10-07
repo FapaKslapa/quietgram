@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { AccountScreen, AccountSkeleton } from "@/components/account/account-screen";
-import { HydrateClient, prefetch, trpc } from "@/trpc/server";
+import { HydrateClient } from "@/trpc/hydrate-client";
+import { prefetch, trpc } from "@/trpc/server";
 
 export const metadata: Metadata = { title: "Profilo" };
 

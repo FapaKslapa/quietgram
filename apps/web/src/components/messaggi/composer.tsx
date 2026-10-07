@@ -41,9 +41,12 @@ export function Composer({ onSend, enabled }: ComposerProps) {
     const value = text;
     setText("");
     setSending(true);
-    const delivered = await onSend(value);
-    setSending(false);
-    if (!delivered) setText((current) => (current === "" ? value : current));
+    try {
+      const delivered = await onSend(value);
+      if (!delivered) setText((current) => (current === "" ? value : current));
+    } finally {
+      setSending(false);
+    }
   };
 
   const onSubmit = (event: FormEvent) => {

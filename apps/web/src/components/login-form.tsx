@@ -22,28 +22,34 @@ export function LoginForm() {
     event.preventDefault();
     setPending(true);
     setLoginError(null);
-    const result: AuthResult = await authClient.signIn.passkey();
-    setPending(false);
-    if (result.error) {
-      setLoginError(describeAuthError(result.error, "login"));
-      return;
+    try {
+      const result: AuthResult = await authClient.signIn.passkey();
+      if (result.error) {
+        setLoginError(describeAuthError(result.error, "login"));
+        return;
+      }
+      router.push("/posta");
+    } finally {
+      setPending(false);
     }
-    router.push("/posta");
   };
 
   const register = async (email: string, secret: string) => {
     setPending(true);
     setRegisterError(null);
-    const result: AuthResult = await createBootstrapClient(secret).passkey.addPasskey({
-      context: email,
-      createSession: true,
-    });
-    setPending(false);
-    if (result.error) {
-      setRegisterError(describeAuthError(result.error, "register"));
-      return;
+    try {
+      const result: AuthResult = await createBootstrapClient(secret).passkey.addPasskey({
+        context: email,
+        createSession: true,
+      });
+      if (result.error) {
+        setRegisterError(describeAuthError(result.error, "register"));
+        return;
+      }
+      router.push("/pair");
+    } finally {
+      setPending(false);
     }
-    router.push("/pair");
   };
 
   const changeRegisterOpen = (open: boolean) => {
