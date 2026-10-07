@@ -74,3 +74,16 @@ export const loadInteractionsEnabled = async (db: Db, ownerId: string): Promise<
     .where(eq(userSettings.ownerId, ownerId));
   return row?.enabled ?? false;
 };
+
+type SettingValues = Partial<Omit<typeof userSettings.$inferInsert, "ownerId">>;
+
+export const saveSetting = async (
+  db: Db,
+  ownerId: string,
+  values: SettingValues,
+): Promise<void> => {
+  await db
+    .insert(userSettings)
+    .values({ ownerId, ...values })
+    .onConflictDoUpdate({ target: userSettings.ownerId, set: values });
+};

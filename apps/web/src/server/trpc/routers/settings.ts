@@ -10,6 +10,7 @@ import {
   loadSettings,
   MAX_RECENCY_DAYS,
   MIN_RECENCY_DAYS,
+  saveSetting,
 } from "@/lib/sync/settings";
 import { createTRPCRouter, protectedProcedure } from "@/server/trpc/init";
 
@@ -135,77 +136,39 @@ export const settingsRouter = createTRPCRouter({
     ),
 
   setFeedMode: protectedProcedure.input(setFeedModeInput).mutation(async ({ ctx, input }) => {
-    await ctx.db
-      .insert(userSettings)
-      .values({ ownerId: ctx.session.user.id, feedMode: input.feedMode })
-      .onConflictDoUpdate({
-        target: userSettings.ownerId,
-        set: { feedMode: input.feedMode },
-      });
+    await saveSetting(ctx.db, ctx.session.user.id, { feedMode: input.feedMode });
   }),
 
   setThreshold: protectedProcedure.input(setThresholdInput).mutation(async ({ ctx, input }) => {
-    await ctx.db
-      .insert(userSettings)
-      .values({ ownerId: ctx.session.user.id, creatorThreshold: input.creatorThreshold })
-      .onConflictDoUpdate({
-        target: userSettings.ownerId,
-        set: { creatorThreshold: input.creatorThreshold },
-      });
+    await saveSetting(ctx.db, ctx.session.user.id, { creatorThreshold: input.creatorThreshold });
   }),
 
   setRecencyDays: protectedProcedure.input(setRecencyDaysInput).mutation(async ({ ctx, input }) => {
-    await ctx.db
-      .insert(userSettings)
-      .values({ ownerId: ctx.session.user.id, recencyDays: input.recencyDays })
-      .onConflictDoUpdate({
-        target: userSettings.ownerId,
-        set: { recencyDays: input.recencyDays },
-      });
+    await saveSetting(ctx.db, ctx.session.user.id, { recencyDays: input.recencyDays });
   }),
 
   setGrayscaleMedia: protectedProcedure
     .input(setGrayscaleInput)
     .mutation(async ({ ctx, input }) => {
-      await ctx.db
-        .insert(userSettings)
-        .values({ ownerId: ctx.session.user.id, grayscaleMedia: input.grayscaleMedia })
-        .onConflictDoUpdate({
-          target: userSettings.ownerId,
-          set: { grayscaleMedia: input.grayscaleMedia },
-        });
+      await saveSetting(ctx.db, ctx.session.user.id, { grayscaleMedia: input.grayscaleMedia });
     }),
 
   setDmSendEnabled: protectedProcedure.input(setDmSendInput).mutation(async ({ ctx, input }) => {
-    await ctx.db
-      .insert(userSettings)
-      .values({ ownerId: ctx.session.user.id, dmSendEnabled: input.dmSendEnabled })
-      .onConflictDoUpdate({
-        target: userSettings.ownerId,
-        set: { dmSendEnabled: input.dmSendEnabled },
-      });
+    await saveSetting(ctx.db, ctx.session.user.id, { dmSendEnabled: input.dmSendEnabled });
   }),
 
   setInteractionsEnabled: protectedProcedure
     .input(setInteractionsInput)
     .mutation(async ({ ctx, input }) => {
-      await ctx.db
-        .insert(userSettings)
-        .values({ ownerId: ctx.session.user.id, interactionsEnabled: input.interactionsEnabled })
-        .onConflictDoUpdate({
-          target: userSettings.ownerId,
-          set: { interactionsEnabled: input.interactionsEnabled },
-        });
+      await saveSetting(ctx.db, ctx.session.user.id, {
+        interactionsEnabled: input.interactionsEnabled,
+      });
     }),
 
   setSessionBudget: protectedProcedure.input(setBudgetInput).mutation(async ({ ctx, input }) => {
-    await ctx.db
-      .insert(userSettings)
-      .values({ ownerId: ctx.session.user.id, sessionBudgetMinutes: input.sessionBudgetMinutes })
-      .onConflictDoUpdate({
-        target: userSettings.ownerId,
-        set: { sessionBudgetMinutes: input.sessionBudgetMinutes },
-      });
+    await saveSetting(ctx.db, ctx.session.user.id, {
+      sessionBudgetMinutes: input.sessionBudgetMinutes,
+    });
   }),
 
   lockBudget: protectedProcedure.output(lockOutput).mutation(async ({ ctx }) => {
