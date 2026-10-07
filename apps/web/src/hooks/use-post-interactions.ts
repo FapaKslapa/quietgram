@@ -6,17 +6,14 @@ import { toast } from "sonner";
 import {
   type FlagAction,
   type FlagOverride,
-  optimisticOverride,
   type PostFlags,
   resolveFlags,
-  settleOverride,
   toggleAction,
 } from "@/lib/interactions";
+import { flagCallbacks } from "@/lib/optimistic";
 import { useTRPC } from "@/trpc/client";
 
 const FAILURE = "Non sono riuscito a completare l'azione. Riprova.";
-
-type Snapshot = { previous: FlagOverride | undefined };
 
 export function usePostInteractions(mediaId: string, server: PostFlags) {
   const trpc = useTRPC();
@@ -24,25 +21,21 @@ export function usePostInteractions(mediaId: string, server: PostFlags) {
   const [override, setOverride] = useState<FlagOverride | undefined>(undefined);
   const flags = resolveFlags(server, override);
 
-  const handlers = (action: FlagAction) => ({
-    onMutate: (): Snapshot => {
-      const previous = override;
-      setOverride(optimisticOverride(server, previous, action));
-      return { previous };
-    },
-    onError: (_error: unknown, _variables: unknown, snapshot: Snapshot | undefined) => {
-      setOverride(snapshot?.previous);
-      toast.error(FAILURE);
-    },
-    onSuccess: (confirmed: PostFlags) => {
-      setOverride((current) => settleOverride(server, current, confirmed));
-    },
-    onSettled: async () => {
-      if (action === "save" || action === "unsave") {
-        await queryClient.invalidateQueries({ queryKey: trpc.saved.list.queryKey() });
-      }
-    },
-  });
+  const handlers = (action: FlagAction) =>
+    flagCallbacks(
+      {
+        server: () => server,
+        override: () => override,
+        update: setOverride,
+        fail: () => toast.error(FAILURE),
+        settle: async (settled) => {
+          if (settled === "save" || settled === "unsave") {
+            await queryClient.invalidateQueries({ queryKey: trpc.saved.list.queryKey() });
+          }
+        },
+      },
+      action,
+    );
 
   const like = useMutation(trpc.interactions.like.mutationOptions(handlers("like")));
   const unlike = useMutation(trpc.interactions.unlike.mutationOptions(handlers("unlike")));
