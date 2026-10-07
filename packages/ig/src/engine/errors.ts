@@ -28,3 +28,17 @@ export class EngineResponseError extends Error {
     this.name = "EngineResponseError";
   }
 }
+
+export class EngineLoginChallengeError extends Error {
+  constructor() {
+    super("Instagram asked for a verification during login");
+    this.name = "EngineLoginChallengeError";
+  }
+}
+
+export class EngineBadCredentialsError extends Error {
+  constructor() {
+    super("Instagram rejected the stored credentials");
+    this.name = "EngineBadCredentialsError";
+  }
+}

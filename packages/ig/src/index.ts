@@ -12,11 +12,15 @@ export {
   createEngineClient,
   type EngineClient,
   type EngineClientOptions,
+  type EngineCredentials,
+  type EngineLoginResult,
   type EngineSessionStatus,
   type UserPostsPage,
 } from "#ig/engine/client";
 export {
+  EngineBadCredentialsError,
   EngineInteractionsDisabledError,
+  EngineLoginChallengeError,
   EngineResponseError,
   EngineSendDisabledError,
   EngineUnreachableError,

@@ -1,5 +1,7 @@
 import {
+  EngineBadCredentialsError,
   EngineInteractionsDisabledError,
+  EngineLoginChallengeError,
   EngineResponseError,
   EngineSendDisabledError,
 } from "#ig/engine/errors";
@@ -37,5 +39,7 @@ export const failure = (status: number, text: string): Error => {
   if (status === 403 && code === "send_disabled") return new EngineSendDisabledError();
   if (status === 403 && code === "interactions_disabled")
     return new EngineInteractionsDisabledError();
+  if (status === 403 && code === "challenge_required") return new EngineLoginChallengeError();
+  if (status === 403 && code === "bad_credentials") return new EngineBadCredentialsError();
   return new IgHttpError(status);
 };

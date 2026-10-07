@@ -143,6 +143,15 @@ export const sessionStatusSchema = z.compile(
   z.object({ active: z.boolean(), username: z.string().nullable() }),
 );
 
+export const loginResultSchema = z.compile(
+  z.object({
+    sessionid: z.string().min(1),
+    csrftoken: z.string(),
+    user_id: idSchema,
+    username: z.string(),
+  }),
+);
+
 export const usersResponseSchema = z.compile(z.object({ users: z.array(userSchema) }));
 export const postsResponseSchema = z.compile(z.object({ posts: z.array(postSchema) }));
 export const threadsResponseSchema = z.compile(z.object({ threads: z.array(threadSchema) }));

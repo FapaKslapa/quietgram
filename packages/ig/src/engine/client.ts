@@ -12,6 +12,7 @@ import {
 import { check } from "#ig/engine/response";
 import {
   commentsResponseSchema,
+  loginResultSchema,
   messagesResponseSchema,
   okResponseSchema,
   postsResponseSchema,
@@ -40,6 +41,15 @@ export type UserPostsPage = { posts: IgPost[]; nextCursor: string | null };
 
 export type EngineSessionStatus = { active: boolean; username: string | null };
 
+export type EngineCredentials = { username: string; password: string; totpSecret?: string };
+
+export type EngineLoginResult = {
+  sessionId: string;
+  csrfToken: string;
+  userId: string;
+  username: string;
+};
+
 export type EngineClientOptions = TransportOptions;
 
 const amountQuery = (amount: number): Query => [["amount", String(amount)]];
@@ -56,6 +66,23 @@ export const createEngineClient = (options: EngineClientOptions) => {
   return {
     putSession: async (sessionId: string): Promise<EngineSessionStatus> =>
       check(sessionStatusSchema, await call("PUT", "/session", [], { sessionid: sessionId })),
+
+    loginWithCredentials: async (credentials: EngineCredentials): Promise<EngineLoginResult> => {
+      const result = check(
+        loginResultSchema,
+        await call("POST", "/session/login", [], {
+          username: credentials.username,
+          password: credentials.password,
+          ...(credentials.totpSecret ? { totp_secret: credentials.totpSecret } : {}),
+        }),
+      );
+      return {
+        sessionId: result.sessionid,
+        csrfToken: result.csrftoken,
+        userId: result.user_id,
+        username: result.username,
+      };
+    },
 
     sessionStatus: async (): Promise<EngineSessionStatus> =>
       check(sessionStatusSchema, await call("GET", "/session")),
