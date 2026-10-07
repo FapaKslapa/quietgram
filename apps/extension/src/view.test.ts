@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { normalizeCode } from "#ext/code";
 import { pairedLabel } from "#ext/date-label";
 import { errorMessage } from "#ext/messages";
-import { FORM_COPY, selectView, sessionLabel } from "#ext/view";
+import { connectCopy, FORM_COPY, pairedCopy, selectView, sessionLabel } from "#ext/view";
 
 describe("selectView", () => {
   it("shows the form when never paired", () => {
@@ -28,9 +28,39 @@ describe("form copy", () => {
     expect(FORM_COPY.renew.action).toBe("Rinnova");
   });
 
-  it("labels the live session check", () => {
-    expect(sessionLabel(true)).toBe("Sessione Instagram trovata");
-    expect(sessionLabel(false)).toContain("non è aperto");
+  it("labels every session state", () => {
+    expect(sessionLabel("valid")).toBe("Sessione Instagram valida");
+    expect(sessionLabel("invalid")).toBe("Instagram ti ha scollegato");
+    expect(sessionLabel("unknown")).toBe("Sessione non verificata");
+    expect(sessionLabel("none")).toContain("non è aperto");
+  });
+
+  it("tells the user to sign out and in again when invalid", () => {
+    const copy = connectCopy("renew", "invalid");
+    expect(copy.title).toBe("Instagram ti ha scollegato");
+    expect(copy.help).toBe("Esci e rientra su instagram.com, poi premi Rinnova.");
+    expect(connectCopy("unpaired", "invalid").help).toContain("Collega");
+  });
+
+  it("keeps the default copy otherwise", () => {
+    expect(connectCopy("renew", "valid")).toEqual(FORM_COPY.renew);
+    expect(connectCopy("unpaired", "unknown")).toEqual(FORM_COPY.unpaired);
+  });
+});
+
+describe("paired copy", () => {
+  it("confirms a valid session", () => {
+    expect(pairedCopy("valid", "oggi")).toEqual({
+      title: "Instagram collegato",
+      help: "oggi",
+      value: "Valida",
+    });
+  });
+
+  it("stays neutral when unverified", () => {
+    const copy = pairedCopy("unknown", "oggi");
+    expect(copy.title).toBe("Sessione non verificata");
+    expect(copy.value).toBe("Non verificata");
   });
 });
 

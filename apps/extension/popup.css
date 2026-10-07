@@ -285,9 +285,24 @@ input[aria-invalid="true"] {
   opacity: 0.5;
 }
 
-[data-session="true"] .dot {
+[data-session="valid"] .dot {
   background: var(--success);
   opacity: 1;
+}
+
+[data-session="invalid"] .dot {
+  background: var(--destructive);
+  opacity: 1;
+}
+
+[data-session="checking"] .dot {
+  animation: pulse 1s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  50% {
+    opacity: 0.2;
+  }
 }
 
 .check {
@@ -299,6 +314,10 @@ input[aria-invalid="true"] {
   stroke-width: 2.5;
   stroke-linecap: round;
   stroke-linejoin: round;
+}
+
+#paired:not([data-session="valid"]) .check {
+  color: var(--muted-foreground);
 }
 
 .check-ring {
