@@ -357,6 +357,7 @@ export const syncRuns = sqliteTable("sync_runs", {
   total: integer("total").notNull(),
   completed: integer("completed").notNull(),
   state: text("state"),
+  leaseUntil: integer("lease_until", { mode: "timestamp_ms" }),
 });
 
 export const pairingTokens = sqliteTable("pairing_tokens", {

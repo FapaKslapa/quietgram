@@ -13,6 +13,10 @@ export type RefreshProgress = {
   authors: { checked: number; total: number } | null;
 };
 
+const STALLED_STEP_PAUSE_MS = 1500;
+
+const pause = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms));
+
 export function useRefresh() {
   const trpc = useTRPC();
   const queryClient = useQueryClient();
@@ -51,8 +55,11 @@ export function useRefresh() {
       const { runId, total } = await start.mutateAsync();
       setProgress({ completed: 0, total, authors: null });
       let finished = false;
+      let lastCompleted = 0;
       while (!finished) {
         const result = await step.mutateAsync({ runId });
+        if (!result.done && result.completed === lastCompleted) await pause(STALLED_STEP_PAUSE_MS);
+        lastCompleted = result.completed;
         setProgress({
           completed: result.completed,
           total: result.total,

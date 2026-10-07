@@ -1,6 +1,6 @@
 import { igSessions, posts, syncRuns, syncState } from "@nodistraction/db";
 import { IgThrottledError, SessionExpiredError } from "@nodistraction/ig";
-import { and, eq, gt, lt } from "drizzle-orm";
+import { and, eq, gt, isNull, lt, lte, or } from "drizzle-orm";
 import { startAuthorsPhase, stepAuthors } from "@/lib/sync/authors";
 import { REFRESH_COOLDOWN_MS, remainingCooldownMs } from "@/lib/sync/cooldown";
 import { refreshCounts } from "@/lib/sync/counts";
@@ -78,6 +78,66 @@ const findActiveRun = async (deps: SyncDeps, ownerId: string, now: Date) => {
   return run ?? null;
 };
 
+const restoreMarker = async (
+  deps: SyncDeps,
+  ownerId: string,
+  run: { startedAt: Date; state: string | null },
+): Promise<void> => {
+  const previous = parseRestoreAt(run.state);
+  const lastRefreshAt = previous === null ? null : new Date(previous);
+  await deps.db
+    .update(syncState)
+    .set({ lastRefreshAt })
+    .where(and(eq(syncState.ownerId, ownerId), eq(syncState.lastRefreshAt, run.startedAt)));
+};
+
+const STEP_LEASE_MS = 60_000;
+
+const claimCooldown = async (
+  deps: SyncDeps,
+  ownerId: string,
+  now: Date,
+  cooldownMs: number,
+): Promise<boolean> => {
+  await deps.db.insert(syncState).values({ ownerId }).onConflictDoNothing();
+  const claimed = await deps.db
+    .update(syncState)
+    .set({ lastRefreshAt: now })
+    .where(
+      and(
+        eq(syncState.ownerId, ownerId),
+        or(
+          isNull(syncState.lastRefreshAt),
+          lte(syncState.lastRefreshAt, new Date(now.getTime() - cooldownMs)),
+        ),
+      ),
+    )
+    .returning({ ownerId: syncState.ownerId });
+  return claimed.length > 0;
+};
+
+const claimStep = async (
+  deps: SyncDeps,
+  ownerId: string,
+  run: { id: string; completed: number },
+): Promise<boolean> => {
+  const now = deps.now();
+  const claimed = await deps.db
+    .update(syncRuns)
+    .set({ leaseUntil: new Date(now.getTime() + STEP_LEASE_MS) })
+    .where(
+      and(
+        eq(syncRuns.id, run.id),
+        eq(syncRuns.ownerId, ownerId),
+        eq(syncRuns.status, "running"),
+        eq(syncRuns.completed, run.completed),
+        or(isNull(syncRuns.leaseUntil), lte(syncRuns.leaseUntil, now)),
+      ),
+    )
+    .returning({ id: syncRuns.id });
+  return claimed.length > 0;
+};
+
 export const startRefresh = async (
   deps: SyncDeps,
   ownerId: string,
@@ -108,21 +168,32 @@ export const startRefresh = async (
     ),
   );
   const total = remainingSteps(first, feedMode, deps.source.kind);
+  if (!(await claimCooldown(deps, ownerId, now, cooldownMs))) {
+    const concurrent = await findActiveRun(deps, ownerId, now);
+    if (concurrent) return { runId: concurrent.id, total: concurrent.total };
+    const [latest] = await deps.db.select().from(syncState).where(eq(syncState.ownerId, ownerId));
+    const wait = remainingCooldownMs(latest?.lastRefreshAt ?? null, now, cooldownMs);
+    throw new CooldownError(Math.max(1, Math.ceil(wait / 1000)));
+  }
   const runId = crypto.randomUUID();
-  await deps.db.insert(syncRuns).values({
-    id: runId,
-    ownerId,
-    startedAt: now,
-    kind: "refresh",
-    status: "running",
-    total,
-    completed: 0,
-    state: serializeRunState(first, state?.lastRefreshAt?.getTime() ?? null),
-  });
-  await deps.db
-    .insert(syncState)
-    .values({ ownerId, lastRefreshAt: now })
-    .onConflictDoUpdate({ target: syncState.ownerId, set: { lastRefreshAt: now } });
+  try {
+    await deps.db.insert(syncRuns).values({
+      id: runId,
+      ownerId,
+      startedAt: now,
+      kind: "refresh",
+      status: "running",
+      total,
+      completed: 0,
+      state: serializeRunState(first, state?.lastRefreshAt?.getTime() ?? null),
+    });
+  } catch (error) {
+    await restoreMarker(deps, ownerId, {
+      startedAt: now,
+      state: serializeRunState(first, state?.lastRefreshAt?.getTime() ?? null),
+    });
+    throw error;
+  }
   return { runId, total };
 };
 
@@ -132,19 +203,6 @@ export const getRefreshStatus = async (
   runId: string,
 ): Promise<RefreshProgress> => toProgress(await findRun(deps, ownerId, runId));
 
-const restoreMarker = async (
-  deps: SyncDeps,
-  ownerId: string,
-  run: { startedAt: Date; state: string | null },
-): Promise<void> => {
-  const previous = parseRestoreAt(run.state);
-  const lastRefreshAt = previous === null ? null : new Date(previous);
-  await deps.db
-    .update(syncState)
-    .set({ lastRefreshAt })
-    .where(and(eq(syncState.ownerId, ownerId), eq(syncState.lastRefreshAt, run.startedAt)));
-};
-
 const failRun = async (
   deps: SyncDeps,
   ownerId: string,
@@ -153,7 +211,7 @@ const failRun = async (
 ): Promise<void> => {
   await deps.db
     .update(syncRuns)
-    .set({ status: "failed", finishedAt: deps.now() })
+    .set({ status: "failed", finishedAt: deps.now(), leaseUntil: null })
     .where(eq(syncRuns.id, run.id));
   if (run.completed === 0 && !(error instanceof IgThrottledError)) {
     await restoreMarker(deps, ownerId, run);
@@ -172,6 +230,10 @@ export const runRefreshStep = async (
 ): Promise<RefreshProgress> => {
   const run = await findRun(deps, ownerId, runId);
   if (run.status !== "running") return toProgress(run);
+
+  if (!(await claimStep(deps, ownerId, run))) {
+    return toProgress(await findRun(deps, ownerId, runId));
+  }
 
   const state = parseRunState(run.state);
   const { feedMode } = await loadSettings(deps.db, ownerId);
@@ -202,7 +264,7 @@ export const runRefreshStep = async (
   const finished = next === null;
   if (finished) await deletePostsBeyondRetention(deps, ownerId);
   const total = completed + remainingSteps(next, feedMode, deps.source.kind);
-  await deps.db
+  const advanced = await deps.db
     .update(syncRuns)
     .set({
       completed,
@@ -210,8 +272,17 @@ export const runRefreshStep = async (
       state: next ? serializeRunState(next, parseRestoreAt(run.state)) : null,
       status: finished ? "done" : "running",
       finishedAt: finished ? deps.now() : null,
+      leaseUntil: null,
     })
-    .where(eq(syncRuns.id, runId));
+    .where(
+      and(
+        eq(syncRuns.id, runId),
+        eq(syncRuns.status, "running"),
+        eq(syncRuns.completed, run.completed),
+      ),
+    )
+    .returning({ id: syncRuns.id });
+  if (advanced.length === 0) return toProgress(await findRun(deps, ownerId, runId));
   return {
     status: finished ? "done" : "running",
     done: finished,
