@@ -6,14 +6,16 @@ import time
 from collections.abc import Awaitable, Callable
 from pathlib import Path
 
-from ig_engine.errors import map_exception, map_login_exception, session_expired
+from ig_engine.errors import ApiError, map_exception, map_login_exception, session_expired
 from ig_engine.instagram import InstagramClient, SessionSettings
+from ig_engine.pacing import FAST_PACING, requested_pacing
 from ig_engine.schemas import LoginResult, SessionStatus
 from ig_engine.totp import totp_code
 
 type Sleeper = Callable[[float], Awaitable[None]]
 type Jitter = Callable[[float, float], float]
 type ClientFactory = Callable[[], InstagramClient]
+type Clock = Callable[[], float]
 
 DIRECTORY_MODE = 0o700
 FILE_MODE = 0o600
@@ -44,6 +46,10 @@ class ClientPool:
         max_delay: float,
         sleeper: Sleeper = asyncio.sleep,
         jitter: Jitter = random.uniform,
+        fast_min_delay: float = 0.3,
+        fast_max_delay: float = 0.8,
+        backoff_seconds: float = 1800,
+        clock: Clock = time.monotonic,
     ) -> None:
         self._accounts_dir = data_dir / "accounts"
         self._factory = factory
@@ -56,6 +62,12 @@ class ClientPool:
         self._usernames: dict[str, str | None] = {}
         self._expired: set[str] = set()
         self._has_called = False
+        self._fast_min_delay = fast_min_delay
+        self._fast_max_delay = fast_max_delay
+        self._backoff_seconds = backoff_seconds
+        self._clock = clock
+        self._last_call_at = 0.0
+        self._backoff_until: dict[str, float] = {}
 
     def _path(self, account_id: str) -> Path:
         return self._accounts_dir / f"{account_id}.json"
@@ -110,10 +122,26 @@ class ClientPool:
         self._usernames[account_id] = stored.username
         return client
 
-    async def _pace(self) -> None:
+    def _is_fast(self, account_id: str) -> bool:
+        if requested_pacing.get() != FAST_PACING:
+            return False
+        return self._clock() >= self._backoff_until.get(account_id, 0.0)
+
+    async def _pace(self, account_id: str) -> None:
         if self._has_called:
-            await self._sleeper(self._jitter(self._min_delay, self._max_delay))
+            if self._is_fast(account_id):
+                target = self._jitter(self._fast_min_delay, self._fast_max_delay)
+                wait = target - (self._clock() - self._last_call_at)
+                if wait > 0:
+                    await self._sleeper(wait)
+            else:
+                await self._sleeper(self._jitter(self._min_delay, self._max_delay))
         self._has_called = True
+        self._last_call_at = self._clock()
+
+    def _note_throttle(self, account_id: str, mapped: ApiError) -> None:
+        if mapped.code == "throttled":
+            self._backoff_until[account_id] = self._clock() + self._backoff_seconds
 
     def status(self, account_id: str) -> SessionStatus:
         client = self._client_for(account_id)
@@ -122,7 +150,7 @@ class ClientPool:
 
     async def login(self, account_id: str, sessionid: str) -> SessionStatus:
         async with self._lock:
-            await self._pace()
+            await self._pace(account_id)
             client = self._factory()
             stored = self._read(account_id)
             if stored is not None:
@@ -133,6 +161,7 @@ class ClientPool:
                 mapped = map_exception(exc)
                 if mapped is None:
                     raise
+                self._note_throttle(account_id, mapped)
                 raise mapped from None
             self._write(account_id, StoredSession(client.export_settings(), username))
             self._clients[account_id] = client
@@ -144,7 +173,7 @@ class ClientPool:
         self, account_id: str, username: str, password: str, totp_secret: str | None
     ) -> LoginResult:
         async with self._lock:
-            await self._pace()
+            await self._pace(account_id)
             client = self._factory()
             identity = self._identity(account_id)
             if identity is not None:
@@ -159,6 +188,7 @@ class ClientPool:
                 mapped = map_login_exception(exc)
                 if mapped is None:
                     raise
+                self._note_throttle(account_id, mapped)
                 raise mapped from None
             self._write(account_id, StoredSession(client.export_settings(), result.username))
             self._clients[account_id] = client
@@ -171,13 +201,16 @@ class ClientPool:
             client = self._client_for(account_id)
             if client is None or account_id in self._expired:
                 raise session_expired()
-            await self._pace()
+            await self._pace(account_id)
             try:
                 return await asyncio.to_thread(operation, client)
             except Exception as exc:
                 mapped = map_exception(exc)
                 if mapped is None:
                     raise
+                self._note_throttle(account_id, mapped)
                 if mapped.code == "session_expired":
                     self._expired.add(account_id)
                 raise mapped from None
+            finally:
+                self._last_call_at = self._clock()

@@ -10,6 +10,7 @@ from fastapi.testclient import TestClient
 
 from ig_engine.app import create_app
 from ig_engine.auth import sign, signed_target
+from ig_engine.client_pool import ClientPool
 from ig_engine.config import Settings
 from tests.fakes import SESSION_ID, Behavior, FakeInstagramClient
 
@@ -34,7 +35,9 @@ class Harness:
             min_delay_seconds=0,
             max_delay_seconds=0,
         )
-        self.http = TestClient(create_app(settings, self.build_client))
+        app = create_app(settings, self.build_client)
+        self.pool: ClientPool = app.state.pool
+        self.http = TestClient(app)
 
     @property
     def calls(self) -> list[str]:
@@ -52,6 +55,7 @@ class Harness:
         age_seconds: int = 0,
         secret: str = SECRET,
         query: str = "",
+        extra_headers: dict[str, str] | None = None,
     ) -> httpx.Response:
         payload = b"" if body is None else json.dumps(body).encode()
         timestamp = str(int(time.time()) - age_seconds)
@@ -68,6 +72,8 @@ class Harness:
         }
         if account is not None:
             headers["x-ig-account-id"] = account
+        if extra_headers is not None:
+            headers.update(extra_headers)
         response: httpx.Response = self.http.request(
             method, path + query, content=payload, headers=headers
         )
