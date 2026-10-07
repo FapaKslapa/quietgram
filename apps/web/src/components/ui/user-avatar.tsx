@@ -3,6 +3,7 @@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { avatarInitials, avatarSource } from "@/lib/avatar";
 import { cn } from "@/lib/utils";
+import { mediaSrc } from "@/lib/media-proxy";
 
 const SIZES = {
   sm: { root: "size-8", text: "text-[0.6875rem]" },
@@ -21,7 +22,7 @@ type UserAvatarProps = {
 };
 
 export function UserAvatar({ username, avatarUrl, size = "sm", className }: UserAvatarProps) {
-  const source = avatarSource(avatarUrl);
+  const source = mediaSrc(avatarSource(avatarUrl));
   const { root, text } = SIZES[size];
 
   return (

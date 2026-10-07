@@ -3,6 +3,7 @@
 import { Maximize2, Pause, Play, Volume2, VolumeX } from "lucide-react";
 import { motion } from "motion/react";
 import { type KeyboardEvent, useEffect, useRef, useState } from "react";
+import { mediaSrc } from "@/lib/media-proxy";
 import { cn } from "@/lib/utils";
 
 type VideoPlayerProps = {
@@ -64,7 +65,7 @@ export function VideoPlayer({
     <div ref={root} className="relative size-full bg-foreground">
       <video
         ref={video}
-        src={src}
+        src={mediaSrc(src)}
         muted={muted}
         playsInline
         loop

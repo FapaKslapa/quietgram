@@ -6,6 +6,7 @@ import { type PointerEvent, useEffect, useRef, useState } from "react";
 import { LazyImage } from "@/components/media/lazy-image";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import { useStoryClock } from "@/hooks/use-story-clock";
+import { mediaSrc } from "@/lib/media-proxy";
 import {
   classifyRelease,
   itemDuration,
@@ -127,7 +128,7 @@ export function StoryFrame({
         {item.media.kind === "video" ? (
           <video
             ref={video}
-            src={item.media.url}
+            src={mediaSrc(item.media.url)}
             autoPlay
             muted
             playsInline

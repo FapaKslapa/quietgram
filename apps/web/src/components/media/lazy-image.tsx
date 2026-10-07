@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useState } from "react";
+import { mediaSrc } from "@/lib/media-proxy";
 import { cn } from "@/lib/utils";
 
 type LazyImageProps = {
@@ -30,7 +31,7 @@ export function LazyImage({
   return (
     <img
       ref={attach}
-      src={src}
+      src={mediaSrc(src)}
       alt={alt}
       width={width}
       height={height}

@@ -3,6 +3,7 @@ import { motion } from "motion/react";
 import { LazyImage } from "@/components/media/lazy-image";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import type { PostMediaItem } from "@/lib/media";
+import { mediaSrc } from "@/lib/media-proxy";
 import { badgeOf, coverOf, type SavedItem, savedLabel } from "@/lib/saved-grid";
 
 function Cover({
@@ -17,7 +18,7 @@ function Cover({
   if (media.kind === "video") {
     return (
       <video
-        src={`${media.url}#t=0.1`}
+        src={`${mediaSrc(media.url) ?? ""}#t=0.1`}
         muted
         playsInline
         preload="metadata"
