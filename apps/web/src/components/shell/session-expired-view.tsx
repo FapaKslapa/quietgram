@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { AUTO_LOGIN_CHALLENGE, AUTO_LOGIN_REJECTED } from "@/lib/credentials/copy";
 
 const STEPS = [
   "Apri instagram.com e controlla di essere collegato.",
@@ -9,13 +10,68 @@ const STEPS = [
 
 type Failure = "throttled" | "expired" | "other";
 
+export type SessionAttention = "challenge" | "rejected";
+
 type SessionExpiredViewProps = {
+  attention?: SessionAttention | null;
   checking: boolean;
   failure: Failure | null;
   onRecheck: () => void;
 };
 
-export function SessionExpiredView({ checking, failure, onRecheck }: SessionExpiredViewProps) {
+function AttentionNote({ attention }: { attention: SessionAttention | null }) {
+  if (attention === null) return null;
+  return (
+    <p
+      role="status"
+      className="max-w-[38ch] border-l-2 border-foreground pl-3 text-[0.9375rem] text-pretty"
+    >
+      {attention === "challenge" ? AUTO_LOGIN_CHALLENGE : AUTO_LOGIN_REJECTED}
+      {attention === "rejected" ? (
+        <>
+          {" "}
+          <Link href="/profilo" className="font-semibold underline underline-offset-4">
+            Apri Profilo
+          </Link>
+        </>
+      ) : null}
+    </p>
+  );
+}
+
+function FailureNote({ failure }: { failure: Failure | null }) {
+  if (failure === null) return null;
+  return (
+    <p role="alert" className="max-w-[40ch] text-sm text-balance text-destructive">
+      {failure === "throttled"
+        ? "Instagram ti chiede di aspettare qualche minuto. Riprova tra un po'."
+        : failure === "expired"
+          ? "La sessione risulta ancora scaduta. "
+          : "Non sono riuscito a controllare la sessione. Riprova tra poco."}
+      {failure === "expired" ? (
+        <>
+          Genera un nuovo codice di abbinamento su{" "}
+          <Link href="/pair" className="font-semibold underline underline-offset-4">
+            /pair
+          </Link>{" "}
+          e premi Rinnova nell&apos;estensione.
+        </>
+      ) : null}
+    </p>
+  );
+}
+
+const recheckLabel = (checking: boolean, attention: SessionAttention | null): string => {
+  if (checking) return "Controllo in corso";
+  return attention === "challenge" ? "Ho confermato, riprova" : "Ho rinnovato la sessione";
+};
+
+export function SessionExpiredView({
+  attention = null,
+  checking,
+  failure,
+  onRecheck,
+}: SessionExpiredViewProps) {
   return (
     <main className="column grid min-h-dvh content-center gap-5 px-8 py-10">
       <div className="grid gap-2">
@@ -26,6 +82,7 @@ export function SessionExpiredView({ checking, failure, onRecheck }: SessionExpi
           Riapri l&apos;estensione dal browser dove sei collegato per rinnovarla.
         </p>
       </div>
+      <AttentionNote attention={attention} />
       <ol className="grid gap-3 [counter-reset:step]">
         {STEPS.map((step) => (
           <li
@@ -44,26 +101,9 @@ export function SessionExpiredView({ checking, failure, onRecheck }: SessionExpi
         aria-busy={checking}
         className="justify-self-start"
       >
-        {checking ? "Controllo in corso" : "Ho rinnovato la sessione"}
+        {recheckLabel(checking, attention)}
       </Button>
-      {failure ? (
-        <p role="alert" className="max-w-[40ch] text-sm text-balance text-destructive">
-          {failure === "throttled"
-            ? "Instagram ti chiede di aspettare qualche minuto. Riprova tra un po'."
-            : failure === "expired"
-              ? "La sessione risulta ancora scaduta. "
-              : "Non sono riuscito a controllare la sessione. Riprova tra poco."}
-          {failure === "expired" ? (
-            <>
-              Genera un nuovo codice di abbinamento su{" "}
-              <Link href="/pair" className="font-semibold underline underline-offset-4">
-                /pair
-              </Link>{" "}
-              e premi Rinnova nell&apos;estensione.
-            </>
-          ) : null}
-        </p>
-      ) : null}
+      <FailureNote failure={failure} />
     </main>
   );
 }

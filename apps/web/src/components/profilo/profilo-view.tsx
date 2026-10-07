@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { AutoLoginRow, type AutoLoginRowProps } from "@/components/profilo/auto-login-row";
 import { ScreenHeader } from "@/components/shell/screen-header";
 import {
   Item,
@@ -38,6 +39,7 @@ type ProfiloViewProps = {
   budgetLabel: string;
   themeLabel: string;
   loggingOut: boolean;
+  autoLogin: AutoLoginRowProps;
   onGrayscale: (value: boolean) => void;
   onDmSend: (value: boolean) => void;
   onInteractions: (value: boolean) => void;
@@ -80,6 +82,7 @@ export function ProfiloView({
   budgetLabel,
   themeLabel,
   loggingOut,
+  autoLogin,
   onGrayscale,
   onDmSend,
   onInteractions,
@@ -224,6 +227,7 @@ export function ProfiloView({
               </span>
             </ItemActions>
           </Item>
+          <AutoLoginRow {...autoLogin} />
           <Item
             className={ROW}
             render={<button type="button" onClick={onLogout} disabled={loggingOut} />}

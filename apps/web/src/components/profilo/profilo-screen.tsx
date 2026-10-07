@@ -6,10 +6,12 @@ import { useTheme } from "next-themes";
 import { useState } from "react";
 import { toast } from "sonner";
 import { ModeDrawer } from "@/components/posta/mode-drawer";
+import { AutoLoginDrawers } from "@/components/profilo/auto-login-drawers";
 import { ChoiceSheet } from "@/components/profilo/choice-sheet";
 import { DmSendDrawer } from "@/components/profilo/dm-send-drawer";
 import { InteractionsDrawer } from "@/components/profilo/interactions-drawer";
 import { ProfiloView } from "@/components/profilo/profilo-view";
+import { useAutoLogin } from "@/hooks/use-auto-login";
 import { useFeedSettings } from "@/hooks/use-feed-settings";
 import { authClient } from "@/lib/auth/client";
 import { BUDGET_CHOICES, budgetLabel } from "@/lib/budget";
@@ -33,6 +35,7 @@ export function ProfiloScreen() {
   const { data: session } = authClient.useSession();
   const [sheet, setSheet] = useState<Sheet>(null);
   const [loggingOut, setLoggingOut] = useState(false);
+  const autoLogin = useAutoLogin();
 
   const logout = async () => {
     setLoggingOut(true);
@@ -57,6 +60,7 @@ export function ProfiloScreen() {
         budgetLabel={budgetLabel(settings.sessionBudgetMinutes)}
         themeLabel={themeLabel(theme)}
         loggingOut={loggingOut}
+        autoLogin={autoLogin.row}
         onGrayscale={(grayscaleMedia) => setGrayscale.mutate({ grayscaleMedia })}
         onDmSend={(dmSendEnabled) => {
           if (dmSendEnabled) setSheet("dm");
@@ -71,6 +75,7 @@ export function ProfiloScreen() {
         onOpenTheme={() => setSheet("theme")}
         onLogout={() => void logout()}
       />
+      <AutoLoginDrawers {...autoLogin.drawers} />
       <ModeDrawer open={sheet === "feed"} onOpenChange={(open) => setSheet(open ? "feed" : null)} />
       <DmSendDrawer
         open={sheet === "dm"}

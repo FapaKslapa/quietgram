@@ -29,6 +29,12 @@ function RegisterFrame() {
 export const SESSION_VIEWS = {
   expired: () => <SessionExpiredView checking={false} failure={null} onRecheck={noop} />,
   "expired-error": () => <SessionExpiredView checking={false} failure="expired" onRecheck={noop} />,
+  "expired-challenge": () => (
+    <SessionExpiredView attention="challenge" checking={false} failure={null} onRecheck={noop} />
+  ),
+  "expired-rejected": () => (
+    <SessionExpiredView attention="rejected" checking={false} failure={null} onRecheck={noop} />
+  ),
   login: () => <LoginForm />,
   register: () => <RegisterFrame />,
   pair: () => <PairingToken />,

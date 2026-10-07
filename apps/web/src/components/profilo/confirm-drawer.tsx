@@ -13,7 +13,7 @@ export type ConfirmDrawerProps = {
   onConfirm: () => void;
 };
 
-type ConfirmDrawerContent = { title: string; description: string };
+type ConfirmDrawerContent = { title: string; description: string; confirmLabel?: string };
 
 export function ConfirmDrawer({
   open,
@@ -21,6 +21,7 @@ export function ConfirmDrawer({
   onConfirm,
   title,
   description,
+  confirmLabel = "Attiva",
 }: ConfirmDrawerProps & ConfirmDrawerContent) {
   return (
     <Drawer open={open} onOpenChange={onOpenChange} showSwipeHandle>
@@ -32,7 +33,7 @@ export function ConfirmDrawer({
           </div>
           <div className="grid gap-2">
             <DrawerClose render={<Button size="lg" className="w-full" onClick={onConfirm} />}>
-              Attiva
+              {confirmLabel}
             </DrawerClose>
             <DrawerClose render={<Button size="lg" variant="outline" className="w-full" />}>
               Annulla
