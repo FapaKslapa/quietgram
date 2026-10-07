@@ -1,7 +1,7 @@
 import { cp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { build } from "esbuild";
 
-const appOrigin = (process.env.APP_ORIGIN ?? "http://localhost:8787").replace(/\/$/, "");
+const appOrigin = (process.env.APP_ORIGIN ?? "http://localhost:3000").replace(/\/$/, "");
 const firefox = process.env.TARGET === "firefox";
 const outdir = firefox ? "dist-firefox" : "dist";
 
