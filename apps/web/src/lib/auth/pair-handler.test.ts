@@ -52,6 +52,13 @@ describe("handlePair", () => {
     expect((await handlePair(notJson, deps)).status).toBe(400);
   });
 
+  it("rejects oversized cookie values", async () => {
+    const token = await issuePairingToken(db, "u1", now);
+    const response = await handlePair(post({ token, ...body, sessionId: "s".repeat(513) }), deps);
+    expect(response.status).toBe(400);
+    expect(await db.select().from(igSessions)).toEqual([]);
+  });
+
   it("rejects an unknown token", async () => {
     expect((await handlePair(post({ token: "nope", ...body }), deps)).status).toBe(401);
     expect(await db.select().from(igSessions)).toEqual([]);

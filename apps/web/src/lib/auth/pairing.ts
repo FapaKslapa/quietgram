@@ -1,6 +1,6 @@
-import { type Db, igSessions, pairingTokens } from "@nodistraction/db";
+import { type Db, igSessions, pairingTokens, runBatch } from "@nodistraction/db";
 import type { IgCookies } from "@nodistraction/ig";
-import { and, eq, gt, isNull } from "drizzle-orm";
+import { and, eq, gt, isNotNull, isNull, lte, or } from "drizzle-orm";
 import { encrypt } from "@/lib/auth/crypto";
 
 const TOKEN_TTL_MS = 10 * 60_000;
@@ -12,11 +12,21 @@ const hashToken = async (token: string): Promise<string> => {
 
 export const issuePairingToken = async (db: Db, userId: string, now: Date): Promise<string> => {
   const token = crypto.randomUUID();
-  await db.insert(pairingTokens).values({
-    tokenHash: await hashToken(token),
-    userId,
-    expiresAt: new Date(now.getTime() + TOKEN_TTL_MS),
-  });
+  await runBatch(db, [
+    db
+      .delete(pairingTokens)
+      .where(
+        and(
+          eq(pairingTokens.userId, userId),
+          or(isNotNull(pairingTokens.usedAt), lte(pairingTokens.expiresAt, now)),
+        ),
+      ),
+    db.insert(pairingTokens).values({
+      tokenHash: await hashToken(token),
+      userId,
+      expiresAt: new Date(now.getTime() + TOKEN_TTL_MS),
+    }),
+  ]);
   return token;
 };
 

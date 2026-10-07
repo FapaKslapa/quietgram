@@ -1,6 +1,6 @@
 import { initialsOf } from "@/lib/author";
 
-const REMOTE_URL = /^https?:\/\//i;
+const REMOTE_URL = /^https:\/\//i;
 
 export const avatarSource = (url: string | null | undefined): string | null => {
   const trimmed = url?.trim() ?? "";

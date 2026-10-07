@@ -4,10 +4,10 @@ import { redeemPairingToken, savePairedSession } from "@/lib/auth/pairing";
 
 const pairBodySchema = z.compile(
   z.object({
-    token: z.string().min(1),
-    sessionId: z.string().min(1),
-    csrfToken: z.string().min(1),
-    userId: z.string().regex(/^\d+$/),
+    token: z.string().min(1).max(64),
+    sessionId: z.string().min(1).max(512),
+    csrfToken: z.string().min(1).max(256),
+    userId: z.string().regex(/^\d{1,20}$/),
   }),
 );
 

@@ -28,6 +28,16 @@ describe("pairing", () => {
     expect(await redeemPairingToken(db, token, minutes(11))).toBeNull();
   });
 
+  it("purges used and expired tokens of the same user when issuing a new one", async () => {
+    const used = await issuePairingToken(db, "u1", now);
+    await redeemPairingToken(db, used, minutes(1));
+    await issuePairingToken(db, "u1", now);
+    const fresh = await issuePairingToken(db, "u1", minutes(30));
+    const rows = await db.query.pairingTokens.findMany();
+    expect(rows).toHaveLength(1);
+    expect(await redeemPairingToken(db, fresh, minutes(31))).toBe("u1");
+  });
+
   it("rejects an unknown token", async () => {
     expect(await redeemPairingToken(db, "nope", now)).toBeNull();
   });

@@ -2,9 +2,12 @@ import { describe, expect, it } from "vitest";
 import { avatarInitials, avatarSource, showAvatarImage } from "@/lib/avatar";
 
 describe("avatarSource", () => {
-  it("accepts remote urls only", () => {
+  it("accepts https urls only", () => {
     expect(avatarSource("https://cdn.example/a.jpg")).toBe("https://cdn.example/a.jpg");
-    expect(avatarSource("  http://cdn.example/a.jpg ")).toBe("http://cdn.example/a.jpg");
+    expect(avatarSource("  https://cdn.example/a.jpg ")).toBe("https://cdn.example/a.jpg");
+    expect(avatarSource("http://cdn.example/a.jpg")).toBeNull();
+    expect(avatarSource("data:image/svg+xml,<svg/>")).toBeNull();
+    expect(avatarSource("//cdn.example/a.jpg")).toBeNull();
     expect(avatarSource("javascript:alert(1)")).toBeNull();
     expect(avatarSource("")).toBeNull();
     expect(avatarSource(null)).toBeNull();

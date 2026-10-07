@@ -1,9 +1,16 @@
+import { getCloudflareContext } from "@opennextjs/cloudflare";
 import { fetchRequestHandler } from "@trpc/server/adapters/fetch";
+import { isTrustedRequestOrigin } from "@/lib/auth/origin";
+import { parseEnv } from "@/lib/env";
 import { logError } from "@/server/log";
 import { createTRPCContext } from "@/server/trpc/context";
 import { appRouter } from "@/server/trpc/routers/_app";
 
-function handler(req: Request) {
+async function handler(req: Request) {
+  const { env } = await getCloudflareContext({ async: true });
+  if (!isTrustedRequestOrigin(req, parseEnv({ ...env }).BETTER_AUTH_URL)) {
+    return new Response(null, { status: 403 });
+  }
   return fetchRequestHandler({
     endpoint: "/api/trpc",
     req,
