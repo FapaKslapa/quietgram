@@ -8,6 +8,7 @@ import { PostSkeleton } from "@/components/posta/post-skeleton";
 import { PostaHeader } from "@/components/posta/posta-header";
 import { PullSurface } from "@/components/posta/pull-surface";
 import { RefreshPanel } from "@/components/posta/refresh-panel";
+import { StoriesBar } from "@/components/stories/stories-bar";
 import { useFeedSettings } from "@/hooks/use-feed-settings";
 import { usePullToRefresh } from "@/hooks/use-pull-to-refresh";
 import { useRefreshController } from "@/hooks/use-refresh-controller";
@@ -42,6 +43,7 @@ export function PostaScreen() {
             onRefresh={controller.refresh}
           />
         </PostaHeader>
+        <StoriesBar />
         <Suspense fallback={<PostaFeedSkeleton />}>
           <Feed mode={mode} onOpenModes={() => setModesOpen(true)} />
         </Suspense>
