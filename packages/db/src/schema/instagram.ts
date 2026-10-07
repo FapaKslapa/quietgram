@@ -1,6 +1,8 @@
 import { integer, primaryKey, sqliteTable, text } from "drizzle-orm/sqlite-core";
 import { user } from "#db/schema/auth";
 
+export const sessionSources = ["extension", "credentials"] as const;
+
 export const igSessions = sqliteTable("ig_sessions", {
   ownerId: text("owner_id")
     .primaryKey()
@@ -9,6 +11,7 @@ export const igSessions = sqliteTable("ig_sessions", {
   cipher: text("cipher").notNull(),
   iv: text("iv").notNull(),
   status: text("status", { enum: ["active", "expired"] }).notNull(),
+  source: text("source", { enum: sessionSources }).notNull().default("extension"),
   updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull(),
 });
 

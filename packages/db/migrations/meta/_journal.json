@@ -85,6 +85,13 @@
       "when": 1791365871758,
       "tag": "0011_ig_credentials",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "6",
+      "when": 1791367878843,
+      "tag": "0012_session_source",
+      "breakpoints": true
     }
   ]
 }

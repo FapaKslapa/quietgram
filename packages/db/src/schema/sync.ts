@@ -7,6 +7,7 @@ export const syncState = sqliteTable("sync_state", {
     .references(() => user.id, { onDelete: "cascade" }),
   lastRefreshAt: integer("last_refresh_at", { mode: "timestamp_ms" }),
   mutualsRefreshedAt: integer("mutuals_refreshed_at", { mode: "timestamp_ms" }),
+  fastBackoffUntil: integer("fast_backoff_until", { mode: "timestamp_ms" }),
 });
 
 export const syncRuns = sqliteTable("sync_runs", {

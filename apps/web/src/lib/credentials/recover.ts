@@ -32,7 +32,14 @@ export const recoverSession = async (deps: SyncDeps, ownerId: string): Promise<b
   try {
     const cookies = await login(session.igUserId, stored.input);
     if (cookies.userId !== session.igUserId) return await flag(deps, ownerId, "credentials");
-    await savePairedSession(deps.db, deps.getCookieKey(), ownerId, cookies, deps.now());
+    await savePairedSession(
+      deps.db,
+      deps.getCookieKey(),
+      ownerId,
+      cookies,
+      deps.now(),
+      "credentials",
+    );
     return true;
   } catch (error) {
     if (error instanceof EngineLoginChallengeError) return flag(deps, ownerId, "challenge");

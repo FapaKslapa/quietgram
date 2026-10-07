@@ -1,4 +1,10 @@
-import { type Db, igSessions, pairingTokens, runBatch } from "@nodistraction/db";
+import {
+  type Db,
+  igSessions,
+  pairingTokens,
+  runBatch,
+  type sessionSources,
+} from "@nodistraction/db";
 import type { IgCookies } from "@nodistraction/ig";
 import { and, eq, gt, isNotNull, isNull, lte, or } from "drizzle-orm";
 import { encrypt } from "@/lib/auth/crypto";
@@ -55,6 +61,7 @@ export const savePairedSession = async (
   userId: string,
   cookies: IgCookies,
   now: Date,
+  source: (typeof sessionSources)[number] = "extension",
 ): Promise<void> => {
   const { cipher, iv } = await encrypt(JSON.stringify(cookies), cookieKey);
   const values = {
@@ -62,6 +69,7 @@ export const savePairedSession = async (
     cipher,
     iv,
     status: "active" as const,
+    source,
     updatedAt: now,
   };
   await db
