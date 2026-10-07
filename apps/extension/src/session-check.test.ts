@@ -121,8 +121,8 @@ describe("checkSession", () => {
   });
 
   it("reports the status code of a user agent mismatch", async () => {
-    expect(
-      await checkSession(async () => respond(400, { message: "useragent mismatch" })),
-    ).toEqual(unknown("http-400"));
+    expect(await checkSession(async () => respond(400, { message: "useragent mismatch" }))).toEqual(
+      unknown("http-400"),
+    );
   });
 });

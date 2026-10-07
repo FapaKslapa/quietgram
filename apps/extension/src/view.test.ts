@@ -2,7 +2,14 @@ import { describe, expect, it } from "vitest";
 import { normalizeCode } from "#ext/code";
 import { pairedLabel } from "#ext/date-label";
 import { errorMessage } from "#ext/messages";
-import { connectCopy, FORM_COPY, pairedCopy, selectView, sessionLabel } from "#ext/view";
+import {
+  connectCopy,
+  FORM_COPY,
+  pairedCopy,
+  selectView,
+  sessionDiagnostic,
+  sessionLabel,
+} from "#ext/view";
 
 describe("selectView", () => {
   it("shows the form when never paired", () => {
@@ -61,6 +68,31 @@ describe("paired copy", () => {
     const copy = pairedCopy("unknown", "oggi");
     expect(copy.title).toBe("Sessione non verificata");
     expect(copy.value).toBe("Non verificata");
+  });
+});
+
+describe("sessionDiagnostic", () => {
+  it("is empty without a reason", () => {
+    expect(sessionDiagnostic(null)).toBeNull();
+  });
+
+  it("explains throttling", () => {
+    expect(sessionDiagnostic("throttled")).toBe(
+      "Instagram sta limitando le richieste, riprova tra qualche minuto",
+    );
+  });
+
+  it("explains a network failure", () => {
+    expect(sessionDiagnostic("network")).toBe("Instagram non risponde");
+  });
+
+  it("shows the HTTP code", () => {
+    expect(sessionDiagnostic("http-400")).toBe("Instagram ha risposto con un errore (400)");
+  });
+
+  it("stays neutral on unrecognised bodies", () => {
+    expect(sessionDiagnostic("no-user")).toContain("non riconosciuto");
+    expect(sessionDiagnostic("unreadable-body")).toContain("non riconosciuto");
   });
 });
 

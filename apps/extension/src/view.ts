@@ -1,4 +1,4 @@
-import type { SessionStatus } from "#ext/session-check";
+import type { SessionReason, SessionStatus } from "#ext/session-check";
 import type { PairingState } from "#ext/state";
 
 export type View = "unpaired" | "renew" | "paired";
@@ -63,4 +63,16 @@ export const pairedCopy = (session: SessionView, date: string): PairedCopy => {
     help: date,
     value: session === "valid" ? "Valida" : "Non trovata",
   };
+};
+
+export const sessionDiagnostic = (reason: SessionReason | null): string | null => {
+  if (reason === null) return null;
+  if (reason === "throttled") {
+    return "Instagram sta limitando le richieste, riprova tra qualche minuto";
+  }
+  if (reason === "network") return "Instagram non risponde";
+  if (reason === "unreadable-body" || reason === "no-user") {
+    return "Instagram ha risposto in un formato non riconosciuto";
+  }
+  return `Instagram ha risposto con un errore (${reason.slice("http-".length)})`;
 };
