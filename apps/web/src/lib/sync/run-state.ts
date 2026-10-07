@@ -1,15 +1,18 @@
 import { z } from "zod";
 import type { FeedMode } from "@/lib/sync/feed-mode";
+import { NORMAL_LIMITS, type SyncLimits } from "@/lib/sync/limits";
 import type { SourceKind } from "@/lib/sync/source";
 
 export const MAX_TIMELINE_PAGES = 2;
-export const AUTHORS_PER_STEP = 6;
+export const AUTHORS_PER_STEP = NORMAL_LIMITS.authorsPerStep;
 export const POSTS_PER_AUTHOR = 3;
-export const MAX_AUTHORS_PER_RUN = 60;
-export const MAX_AUTHORS_AFTER_CLEAN_RUN = 72;
+export const MAX_AUTHORS_PER_RUN = NORMAL_LIMITS.maxAuthors;
+export const MAX_AUTHORS_AFTER_CLEAN_RUN = NORMAL_LIMITS.maxAuthorsAfterClean;
 
-export const maxAuthorsForRun = (previousRunCompleted: boolean): number =>
-  previousRunCompleted ? MAX_AUTHORS_AFTER_CLEAN_RUN : MAX_AUTHORS_PER_RUN;
+export const maxAuthorsForRun = (
+  previousRunCompleted: boolean,
+  limits: SyncLimits = NORMAL_LIMITS,
+): number => (previousRunCompleted ? limits.maxAuthorsAfterClean : limits.maxAuthors);
 const AUTHORS_ESTIMATE_STEPS = 3;
 
 const runStateSchema = z.compile(
@@ -68,6 +71,7 @@ export const remainingSteps = (
   state: RunState | null,
   mode: FeedMode,
   kind: SourceKind,
+  limits: SyncLimits = NORMAL_LIMITS,
 ): number => {
   const direct = kind === "direct";
   const counts = direct && mode === "creators" ? 1 : 0;
@@ -82,7 +86,7 @@ export const remainingSteps = (
     case "timeline":
       return MAX_TIMELINE_PAGES - state.page + counts;
     case "authors":
-      return Math.max(1, Math.ceil(state.remaining / AUTHORS_PER_STEP)) + timelineWalk;
+      return Math.max(1, Math.ceil(state.remaining / limits.authorsPerStep)) + timelineWalk;
     case "counts":
       return 1;
   }

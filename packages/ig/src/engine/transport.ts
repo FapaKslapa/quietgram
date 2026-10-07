@@ -9,6 +9,7 @@ export type TransportOptions = {
   baseUrl: string;
   secret: string;
   accountId: string;
+  pacing?: "fast" | "normal";
   fetcher?: typeof fetch;
   now?: () => number;
 };
@@ -45,6 +46,7 @@ export const createTransport = (options: TransportOptions) => {
       "x-engine-signature": signature,
       "x-ig-account-id": options.accountId,
     };
+    if (options.pacing === "fast") headers["x-ig-pacing"] = "fast";
     const init: RequestInit = { method, headers };
     if (payload !== undefined) {
       headers["content-type"] = "application/json";

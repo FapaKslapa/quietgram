@@ -26,6 +26,7 @@ export type EngineCall = {
   query: Record<string, string>;
   body: string;
   accountId: string | null;
+  pacing: string | null;
 };
 
 export type EngineResponder = (call: EngineCall) => unknown;
@@ -49,6 +50,7 @@ export const fakeEngine = (respond: EngineResponder) => {
       query: Object.fromEntries(url.searchParams),
       body: typeof init?.body === "string" ? init.body : "",
       accountId: new Headers(init?.headers).get("x-ig-account-id"),
+      pacing: new Headers(init?.headers).get("x-ig-pacing"),
     };
     calls.push(call);
     const result = respond(call);
@@ -81,12 +83,13 @@ export const seedSession = async (
   db: Db,
   ownerId = OWNER,
   status: "active" | "expired" = "active",
+  source: "extension" | "credentials" = "extension",
 ): Promise<void> => {
   const cookies: IgCookies = { sessionId: "s", csrfToken: "c", userId: IG_USER_ID };
   const { cipher, iv } = await encrypt(JSON.stringify(cookies), COOKIE_KEY);
   await db
     .insert(igSessions)
-    .values({ ownerId, igUserId: IG_USER_ID, cipher, iv, status, updatedAt: new Date(0) });
+    .values({ ownerId, igUserId: IG_USER_ID, cipher, iv, status, source, updatedAt: new Date(0) });
 };
 
 export type TestEnv = {
@@ -105,6 +108,7 @@ export const createTestEnv = async (
   },
   options: {
     withSession?: boolean;
+    sessionSource?: "extension" | "credentials";
     engine?: EngineResponder;
     dmSendEnabled?: boolean;
     interactionsEnabled?: boolean;
@@ -112,7 +116,7 @@ export const createTestEnv = async (
 ): Promise<TestEnv> => {
   const db = createTestDb();
   await seedOwner(db);
-  if (options.withSession ?? true) await seedSession(db);
+  if (options.withSession ?? true) await seedSession(db, OWNER, "active", options.sessionSource);
   if (options.dmSendEnabled || options.interactionsEnabled) {
     await db.insert(userSettings).values({
       ownerId: OWNER,
@@ -140,6 +144,7 @@ export const createTestEnv = async (
               baseUrl: "https://engine.test",
               secret: ENGINE_SECRET,
               accountId: account.igUserId,
+              ...(account.pacing ? { pacing: account.pacing } : {}),
               fetcher: engine.fetcher,
             }),
             account.loadCookies,

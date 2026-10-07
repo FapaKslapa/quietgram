@@ -1,7 +1,7 @@
 import { igSessions, syncState } from "@nodistraction/db";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
-import { REFRESH_COOLDOWN_MS } from "@/lib/sync/cooldown";
+import { loadProfileState } from "@/lib/sync/profile-mode";
 import { recheckSession } from "@/lib/sync/recheck";
 import { getRefreshStatus, runRefreshStep, startRefresh } from "@/lib/sync/refresh";
 import { loadDmSendEnabled, loadInteractionsEnabled } from "@/lib/sync/settings";
@@ -28,6 +28,8 @@ const overviewOutput = z.compile(
     viewerId: z.string().nullable(),
     lastRefreshAt: z.number().nullable(),
     nextRefreshAt: z.number().nullable(),
+    profile: z.enum(["fast", "normal"]),
+    backoffUntil: z.number().nullable(),
     dmSendEnabled: z.boolean(),
     interactionsEnabled: z.boolean(),
   }),
@@ -46,11 +48,15 @@ export const refreshRouter = createTRPCRouter({
       ctx.db.select().from(syncState).where(eq(syncState.ownerId, ownerId)),
     ]);
     const marker = state?.lastRefreshAt?.getTime() ?? null;
+    const { limits, backoffUntil } = await loadProfileState(syncDepsOf(ctx), ownerId);
+    const backoffMs = backoffUntil?.getTime() ?? null;
     return {
       sessionStatus: session?.status ?? "none",
       viewerId: session?.igUserId ?? null,
       lastRefreshAt: marker === null ? null : Math.min(marker, ctx.sync.now().getTime()),
-      nextRefreshAt: marker === null ? null : marker + REFRESH_COOLDOWN_MS,
+      nextRefreshAt: marker === null ? null : marker + limits.cooldownMs,
+      profile: limits.profile,
+      backoffUntil: backoffMs !== null && backoffMs > ctx.sync.now().getTime() ? backoffMs : null,
       dmSendEnabled: await loadDmSendEnabled(ctx.db, ownerId),
       interactionsEnabled: await loadInteractionsEnabled(ctx.db, ownerId),
     };

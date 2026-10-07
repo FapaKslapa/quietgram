@@ -64,6 +64,7 @@ export type InstagramSource = {
 export type SourceAccount = {
   igUserId: string;
   loadCookies: () => Promise<IgCookies>;
+  pacing?: "fast" | "normal";
 };
 
 export type SourceFactory = {
@@ -203,7 +204,12 @@ export const createSourceFactory = (
       login: createEngineLogin(env),
       create: (account) =>
         createEngineSource(
-          createEngineClient({ baseUrl, secret, accountId: account.igUserId }),
+          createEngineClient({
+            baseUrl,
+            secret,
+            accountId: account.igUserId,
+            ...(account.pacing ? { pacing: account.pacing } : {}),
+          }),
           account.loadCookies,
         ),
     };

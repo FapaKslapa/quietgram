@@ -4,6 +4,7 @@ import { and, eq, inArray, sql } from "drizzle-orm";
 import { startAuthorsPhase } from "@/lib/sync/authors";
 import { chunk, chunkRows } from "@/lib/sync/chunk";
 import type { SyncDeps } from "@/lib/sync/deps";
+import { NORMAL_LIMITS, type SyncLimits } from "@/lib/sync/limits";
 import type { RunState } from "@/lib/sync/run-state";
 import type { InstagramSource } from "@/lib/sync/source";
 
@@ -132,6 +133,7 @@ export const stepFollowers = async (
   source: InstagramSource,
   igUserId: string,
   state: FollowersState,
+  limits: SyncLimits = NORMAL_LIMITS,
 ): Promise<RunState> => {
   const followingIds = new Set(state.ids);
   let cursor = state.cursor;
@@ -155,6 +157,6 @@ export const stepFollowers = async (
       set: { mutualsRefreshedAt: deps.now() },
     });
   return source.kind === "engine"
-    ? startAuthorsPhase(deps, ownerId)
+    ? startAuthorsPhase(deps, ownerId, limits)
     : { phase: "timeline", cursor: null, page: 0 };
 };

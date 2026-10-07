@@ -2,7 +2,7 @@ import { igSessions, syncRuns, syncState } from "@nodistraction/db";
 import { SessionExpiredError } from "@nodistraction/ig";
 import { and, eq } from "drizzle-orm";
 import { startAuthorsPhase, stepAuthors } from "@/lib/sync/authors";
-import { REFRESH_COOLDOWN_MS, remainingCooldownMs } from "@/lib/sync/cooldown";
+import { remainingCooldownMs } from "@/lib/sync/cooldown";
 import { refreshCounts } from "@/lib/sync/counts";
 import type { SyncDeps } from "@/lib/sync/deps";
 import { CooldownError, NoSessionError } from "@/lib/sync/errors";
@@ -12,6 +12,8 @@ import {
   stepFollowers,
   stepFollowing,
 } from "@/lib/sync/graph";
+import type { SyncLimits } from "@/lib/sync/limits";
+import { loadLimits } from "@/lib/sync/profile-mode";
 import {
   claimCooldown,
   claimStep,
@@ -37,19 +39,26 @@ import { stepTimeline } from "@/lib/sync/timeline";
 
 export type { RefreshProgress };
 
-const initialState = async (deps: SyncDeps, ownerId: string, stale: boolean): Promise<RunState> => {
+const initialState = async (
+  deps: SyncDeps,
+  ownerId: string,
+  stale: boolean,
+  limits: SyncLimits,
+): Promise<RunState> => {
   if (stale) return { phase: "following", cursor: null, ids: [] };
   return deps.source.kind === "engine"
-    ? startAuthorsPhase(deps, ownerId)
+    ? startAuthorsPhase(deps, ownerId, limits)
     : { phase: "timeline", cursor: null, page: 0 };
 };
 
 export const startRefresh = async (
   deps: SyncDeps,
   ownerId: string,
-  cooldownMs: number = REFRESH_COOLDOWN_MS,
+  cooldownOverride?: number,
 ): Promise<{ runId: string; total: number }> => {
   const now = deps.now();
+  const limits = await loadLimits(deps, ownerId);
+  const cooldownMs = cooldownOverride ?? limits.cooldownMs;
   const active = await findActiveRun(deps, ownerId, now);
   if (active) return { runId: active.id, total: active.total };
   const [state] = await deps.db.select().from(syncState).where(eq(syncState.ownerId, ownerId));
@@ -71,8 +80,9 @@ export const startRefresh = async (
     deps,
     ownerId,
     mutualsAreStale(state?.mutualsRefreshedAt ?? null, now, storedFollowing),
+    limits,
   );
-  const total = remainingSteps(first, feedMode, deps.source.kind);
+  const total = remainingSteps(first, feedMode, deps.source.kind, limits);
   if (!(await claimCooldown(deps, ownerId, now, cooldownMs))) {
     const concurrent = await findActiveRun(deps, ownerId, now);
     if (concurrent) return { runId: concurrent.id, total: concurrent.total };
@@ -121,7 +131,10 @@ export const runRefreshStep = async (
   }
 
   const state = parseRunState(run.state);
-  const { feedMode } = await loadSettings(deps.db, ownerId);
+  const [{ feedMode }, limits] = await Promise.all([
+    loadSettings(deps.db, ownerId),
+    loadLimits(deps, ownerId),
+  ]);
 
   let next: RunState | null;
   try {
@@ -130,11 +143,11 @@ export const runRefreshStep = async (
         case "following":
           return stepFollowing(deps, ownerId, source, igUserId, state);
         case "followers":
-          return stepFollowers(deps, ownerId, source, igUserId, state);
+          return stepFollowers(deps, ownerId, source, igUserId, state, limits);
         case "timeline":
           return stepTimeline(deps, ownerId, source, state, feedMode);
         case "authors":
-          return stepAuthors(deps, ownerId, source, state, feedMode);
+          return stepAuthors(deps, ownerId, source, state, feedMode, limits);
         case "counts":
           await refreshCounts(deps, ownerId, source);
           return null;
@@ -148,7 +161,7 @@ export const runRefreshStep = async (
   const completed = run.completed + 1;
   const finished = next === null;
   if (finished) await deletePostsBeyondRetention(deps, ownerId);
-  const total = completed + remainingSteps(next, feedMode, deps.source.kind);
+  const total = completed + remainingSteps(next, feedMode, deps.source.kind, limits);
   const advanced = await deps.db
     .update(syncRuns)
     .set({

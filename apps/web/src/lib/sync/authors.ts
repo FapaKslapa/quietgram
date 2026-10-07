@@ -2,15 +2,15 @@ import { following, syncRuns } from "@nodistraction/db";
 import { and, desc, eq, inArray } from "drizzle-orm";
 import type { SyncDeps } from "@/lib/sync/deps";
 import type { FeedMode } from "@/lib/sync/feed-mode";
+import { NORMAL_LIMITS, type SyncLimits } from "@/lib/sync/limits";
+import { overlapped } from "@/lib/sync/overlapped";
 import { storePosts } from "@/lib/sync/posts-store";
 import {
-  AUTHORS_PER_STEP,
   afterAuthors,
   maxAuthorsForRun,
   POSTS_PER_AUTHOR,
   type RunState,
 } from "@/lib/sync/run-state";
-import { sequentially } from "@/lib/sync/sequentially";
 import { DAY_MS, loadAllowedAuthors, loadSettings, recencyCutoff } from "@/lib/sync/settings";
 import type { InstagramSource } from "@/lib/sync/source";
 
@@ -114,11 +114,18 @@ const previousRunCompleted = async (deps: SyncDeps, ownerId: string): Promise<bo
   return run?.status === "done";
 };
 
-export const startAuthorsPhase = async (deps: SyncDeps, ownerId: string): Promise<RunState> => {
+export const startAuthorsPhase = async (
+  deps: SyncDeps,
+  ownerId: string,
+  limits: SyncLimits = NORMAL_LIMITS,
+): Promise<RunState> => {
   const since = deps.now().getTime();
   const { candidates, windowStart } = await allowedPopulation(deps, ownerId);
   const due = rankAuthors(candidates, since, windowStart(since));
-  const planned = Math.min(due.length, maxAuthorsForRun(await previousRunCompleted(deps, ownerId)));
+  const planned = Math.min(
+    due.length,
+    maxAuthorsForRun(await previousRunCompleted(deps, ownerId), limits),
+  );
   return { phase: "authors", since, remaining: planned, planned, population: candidates.length };
 };
 
@@ -128,27 +135,30 @@ export const stepAuthors = async (
   source: InstagramSource,
   state: AuthorsState,
   mode: FeedMode,
+  limits: SyncLimits = NORMAL_LIMITS,
 ): Promise<RunState | null> => {
   const fetchPosts = source.userPosts;
   if (fetchPosts === null) throw new Error("Source cannot fetch posts per author");
   const due = await dueAuthors(deps, ownerId, state.since);
-  const batch = due.slice(0, Math.min(AUTHORS_PER_STEP, state.remaining));
-  await sequentially(batch, async (authorId) => {
+  const batch = due.slice(0, Math.min(limits.authorsPerStep, state.remaining));
+  await overlapped(batch, async (authorId) => {
     const fetched = await fetchPosts(authorId, POSTS_PER_AUTHOR);
     const newest = fetched.reduce<number | null>(
       (latest, post) => (latest === null || post.takenAt > latest ? post.takenAt : latest),
       null,
     );
-    await storePosts(deps, ownerId, fetched, [
-      deps.db
-        .update(following)
-        .set(
-          newest === null
-            ? { postsCheckedAt: deps.now() }
-            : { postsCheckedAt: deps.now(), lastPostAt: new Date(newest) },
-        )
-        .where(and(eq(following.ownerId, ownerId), eq(following.igUserId, authorId))),
-    ]);
+    return async () => {
+      await storePosts(deps, ownerId, fetched, [
+        deps.db
+          .update(following)
+          .set(
+            newest === null
+              ? { postsCheckedAt: deps.now() }
+              : { postsCheckedAt: deps.now(), lastPostAt: new Date(newest) },
+          )
+          .where(and(eq(following.ownerId, ownerId), eq(following.igUserId, authorId))),
+      ]);
+    };
   });
   const remaining = Math.min(state.remaining - batch.length, due.length - batch.length);
   return remaining > 0 ? { ...state, remaining } : afterAuthors(mode);

@@ -7,6 +7,8 @@ import { recoverSession } from "@/lib/credentials/recover";
 import { throttleMarker } from "@/lib/sync/cooldown";
 import type { SyncDeps } from "@/lib/sync/deps";
 import { NoSessionError } from "@/lib/sync/errors";
+import { resolveProfile } from "@/lib/sync/limits";
+import { loadBackoff, recordBackoff } from "@/lib/sync/profile-mode";
 import type { InstagramSource } from "@/lib/sync/source";
 
 const cookiesSchema = z.compile(
@@ -28,14 +30,17 @@ export const recordThrottle = async (deps: SyncDeps, ownerId: string): Promise<v
     .insert(syncState)
     .values({ ownerId, lastRefreshAt })
     .onConflictDoUpdate({ target: syncState.ownerId, set: { lastRefreshAt } });
+  await recordBackoff(deps, ownerId);
 };
 
 export const buildSource = (
   deps: SyncDeps,
   session: { igUserId: string; cipher: string; iv: string },
+  pacing: "fast" | "normal" = "normal",
 ): InstagramSource =>
   deps.source.create({
     igUserId: session.igUserId,
+    pacing,
     loadCookies: async (): Promise<IgCookies> =>
       cookiesSchema.parse(
         JSON.parse(await decrypt(session.cipher, session.iv, deps.getCookieKey())),
@@ -68,7 +73,8 @@ const runWithSession = async <T>(
   const [session] = await deps.db.select().from(igSessions).where(eq(igSessions.ownerId, ownerId));
   if (!session) throw new NoSessionError();
   if (session.status === "expired") throw new SessionExpiredError();
-  const source = buildSource(deps, session);
+  const profile = resolveProfile(session.source, await loadBackoff(deps, ownerId), deps.now());
+  const source = buildSource(deps, session, profile);
   try {
     return await task({ source, igUserId: session.igUserId });
   } catch (error) {

@@ -11,6 +11,8 @@ describe("refresh.overview", () => {
       viewerId: IG_USER_ID,
       lastRefreshAt: null,
       nextRefreshAt: null,
+      profile: "normal",
+      backoffUntil: null,
       dmSendEnabled: false,
       interactionsEnabled: false,
     });
@@ -27,6 +29,8 @@ describe("refresh.overview", () => {
       viewerId: IG_USER_ID,
       lastRefreshAt: new Date("2026-10-04T11:58:00Z").getTime(),
       nextRefreshAt: new Date("2026-10-04T12:13:00Z").getTime(),
+      profile: "normal",
+      backoffUntil: null,
       dmSendEnabled: false,
       interactionsEnabled: false,
     });
