@@ -1,9 +1,12 @@
 import type { ThreadSummary } from "@/components/messaggi/thread-row";
 import type { ModeSettings } from "@/components/posta/mode-sheet";
 import type { FeedPost } from "@/components/posta/post-card";
+import type { AccountProfile, ProfilePost } from "@/lib/account";
+import type { CommentRow } from "@/lib/comments";
 import type { PostMediaItem } from "@/lib/media";
 import { buildConversation, type ThreadMessage } from "@/lib/messages";
 import type { SavedItem } from "@/lib/saved-grid";
+import type { StoryItem, TrayEntry } from "@/lib/stories";
 
 export const NOW = Date.UTC(2026, 9, 7, 14, 30);
 const MINUTE = 60_000;
@@ -28,6 +31,9 @@ const video: PostMediaItem = {
   height: 1000,
 };
 
+export const AVATAR_A = "http://localhost:3000/dev/avatar-a.svg";
+export const AVATAR_B = "http://localhost:3000/dev/avatar-b.svg";
+
 const LONG_CAPTION =
   "Weekend in montagna con gli amici di sempre. Siamo partiti all'alba, abbiamo camminato per ore fino al rifugio e poi abbiamo mangiato polenta e formaggi guardando le nuvole scendere sulla valle. Alla sera una partita a carte, due chitarre e nessun telefono. Torneremo presto, magari con la neve, se il meteo ci aiuta.\n\nGrazie a tutti per la compagnia e per le risate.";
 
@@ -36,7 +42,9 @@ export const POSTS: FeedPost[] = [
     id: "p1",
     authorId: "1",
     authorUsername: "giulia.r",
-    authorAvatarUrl: null,
+    authorAvatarUrl: AVATAR_A,
+    liked: true,
+    saved: false,
     caption: "Colazione sul balcone.",
     takenAt: NOW - 12 * MINUTE,
     media: [image("#e8c9a0", "#8a5a3b", "#fff3d6")],
@@ -47,7 +55,9 @@ export const POSTS: FeedPost[] = [
     productType: "feed",
     authorId: "2",
     authorUsername: "marco_b",
-    authorAvatarUrl: null,
+    authorAvatarUrl: AVATAR_B,
+    liked: false,
+    saved: true,
     caption: LONG_CAPTION,
     takenAt: NOW - 5 * HOUR,
     media: [
@@ -61,6 +71,8 @@ export const POSTS: FeedPost[] = [
     authorId: "3",
     authorUsername: "panificio.nino",
     authorAvatarUrl: null,
+    liked: false,
+    saved: false,
     caption: null,
     takenAt: NOW - 26 * HOUR,
     media: [video],
@@ -70,6 +82,8 @@ export const POSTS: FeedPost[] = [
     authorId: "4",
     authorUsername: "ristorante.da.nino",
     authorAvatarUrl: null,
+    liked: false,
+    saved: false,
     caption: "Il menu di stasera.",
     takenAt: NOW - 3 * 24 * HOUR,
     media: [image("#c7e0c4", "#35563b", "#fffbe0")],
@@ -80,6 +94,7 @@ export const SAVED: SavedItem[] = [
   {
     id: "s1",
     authorUsername: "giulia.r",
+    authorAvatarUrl: AVATAR_A,
     caption: "Colazione sul balcone.",
     media: POSTS[0]?.media ?? [],
   },
@@ -88,6 +103,7 @@ export const SAVED: SavedItem[] = [
     shortcode: "Cabc123xyz",
     productType: "feed",
     authorUsername: "marco_b",
+    authorAvatarUrl: AVATAR_B,
     caption: LONG_CAPTION,
     media: POSTS[1]?.media ?? [],
   },
@@ -219,3 +235,106 @@ export const SETTINGS: ModeSettings = {
     { igUserId: "12", username: "sara.m" },
   ],
 };
+
+export const TRAY: TrayEntry[] = [
+  { userId: "1", username: "giulia.r", avatarUrl: AVATAR_A, latestReelMedia: NOW, seen: false },
+  { userId: "2", username: "marco_b", avatarUrl: AVATAR_B, latestReelMedia: NOW, seen: false },
+  { userId: "3", username: "panificio.nino", avatarUrl: null, latestReelMedia: NOW, seen: false },
+  { userId: "5", username: "luca.t", avatarUrl: null, latestReelMedia: NOW, seen: true },
+  { userId: "6", username: "sara.m", avatarUrl: AVATAR_A, latestReelMedia: NOW, seen: true },
+  {
+    userId: "7",
+    username: "ristorante.da.nino",
+    avatarUrl: null,
+    latestReelMedia: NOW,
+    seen: true,
+  },
+];
+
+const story = (id: string, ageMinutes: number, media: PostMediaItem): StoryItem => ({
+  id,
+  takenAt: NOW - ageMinutes * MINUTE,
+  expiresAt: NOW + 20 * HOUR,
+  media,
+  productType: "story",
+});
+
+export const STORY_ITEMS: StoryItem[] = [
+  story("st1", 95, image("#e8c9a0", "#8a5a3b", "#fff3d6")),
+  story("st2", 62, image("#9ec5e8", "#2f5d3a", "#ffffff")),
+  story("st3", 14, image("#d8b4e2", "#3b3b6b", "#fff1b8")),
+];
+
+export const COMMENTS: CommentRow[] = [
+  {
+    id: "c1",
+    userId: "2",
+    username: "marco_b",
+    avatarUrl: AVATAR_B,
+    text: "Che posto stupendo, ci siamo stati anche noi l'estate scorsa.",
+    createdAt: NOW - 3 * HOUR,
+    likeCount: 12,
+    parentId: null,
+  },
+  {
+    id: "c2",
+    userId: "1",
+    username: "giulia.r",
+    avatarUrl: AVATAR_A,
+    text: "Grazie! Torniamo a settembre, vieni con noi?",
+    createdAt: NOW - 2 * HOUR,
+    likeCount: 3,
+    parentId: "c1",
+  },
+  {
+    id: "c3",
+    userId: "5",
+    username: "luca.t",
+    avatarUrl: null,
+    text: "Colori incredibili.",
+    createdAt: NOW - 26 * HOUR,
+    likeCount: 0,
+    parentId: null,
+  },
+  {
+    id: "c4",
+    userId: "6",
+    username: "sara.m",
+    avatarUrl: null,
+    text: "Mi hai fatto venire fame solo a guardarla, la prossima volta portami con te e prometto di non lamentarmi per la salita.",
+    createdAt: NOW - 30 * HOUR,
+    likeCount: 1_240,
+    parentId: null,
+  },
+];
+
+export const ACCOUNT: AccountProfile & { avatarUrl: string | null } = {
+  username: "giulia.r",
+  fullName: "Giulia Rossi",
+  biography: "Fotografa a Torino.\nColazioni, montagna e luce del mattino.",
+  avatarUrl: AVATAR_A,
+  isPrivate: false,
+  isVerified: true,
+  followerCount: 12_430,
+  followingCount: 380,
+  mediaCount: 1_204,
+  friendship: { following: true, followedBy: false },
+};
+
+const profilePost = (id: string, media: PostMediaItem[]): ProfilePost => ({
+  id,
+  code: null,
+  productType: "feed",
+  authorUsername: "giulia.r",
+  caption: null,
+  media,
+});
+
+export const ACCOUNT_POSTS: ProfilePost[] = [
+  profilePost("a1", POSTS[0]?.media ?? []),
+  profilePost("a2", POSTS[1]?.media ?? []),
+  profilePost("a3", [video]),
+  profilePost("a4", POSTS[3]?.media ?? []),
+  profilePost("a5", [image("#b7d3f2", "#27425e", "#ffffff")]),
+  profilePost("a6", [image("#f2d7b7", "#5e4327", "#fff6df")]),
+];

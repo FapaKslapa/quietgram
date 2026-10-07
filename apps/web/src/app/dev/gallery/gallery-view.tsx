@@ -3,6 +3,9 @@
 import { useMotionValue } from "motion/react";
 import { type ReactNode, useEffect, useState } from "react";
 import {
+  ACCOUNT,
+  ACCOUNT_POSTS,
+  COMMENTS,
   CONVERSATION,
   LONG_THREADS,
   NOW,
@@ -10,23 +13,34 @@ import {
   POSTS,
   SAVED,
   SETTINGS,
+  STORY_ITEMS,
   THREADS,
+  TRAY,
 } from "@/app/dev/gallery/fixtures";
 import type { GalleryViewName } from "@/app/dev/gallery/views";
+import { AccountHeader } from "@/components/account/account-header";
+import {
+  AccountHeaderSkeleton,
+  AccountPostsEmpty,
+  AccountPostsSkeleton,
+} from "@/components/account/account-states";
 import { LoginForm } from "@/components/login-form";
 import { useViewer, ViewerProvider } from "@/components/media/viewer-provider";
 import { ConversationView } from "@/components/messaggi/conversation-view";
 import { ThreadRows, ThreadsEmpty } from "@/components/messaggi/thread-states";
 import { PairingToken } from "@/components/pairing-token";
 import { BudgetLockView } from "@/components/posta/budget-lock-view";
+import { CommentsSheet, type CommentsState } from "@/components/posta/comments-sheet";
 import { FeedEmpty, FeedEnd, PostList } from "@/components/posta/feed-states";
 import { type ModeSettings, ModeSheet } from "@/components/posta/mode-sheet";
+import { type FeedPost, PostCardView } from "@/components/posta/post-card";
 import { PostaHeader } from "@/components/posta/posta-header";
 import { PostaFeedSkeleton } from "@/components/posta/posta-screen";
 import { PullSurface } from "@/components/posta/pull-surface";
 import { RefreshPanel } from "@/components/posta/refresh-panel";
 import { ChoiceSheet } from "@/components/profilo/choice-sheet";
 import { DmSendDrawer } from "@/components/profilo/dm-send-drawer";
+import { InteractionsDrawer } from "@/components/profilo/interactions-drawer";
 import { ProfiloView } from "@/components/profilo/profilo-view";
 import { RegisterDrawer } from "@/components/register-drawer";
 import { SavedSkeleton } from "@/components/salvati/saved-skeleton";
@@ -36,14 +50,169 @@ import { ScreenError } from "@/components/shell/screen-error";
 import { ScreenHeader } from "@/components/shell/screen-header";
 import { SessionExpiredView } from "@/components/shell/session-expired-view";
 import { TabBarView } from "@/components/shell/tab-bar-view";
+import { StoriesBarView } from "@/components/stories/stories-bar-view";
+import { StoryFrame } from "@/components/stories/story-frame";
 import { usePullToRefresh } from "@/hooks/use-pull-to-refresh";
+import { mergeTiles, tileLabel } from "@/lib/account";
 import { BUDGET_CHOICES } from "@/lib/budget";
 import { modeDefinition } from "@/lib/feed-modes";
 import { instagramUrl } from "@/lib/instagram-link";
+import { applyAction, type PostFlags, toggleAction } from "@/lib/interactions";
 import { THEMES } from "@/lib/profile";
 import { PULL_THRESHOLD, type PullPhase } from "@/lib/pull";
 
 const noop = () => undefined;
+
+function InteractiveCard({ post, now }: { post: FeedPost; now: number }) {
+  const [flags, setFlags] = useState<PostFlags>({ liked: post.liked, saved: post.saved });
+  const [comments, setComments] = useState(false);
+
+  return (
+    <PostCardView
+      post={post}
+      now={now}
+      flags={flags}
+      interactionsEnabled
+      onLike={() => setFlags((current) => applyAction(current, "like"))}
+      onToggleLike={() =>
+        setFlags((current) => applyAction(current, toggleAction(current, "like")))
+      }
+      onToggleSave={() =>
+        setFlags((current) => applyAction(current, toggleAction(current, "save")))
+      }
+      onOpenComments={() => setComments(true)}
+    >
+      <CommentsSheet
+        open={comments}
+        onOpenChange={setComments}
+        state="ready"
+        rows={COMMENTS}
+        now={NOW}
+        composerEnabled
+        onSubmit={noop}
+        onRetry={noop}
+      />
+    </PostCardView>
+  );
+}
+
+function ReadOnlyCard({ post, now }: { post: FeedPost; now: number }) {
+  return (
+    <PostCardView
+      post={post}
+      now={now}
+      flags={{ liked: post.liked, saved: post.saved }}
+      interactionsEnabled={false}
+      onLike={noop}
+      onToggleLike={noop}
+      onToggleSave={noop}
+      onOpenComments={noop}
+    />
+  );
+}
+
+function CommentsFrame({ state, enabled }: { state: CommentsState; enabled: boolean }) {
+  const [open, setOpen] = useState(true);
+
+  return (
+    <>
+      <PostList posts={POSTS.slice(0, 1)} now={NOW} Card={InteractiveCard} />
+      <CommentsSheet
+        open={open}
+        onOpenChange={setOpen}
+        state={state}
+        rows={state === "ready" ? COMMENTS : []}
+        now={NOW}
+        composerEnabled={enabled}
+        onSubmit={noop}
+        onRetry={noop}
+      />
+    </>
+  );
+}
+
+function StoryDemo({ video }: { video?: boolean }) {
+  const [index, setIndex] = useState(0);
+  const items = video
+    ? STORY_ITEMS.map((item, position) =>
+        position === 0 ? { ...item, media: { ...item.media, kind: "video" as const } } : item,
+      )
+    : STORY_ITEMS;
+
+  return (
+    <div className="fixed inset-0 z-[70] bg-black text-white">
+      <StoryFrame
+        key={index}
+        username="giulia.r"
+        avatarUrl={TRAY[0]?.avatarUrl ?? null}
+        items={items}
+        index={index}
+        now={NOW}
+        onNext={() => setIndex((current) => Math.min(current + 1, items.length - 1))}
+        onPrevious={() => setIndex((current) => Math.max(current - 1, 0))}
+        onClose={noop}
+      />
+    </div>
+  );
+}
+
+function AccountFrame({
+  state,
+  openPost,
+}: {
+  state: "ready" | "loading" | "empty" | "private";
+  openPost?: boolean;
+}) {
+  const viewer = useViewer();
+  const tiles = mergeTiles([ACCOUNT_POSTS]);
+  const target = tiles[1];
+
+  useEffect(() => {
+    if (!openPost || !target) return;
+    viewer.open({
+      groupId: target.id,
+      items: target.media,
+      index: 0,
+      username: target.authorUsername,
+      caption: target.caption,
+    });
+  }, [openPost, target, viewer]);
+
+  const profile = state === "private" ? { ...ACCOUNT, isPrivate: true } : ACCOUNT;
+
+  return (
+    <>
+      <ScreenHeader title="giulia.r" variant="arch" back={{ href: "/posta", label: "Posta" }} />
+      {state === "loading" ? (
+        <>
+          <AccountHeaderSkeleton />
+          <AccountPostsSkeleton />
+        </>
+      ) : (
+        <AccountHeader profile={profile} />
+      )}
+      {state === "empty" || state === "private" ? (
+        <AccountPostsEmpty isPrivate={state === "private"} />
+      ) : null}
+      {state === "ready" ? (
+        <SavedTiles
+          items={tiles}
+          labelOf={tileLabel}
+          onOpen={(item) =>
+            viewer.open({
+              groupId: item.id,
+              items: item.media,
+              index: 0,
+              username: item.authorUsername,
+              caption: item.caption,
+            })
+          }
+        />
+      ) : null}
+      <TabBarView pathname="/account/1" unread={false} />
+    </>
+  );
+}
 const SAVED_TARGET = SAVED[1];
 const POST_TARGET = POSTS[1];
 const sendNothing = async () => true;
@@ -54,9 +223,19 @@ type PostaFrameProps = {
   running?: boolean;
   empty?: boolean;
   loading?: boolean;
+  stories?: boolean;
+  interactive?: boolean;
 };
 
-function PostaFrame({ settings: initial, openModes, running, empty, loading }: PostaFrameProps) {
+function PostaFrame({
+  settings: initial,
+  openModes,
+  running,
+  empty,
+  loading,
+  stories,
+  interactive,
+}: PostaFrameProps) {
   const [settings, setSettings] = useState(initial);
   const [open, setOpen] = useState(openModes);
   const mode = modeDefinition(settings.feedMode);
@@ -73,11 +252,12 @@ function PostaFrame({ settings: initial, openModes, running, empty, loading }: P
           onRefresh={noop}
         />
       </PostaHeader>
+      {stories ? <StoriesBarView entries={TRAY} onOpen={noop} /> : null}
       {loading ? <PostaFeedSkeleton /> : null}
       {empty ? <FeedEmpty onOpenModes={() => setOpen(true)} /> : null}
       {loading || empty ? null : (
         <>
-          <PostList posts={POSTS} now={NOW} />
+          <PostList posts={POSTS} now={NOW} Card={interactive ? InteractiveCard : ReadOnlyCard} />
           <FeedEnd variant={mode.weave} />
         </>
       )}
@@ -222,10 +402,13 @@ function ViewerFrame() {
   return <PostList posts={POSTS.slice(1, 2)} now={NOW} />;
 }
 
-function ProfiloFrame({ sheet }: { sheet?: "budget" | "theme" | "dm" }) {
+function ProfiloFrame({ sheet }: { sheet?: "budget" | "theme" | "dm" | "interactions" }) {
   const [grayscale, setGrayscale] = useState(false);
   const [dmSend, setDmSend] = useState(false);
-  const [open, setOpen] = useState<"budget" | "theme" | "dm" | null>(sheet ?? null);
+  const [interactions, setInteractions] = useState(false);
+  const [open, setOpen] = useState<"budget" | "theme" | "dm" | "interactions" | null>(
+    sheet ?? null,
+  );
   const [budget, setBudget] = useState(15);
   const [theme, setTheme] = useState<"system" | "light" | "dark">("system");
 
@@ -240,6 +423,8 @@ function ProfiloFrame({ sheet }: { sheet?: "budget" | "theme" | "dm" }) {
         themeLabel={THEMES.find((entry) => entry.value === theme)?.label ?? "Sistema"}
         loggingOut={false}
         dmSend={dmSend}
+        interactions={interactions}
+        onInteractions={(next) => (next ? setOpen("interactions") : setInteractions(false))}
         onGrayscale={setGrayscale}
         onDmSend={(next) => (next ? setOpen("dm") : setDmSend(false))}
         onOpenFeed={noop}
@@ -252,6 +437,11 @@ function ProfiloFrame({ sheet }: { sheet?: "budget" | "theme" | "dm" }) {
         open={open === "dm"}
         onOpenChange={(next) => setOpen(next ? "dm" : null)}
         onConfirm={() => setDmSend(true)}
+      />
+      <InteractionsDrawer
+        open={open === "interactions"}
+        onOpenChange={(next) => setOpen(next ? "interactions" : null)}
+        onConfirm={() => setInteractions(true)}
       />
       <ChoiceSheet
         open={open === "budget"}
@@ -314,6 +504,39 @@ const render = (view: GalleryViewName): ReactNode => {
           <PostaFrame settings={SETTINGS} openModes={false} />
         </>
       );
+    case "posta-stories":
+      return <PostaFrame settings={SETTINGS} openModes={false} stories />;
+    case "posta-interactive":
+      return <PostaFrame settings={SETTINGS} openModes={false} stories interactive />;
+    case "story-viewer":
+      return <StoryDemo />;
+    case "story-viewer-gray":
+      return (
+        <>
+          <MediaTone grayscale />
+          <StoryDemo />
+        </>
+      );
+    case "story-viewer-video":
+      return <StoryDemo video />;
+    case "comments":
+      return <CommentsFrame state="ready" enabled />;
+    case "comments-readonly":
+      return <CommentsFrame state="ready" enabled={false} />;
+    case "comments-loading":
+      return <CommentsFrame state="loading" enabled />;
+    case "comments-error":
+      return <CommentsFrame state="error" enabled />;
+    case "account":
+      return <AccountFrame state="ready" />;
+    case "account-loading":
+      return <AccountFrame state="loading" />;
+    case "account-empty":
+      return <AccountFrame state="empty" />;
+    case "account-private":
+      return <AccountFrame state="private" />;
+    case "account-open":
+      return <AccountFrame state="ready" openPost />;
     case "pull-pulling":
       return <PullStatic distance={40} phase="pulling" />;
     case "pull-armed":
@@ -427,6 +650,8 @@ const render = (view: GalleryViewName): ReactNode => {
       return <ProfiloFrame sheet="theme" />;
     case "profilo-dm-confirm":
       return <ProfiloFrame sheet="dm" />;
+    case "profilo-interactions-confirm":
+      return <ProfiloFrame sheet="interactions" />;
     case "login":
       return <LoginForm />;
     case "register":
