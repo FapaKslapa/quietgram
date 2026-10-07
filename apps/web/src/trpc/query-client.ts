@@ -5,6 +5,7 @@ export function makeQueryClient() {
     defaultOptions: {
       queries: {
         staleTime: 30 * 1000,
+        gcTime: 30 * 60 * 1000,
       },
       dehydrate: {
         shouldDehydrateQuery: (query) =>
