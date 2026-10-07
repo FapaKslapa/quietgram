@@ -4,6 +4,7 @@ from ig_engine.instagram import SessionSettings
 from ig_engine.schemas import (
     Comment,
     Friendship,
+    LoginResult,
     Media,
     Message,
     Post,
@@ -36,6 +37,7 @@ class Behavior:
     def __init__(self) -> None:
         self.calls: list[str] = []
         self.failure: Exception | None = None
+        self.credentials: list[tuple[str, str, str]] = []
 
 
 class FakeInstagramClient:
@@ -59,6 +61,16 @@ class FakeInstagramClient:
     def login(self, sessionid: str) -> str:
         self.record("login")
         return "me"
+
+    def login_with_credentials(
+        self, username: str, password: str, verification_code: str
+    ) -> LoginResult:
+        self.behavior.credentials.append((username, password, verification_code))
+        self.record("login_with_credentials")
+        self.settings = {**self.settings, "authorization_data": {"sessionid": "fresh"}}
+        return LoginResult(
+            sessionid="1000%3Afresh%3A28", csrftoken="csrf", user_id="1000", username=username
+        )
 
     def following(self, amount: int) -> list[User]:
         self.record("following")

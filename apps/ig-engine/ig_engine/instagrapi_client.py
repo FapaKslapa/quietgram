@@ -18,6 +18,7 @@ from ig_engine.mapping import (
 )
 from ig_engine.schemas import (
     Comment,
+    LoginResult,
     Message,
     Post,
     PostsPage,
@@ -52,6 +53,27 @@ class InstagrapiClient:
         self._client.login_by_sessionid(sessionid)
         username: str = self._client.username
         return username
+
+    def login_with_credentials(
+        self, username: str, password: str, verification_code: str
+    ) -> LoginResult:
+        try:
+            self._client.login(
+                username, password, relogin=True, verification_code=verification_code
+            )
+        finally:
+            self._client.password = None
+        authorization = self._client.get_settings().get("authorization_data") or {}
+        sessionid = str(authorization.get("sessionid") or "")
+        user_id = str(authorization.get("ds_user_id") or self._client.user_id or "")
+        if not sessionid or not user_id:
+            raise ClientError("login did not return a session")
+        return LoginResult(
+            sessionid=sessionid,
+            csrftoken=str(self._client.cookie_dict.get("csrftoken") or ""),
+            user_id=user_id,
+            username=str(self._client.username or username),
+        )
 
     def following(self, amount: int) -> list[User]:
         users = self._client.user_following_v1(self._client.user_id, amount)

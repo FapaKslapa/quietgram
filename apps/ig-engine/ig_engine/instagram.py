@@ -2,6 +2,7 @@ from typing import Protocol
 
 from ig_engine.schemas import (
     Comment,
+    LoginResult,
     Message,
     Post,
     PostsPage,
@@ -22,6 +23,10 @@ class InstagramClient(Protocol):
     def export_settings(self) -> SessionSettings: ...
 
     def login(self, sessionid: str) -> str: ...
+
+    def login_with_credentials(
+        self, username: str, password: str, verification_code: str
+    ) -> LoginResult: ...
 
     def following(self, amount: int) -> list[User]: ...
 

@@ -1,6 +1,10 @@
 from fastapi import Request
 from fastapi.responses import JSONResponse
 from instagrapi.exceptions import (
+    AccountSuspended,
+    BadCredentials,
+    BadPassword,
+    CaptchaChallengeRequired,
     ChallengeError,
     ClientError,
     ClientLoginRequired,
@@ -9,12 +13,22 @@ from instagrapi.exceptions import (
     LoginRequired,
     PleaseWaitFewMinutes,
     RateLimitError,
+    ReloginAttemptExceeded,
+    TwoFactorRequired,
 )
 from pydantic import ValidationError
 
 THROTTLE_RETRY_AFTER_SECONDS = 1800
 
 THROTTLED_ERRORS = (PleaseWaitFewMinutes, RateLimitError, ClientThrottledError)
+CHALLENGE_ERRORS = (
+    ChallengeError,
+    TwoFactorRequired,
+    CaptchaChallengeRequired,
+    AccountSuspended,
+    ReloginAttemptExceeded,
+)
+CREDENTIAL_ERRORS = (BadPassword, BadCredentials)
 SESSION_ERRORS = (LoginRequired, ClientLoginRequired, ClientUnauthorizedError, ChallengeError)
 
 
@@ -61,6 +75,14 @@ def map_exception(exc: Exception) -> ApiError | None:
     if isinstance(exc, ValidationError):
         return ApiError(502, "upstream_error", message="unexpected instagram response")
     return None
+
+
+def map_login_exception(exc: Exception) -> ApiError | None:
+    if isinstance(exc, CHALLENGE_ERRORS):
+        return ApiError(403, "challenge_required")
+    if isinstance(exc, CREDENTIAL_ERRORS):
+        return ApiError(403, "bad_credentials")
+    return map_exception(exc)
 
 
 async def handle_api_error(_: Request, exc: ApiError) -> JSONResponse:

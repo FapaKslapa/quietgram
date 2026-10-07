@@ -224,3 +224,56 @@ def test_rejected_write_raises_a_client_error() -> None:
         client.like("1")
     with pytest.raises(ClientError):
         client.delete_comment("1", "5")
+
+
+class FakeLoginLibrary:
+    def __init__(self, authorization: dict[str, str] | None, failure: Exception | None) -> None:
+        self.authorization = authorization
+        self.failure = failure
+        self.password: str | None = None
+        self.username: str | None = None
+        self.user_id = "77"
+        self.cookie_dict = {"csrftoken": "csrf-value"}
+        self.logins: list[tuple[str, str, bool, str]] = []
+
+    def login(self, username: str, password: str, relogin: bool, verification_code: str) -> bool:
+        self.password = password
+        self.username = username
+        self.logins.append((username, password, relogin, verification_code))
+        if self.failure is not None:
+            raise self.failure
+        return True
+
+    def get_settings(self) -> dict[str, object]:
+        return {"authorization_data": self.authorization}
+
+
+def test_login_with_credentials_returns_session_and_drops_the_password() -> None:
+    library = FakeLoginLibrary({"sessionid": "77%3Aabc%3A28", "ds_user_id": "77"}, None)
+    client = InstagrapiClient()
+    client._client = library
+    result = client.login_with_credentials("me", "pw", "123456")
+    assert library.logins == [("me", "pw", True, "123456")]
+    assert library.password is None
+    assert result.model_dump() == {
+        "sessionid": "77%3Aabc%3A28",
+        "csrftoken": "csrf-value",
+        "user_id": "77",
+        "username": "me",
+    }
+
+
+def test_login_with_credentials_drops_the_password_on_failure() -> None:
+    library = FakeLoginLibrary(None, ClientError("rejected"))
+    client = InstagrapiClient()
+    client._client = library
+    with pytest.raises(ClientError):
+        client.login_with_credentials("me", "pw", "")
+    assert library.password is None
+
+
+def test_login_without_authorization_is_an_error() -> None:
+    client = InstagrapiClient()
+    client._client = FakeLoginLibrary(None, None)
+    with pytest.raises(ClientError):
+        client.login_with_credentials("me", "pw", "")

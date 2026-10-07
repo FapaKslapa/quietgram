@@ -2,12 +2,14 @@ import asyncio
 import json
 import os
 import random
+import time
 from collections.abc import Awaitable, Callable
 from pathlib import Path
 
-from ig_engine.errors import map_exception, session_expired
+from ig_engine.errors import map_exception, map_login_exception, session_expired
 from ig_engine.instagram import InstagramClient, SessionSettings
-from ig_engine.schemas import SessionStatus
+from ig_engine.schemas import LoginResult, SessionStatus
+from ig_engine.totp import totp_code
 
 type Sleeper = Callable[[float], Awaitable[None]]
 type Jitter = Callable[[float, float], float]
@@ -15,6 +17,16 @@ type ClientFactory = Callable[[], InstagramClient]
 
 DIRECTORY_MODE = 0o700
 FILE_MODE = 0o600
+DEVICE_KEYS = (
+    "uuids",
+    "device_settings",
+    "user_agent",
+    "country",
+    "country_code",
+    "locale",
+    "timezone_offset",
+    "timezone_name",
+)
 
 
 class StoredSession:
@@ -55,11 +67,30 @@ class ClientPool:
         payload = json.loads(path.read_text())
         return StoredSession(payload["settings"], payload.get("username"))
 
+    def _device_path(self, account_id: str) -> Path:
+        return self._accounts_dir / f"{account_id}.device.json"
+
+    def _identity(self, account_id: str) -> SessionSettings | None:
+        stored = self._read(account_id)
+        if stored is not None:
+            return stored.settings
+        path = self._device_path(account_id)
+        if not path.exists():
+            return None
+        device: SessionSettings = json.loads(path.read_text())
+        return device
+
+    def _write_device(self, account_id: str, settings: SessionSettings) -> None:
+        device = {key: settings[key] for key in DEVICE_KEYS if key in settings}
+        self._write_file(self._device_path(account_id), json.dumps(device))
+
     def _write(self, account_id: str, session: StoredSession) -> None:
-        self._accounts_dir.mkdir(parents=True, exist_ok=True, mode=DIRECTORY_MODE)
-        path = self._path(account_id)
-        temporary = path.with_suffix(".tmp")
         payload = json.dumps({"settings": session.settings, "username": session.username})
+        self._write_file(self._path(account_id), payload)
+
+    def _write_file(self, path: Path, payload: str) -> None:
+        self._accounts_dir.mkdir(parents=True, exist_ok=True, mode=DIRECTORY_MODE)
+        temporary = path.with_suffix(".tmp")
         descriptor = os.open(temporary, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, FILE_MODE)
         with os.fdopen(descriptor, "w") as handle:
             handle.write(payload)
@@ -108,6 +139,32 @@ class ClientPool:
             self._usernames[account_id] = username
             self._expired.discard(account_id)
             return SessionStatus(active=True, username=username)
+
+    async def login_credentials(
+        self, account_id: str, username: str, password: str, totp_secret: str | None
+    ) -> LoginResult:
+        async with self._lock:
+            await self._pace()
+            client = self._factory()
+            identity = self._identity(account_id)
+            if identity is not None:
+                client.load_settings(identity)
+            code = totp_code(totp_secret, time.time()) if totp_secret else ""
+            try:
+                result = await asyncio.to_thread(
+                    client.login_with_credentials, username, password, code
+                )
+            except Exception as exc:
+                self._write_device(account_id, client.export_settings())
+                mapped = map_login_exception(exc)
+                if mapped is None:
+                    raise
+                raise mapped from None
+            self._write(account_id, StoredSession(client.export_settings(), result.username))
+            self._clients[account_id] = client
+            self._usernames[account_id] = result.username
+            self._expired.discard(account_id)
+            return result
 
     async def run[T](self, account_id: str, operation: Callable[[InstagramClient], T]) -> T:
         async with self._lock:

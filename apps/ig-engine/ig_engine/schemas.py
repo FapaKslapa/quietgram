@@ -1,6 +1,8 @@
 from typing import Literal
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, SecretStr, field_validator
+
+from ig_engine.totp import decode_secret
 
 MAX_MESSAGE_LENGTH = 1000
 MAX_COMMENT_LENGTH = 2200
@@ -9,6 +11,26 @@ MIN_SESSIONID_LENGTH = 31
 
 class SessionRequest(BaseModel):
     sessionid: str = Field(min_length=MIN_SESSIONID_LENGTH, max_length=512, pattern=r"^\d+\S*$")
+
+
+class CredentialsLoginRequest(BaseModel):
+    username: str = Field(pattern=r"^[A-Za-z0-9._]{1,30}$")
+    password: SecretStr = Field(min_length=1, max_length=256)
+    totp_secret: SecretStr | None = Field(default=None, max_length=128)
+
+    @field_validator("totp_secret")
+    @classmethod
+    def check_totp_secret(cls, value: SecretStr | None) -> SecretStr | None:
+        if value is not None:
+            decode_secret(value.get_secret_value())
+        return value
+
+
+class LoginResult(BaseModel):
+    sessionid: str
+    csrftoken: str
+    user_id: str
+    username: str
 
 
 class SessionStatus(BaseModel):
