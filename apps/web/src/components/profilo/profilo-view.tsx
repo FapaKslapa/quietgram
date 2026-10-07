@@ -3,6 +3,7 @@ import {
   ChevronRight,
   Clock,
   Contrast,
+  Heart,
   Link2,
   LogOut,
   MessageSquare,
@@ -11,7 +12,6 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { AuthorAvatar } from "@/components/posta/author-avatar";
 import { DM_SEND_WARNING } from "@/components/profilo/dm-send-drawer";
 import { ScreenHeader } from "@/components/shell/screen-header";
 import {
@@ -23,6 +23,8 @@ import {
   ItemTitle,
 } from "@/components/ui/item";
 import { Switch } from "@/components/ui/switch";
+import { UserAvatar } from "@/components/ui/user-avatar";
+import { INTERACTIONS_WARNING } from "@/lib/interactions";
 import { type SessionStatus, sessionAction, sessionLabel } from "@/lib/profile";
 import { cn } from "@/lib/utils";
 
@@ -32,11 +34,13 @@ type ProfiloViewProps = {
   modeLabel: string;
   grayscale: boolean;
   dmSend: boolean;
+  interactions: boolean;
   budgetLabel: string;
   themeLabel: string;
   loggingOut: boolean;
   onGrayscale: (value: boolean) => void;
   onDmSend: (value: boolean) => void;
+  onInteractions: (value: boolean) => void;
   onOpenFeed: () => void;
   onOpenBudget: () => void;
   onOpenTheme: () => void;
@@ -72,11 +76,13 @@ export function ProfiloView({
   modeLabel,
   grayscale,
   dmSend,
+  interactions,
   budgetLabel,
   themeLabel,
   loggingOut,
   onGrayscale,
   onDmSend,
+  onInteractions,
   onOpenFeed,
   onOpenBudget,
   onOpenTheme,
@@ -87,7 +93,7 @@ export function ProfiloView({
       <ScreenHeader title="Profilo" variant="hatch" />
       <div className="column grid gap-4 px-4">
         <div className="flex items-center gap-3.5 px-1 pb-2">
-          <AuthorAvatar username={name} avatarUrl={null} className="size-14 text-base" />
+          <UserAvatar username={name} avatarUrl={null} size="lg" />
           <div className="min-w-0">
             <p className="truncate text-lg font-semibold tracking-[-0.02em]">{name}</p>
             <p className="text-sm text-muted-foreground">
@@ -157,6 +163,25 @@ export function ProfiloView({
                 onCheckedChange={onDmSend}
                 aria-label="Invio messaggi"
                 aria-describedby="dm-send-warning"
+              />
+            </ItemActions>
+          </Item>
+          <Item className={cn(ROW, "items-start py-3")} render={<div />}>
+            <ItemMedia variant="icon">
+              <Heart strokeWidth={1.8} aria-hidden="true" />
+            </ItemMedia>
+            <ItemContent>
+              <ItemTitle>Interazioni</ItemTitle>
+              <ItemDescription id="interactions-warning" className="line-clamp-none">
+                {INTERACTIONS_WARNING}
+              </ItemDescription>
+            </ItemContent>
+            <ItemActions>
+              <Switch
+                checked={interactions}
+                onCheckedChange={onInteractions}
+                aria-label="Interazioni"
+                aria-describedby="interactions-warning"
               />
             </ItemActions>
           </Item>

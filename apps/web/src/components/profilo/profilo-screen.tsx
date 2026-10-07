@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { ModeDrawer } from "@/components/posta/mode-drawer";
 import { ChoiceSheet } from "@/components/profilo/choice-sheet";
 import { DmSendDrawer } from "@/components/profilo/dm-send-drawer";
+import { InteractionsDrawer } from "@/components/profilo/interactions-drawer";
 import { ProfiloView } from "@/components/profilo/profilo-view";
 import { useFeedSettings } from "@/hooks/use-feed-settings";
 import { authClient } from "@/lib/auth/client";
@@ -16,7 +17,7 @@ import { modeDefinition } from "@/lib/feed-modes";
 import { isThemeChoice, THEMES, themeLabel } from "@/lib/profile";
 import { useTRPC } from "@/trpc/client";
 
-type Sheet = "feed" | "budget" | "theme" | "dm" | null;
+type Sheet = "feed" | "budget" | "theme" | "dm" | "interactions" | null;
 
 const BUDGET_OPTIONS = [
   { value: 0, label: "Spento", description: "Nessun limite." },
@@ -27,7 +28,7 @@ export function ProfiloScreen() {
   const trpc = useTRPC();
   const router = useRouter();
   const { theme, setTheme } = useTheme();
-  const { settings, setGrayscale, setBudget, setDmSend } = useFeedSettings();
+  const { settings, setGrayscale, setBudget, setDmSend, setInteractions } = useFeedSettings();
   const { data: overview } = useSuspenseQuery(trpc.refresh.overview.queryOptions());
   const { data: session } = authClient.useSession();
   const [sheet, setSheet] = useState<Sheet>(null);
@@ -52,6 +53,7 @@ export function ProfiloScreen() {
         modeLabel={modeDefinition(settings.feedMode).label}
         grayscale={settings.grayscaleMedia}
         dmSend={settings.dmSendEnabled}
+        interactions={settings.interactionsEnabled}
         budgetLabel={budgetLabel(settings.sessionBudgetMinutes)}
         themeLabel={themeLabel(theme)}
         loggingOut={loggingOut}
@@ -59,6 +61,10 @@ export function ProfiloScreen() {
         onDmSend={(dmSendEnabled) => {
           if (dmSendEnabled) setSheet("dm");
           else setDmSend.mutate({ dmSendEnabled });
+        }}
+        onInteractions={(interactionsEnabled) => {
+          if (interactionsEnabled) setSheet("interactions");
+          else setInteractions.mutate({ interactionsEnabled });
         }}
         onOpenFeed={() => setSheet("feed")}
         onOpenBudget={() => setSheet("budget")}
@@ -70,6 +76,11 @@ export function ProfiloScreen() {
         open={sheet === "dm"}
         onOpenChange={(open) => setSheet(open ? "dm" : null)}
         onConfirm={() => setDmSend.mutate({ dmSendEnabled: true })}
+      />
+      <InteractionsDrawer
+        open={sheet === "interactions"}
+        onOpenChange={(open) => setSheet(open ? "interactions" : null)}
+        onConfirm={() => setInteractions.mutate({ interactionsEnabled: true })}
       />
       <ChoiceSheet
         open={sheet === "budget"}
