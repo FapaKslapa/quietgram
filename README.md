@@ -2,7 +2,7 @@
 
 nodistraction is a private, minimal Instagram client: Instagram without reels, without an infinite feed and without algorithmic bait. It shows only what you chose to follow, in a finite and deliberately calm interface, and puts you in control of when the feed refreshes.
 
-It is a personal portfolio project built for two users (the author and a friend). It is not a product, it is not affiliated with Instagram or Meta, and it is not meant to be hosted for the public.
+It is a personal project built for two users (the author and a friend). It is not a product, it is not affiliated with Instagram or Meta, and it is not meant to be hosted for the public.
 
 ## What it does
 
@@ -116,7 +116,7 @@ Engine checks run with `uv run ruff check`, `uv run mypy` and `uv run pytest` fr
 
 ## Disclaimer
 
-This project uses unofficial, reverse-engineered Instagram endpoints, which violates Instagram's Terms of Use and can lead to rate limiting or account suspension. It is published for educational and portfolio purposes only, comes with no warranty, and should only ever be used with your own account.
+This project uses unofficial, reverse-engineered Instagram endpoints, which violates Instagram's Terms of Use and can lead to rate limiting or account suspension. It is published for educational purposes only, comes with no warranty, and should only ever be used with your own account.
 
 ## License
 
