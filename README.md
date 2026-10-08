@@ -1,6 +1,6 @@
-# nodistraction
+# quietgram
 
-nodistraction is a private, minimal Instagram client: Instagram without reels, without an infinite feed and without algorithmic bait. It shows only what you chose to follow, in a finite and deliberately calm interface, and puts you in control of when the feed refreshes.
+quietgram is a private, minimal Instagram client: Instagram without reels, without an infinite feed and without algorithmic bait. It shows only what you chose to follow, in a finite and deliberately calm interface, and puts you in control of when the feed refreshes.
 
 It is a personal project built for two users (the author and a friend). It is not a product, it is not affiliated with Instagram or Meta, and it is not meant to be hosted for the public.
 
@@ -92,7 +92,7 @@ docker run -d --name ig-engine \
   -v "$PWD/data:/data" \
   --read-only --tmpfs /tmp \
   --cap-drop ALL --security-opt no-new-privileges \
-  ghcr.io/fapakslapa/instagram_nodistraction-ig-engine:latest
+  ghcr.io/fapakslapa/quietgram-ig-engine:latest
 ```
 
 Expose it to the web app through a tunnel or reverse proxy of your choice and set `IG_ENGINE_URL` accordingly.
