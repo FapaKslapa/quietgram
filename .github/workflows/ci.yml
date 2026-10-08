@@ -40,7 +40,7 @@ jobs:
         working-directory: apps/ig-engine
     steps:
       - uses: actions/checkout@v7
-      - uses: astral-sh/setup-uv@v10
+      - uses: astral-sh/setup-uv@v10.2.0
         with:
           enable-cache: true
           cache-dependency-glob: apps/ig-engine/uv.lock
