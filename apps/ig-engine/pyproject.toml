@@ -3,20 +3,20 @@ name = "ig-engine"
 version = "0.1.0"
 requires-python = ">=3.12,<3.13"
 dependencies = [
-    "fastapi==0.143.0",
+    "fastapi==0.162.0",
     "uvicorn==0.54.0",
     "pydantic==2.12.5",
-    "pydantic-settings==2.15.0",
-    "instagrapi==3.0.20",
+    "pydantic-settings==2.16.2",
+    "instagrapi==3.2.2",
 ]
 
 [dependency-groups]
 dev = [
-    "pytest==9.1.1",
-    "pytest-asyncio==1.4.0",
+    "pytest==9.2.0",
+    "pytest-asyncio==1.4.1",
     "httpx==0.28.1",
-    "ruff==0.16.10",
-    "mypy==2.4.0",
+    "ruff==0.17.3",
+    "mypy==2.4.1",
 ]
 
 [build-system]
