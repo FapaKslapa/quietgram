@@ -13,14 +13,14 @@
     "generate": "drizzle-kit generate"
   },
   "dependencies": {
-    "drizzle-orm": "^0.45.3"
+    "drizzle-orm": "^0.45.4"
   },
   "devDependencies": {
-    "@cloudflare/workers-types": "^5.20261007.1",
+    "@cloudflare/workers-types": "^5.20261029.1",
     "@nodistraction/config": "workspace:*",
-    "@types/node": "^24.19.1",
+    "@types/node": "^26.6.6",
     "drizzle-kit": "^0.31.11",
-    "vitest": "^5.0.3"
+    "vitest": "^5.0.5"
   },
   "imports": {
     "#db/*": "./src/*.ts"
